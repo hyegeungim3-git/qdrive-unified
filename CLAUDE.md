@@ -31,7 +31,7 @@
 | 승객 앱 | PassengerApp | — | 유지 | ✅ 유지 |
 | 시민 공개(별도 진입) | (kpi 집계 연결) | 시민 탄소 페이지(히어로·소나무·계산기·공유·등급) | ADD 진입 | ✅ 완료(#citizen, 39721e3) |
 | 실증리포트/로드맵 | ReportView / TeaserView | — | 유지 | ✅ 유지 |
-| 공통 | 다크모드·DemoControls·BIS worker | 라이브 AI 코파일럿, 토스급 상태디자인 완성도 | ADD·통일 | ⬜ 미착수 |
+| 공통 | 다크모드·DemoControls·BIS worker | 라이브 AI 코파일럿, 토스급 상태디자인 완성도 | ADD·통일 | ✅ 코파일럿 완료(전역 오버레이) / 디자인·반응형 남음 |
 
 **디자인 통일 원칙**: proto의 Paperlogy + Tailwind가 정본. 탄소의 토스 토큰/Pretendard는 가져오지 않고 완성도(상태 디자인·마이크로인터랙션·서사)만 흡수. 임의 색·임의 px 금지, 토큰만 사용.
 

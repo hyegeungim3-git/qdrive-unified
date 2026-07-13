@@ -10,6 +10,7 @@ import ReportView from './views/ReportView'
 import TeaserView from './views/TeaserView'
 import CitizenPublic from './views/CitizenPublic'
 import CarbonAnalysis from './views/CarbonAnalysis'
+import Copilot from './components/Copilot'
 
 /** 해시 라우트 구독 — 시민 공개 페이지(#citizen)는 앱 셸 밖 독립 진입점 */
 function useHashRoute(): string {
@@ -107,6 +108,9 @@ export default function App() {
         {tab === 'report' && <ReportView />}
         {tab === 'roadmap' && <TeaserView />}
       </main>
+
+      {/* 공통 AI 코파일럿 오버레이 (전 탭) */}
+      <Copilot />
     </div>
   )
 }

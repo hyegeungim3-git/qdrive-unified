@@ -102,7 +102,7 @@ function buildPolicyReport(snap: SimSnapshot, period: Period): { paras: Para[]; 
     proposals.push(`② 에코드라이빙 코칭의 전 차량 확대 — 실증 절감률 ${kpi.fuelSavedPct.toFixed(1)}% 기준 연간 약 ${annualEok.toFixed(1)}억원 재정 효과 (증액 없는 절감 사업)`)
   if (snap.weather.condition !== '맑음')
     proposals.push(`③ 기상 대응 표준화 — ${snap.weather.condition} 시 예비차 선배정·감속 지침·시민 공지가 자동 연동됨을 확인, 매뉴얼 반영 권고`)
-  proposals.push(`${proposals.length === 0 ? '①' : ['①', '②', '③', '④'][proposals.length]} 정당 판정·상황 설명 체계의 노조 협의 자료화 — 감점 제외 ${justified}건 실적은 "감시 아닌 코칭" 수용성 근거`)
+  proposals.push(`${proposals.length === 0 ? '①' : ['①', '②', '③', '④'][proposals.length]} 방어운전 정당 판정·상황 설명 체계의 지속 운영 — 감점 제외 ${justified}건은 코칭 중심 운영의 현장 수용성을 뒷받침하는 실적`)
   if (occMax >= 70) proposals.push(`⑤ 첨두 재차율 ${occMax}% 구간 배차 간격 조정 검토`)
 
   return { paras, proposals, asOf: simClock(snap.simTime) }

@@ -68,7 +68,7 @@ export function PersonaChip({ persona }: { persona: 'A' | 'B' | 'C' }) {
   const map = {
     A: ['모범', 'text-emerald-400 border-emerald-500/30'],
     B: ['평균', 'text-sky-400 border-sky-500/30'],
-    C: ['개선필요', 'text-red-400 border-red-500/30'],
+    C: ['코칭 대상', 'text-amber-400 border-amber-500/30'],
   } as const
   const [label, cls] = map[persona]
   return <span className={`rounded border px-1.5 py-0.5 text-[10px] ${cls}`}>{label}</span>

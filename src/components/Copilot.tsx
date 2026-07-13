@@ -339,7 +339,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
               <div className="flex items-center gap-1 text-[10px] text-gray-500">
                 {hasKey ? (
                   <>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> 라이브 · claude-opus-4-8
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> 라이브 AI · 실시간 데이터 연결
                   </>
                 ) : (
                   '실시간 데이터 조회 · 조치 제안'

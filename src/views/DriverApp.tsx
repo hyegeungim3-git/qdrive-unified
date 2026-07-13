@@ -261,9 +261,9 @@ export default function DriverApp() {
               </div>
               <div className="grid w-full grid-cols-4 gap-1 px-3">
                 {RISK_EVENT_TYPES.map((t) => (
-                  <div key={t} className="rounded-md bg-gray-800/60 py-1 text-center">
-                    <div className="text-[8px] text-gray-500">{t}</div>
-                    <div className={`text-sm font-bold tabular-nums ${v.eventCounts[t] > 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                  <div key={t} className="rounded-md bg-gray-800/60 py-1.5 text-center">
+                    <div className="text-[10px] leading-tight text-gray-400">{t}</div>
+                    <div className={`text-base font-bold tabular-nums ${v.eventCounts[t] > 0 ? 'text-red-400' : 'text-gray-600'}`}>
                       {v.eventCounts[t]}
                     </div>
                   </div>
@@ -886,9 +886,9 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
           <div className="h-[168px]">
             <ResponsiveContainer>
               <LineChart data={WEEKLY_FUEL_TREND} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                <CartesianGrid stroke="#374151" strokeOpacity={0.3} strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="d" tick={{ fill: '#8899a6', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis domain={[2.6, 3.8]} tick={{ fill: '#8899a6', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <CartesianGrid stroke="var(--color-gray-800)" strokeOpacity={0.5} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="d" tick={{ fill: 'var(--color-gray-500)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis domain={[2.6, 3.8]} tick={{ fill: 'var(--color-gray-500)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: '#191f28', border: '1px solid #374151', borderRadius: 8, fontSize: 11 }} labelStyle={{ color: '#cbd5e1' }} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
                 <Line type="monotone" dataKey="me" name="내 연비" stroke="#38bdf8" strokeWidth={2.5} dot={{ r: 3 }} />

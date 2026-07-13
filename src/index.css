@@ -59,9 +59,10 @@ html.light {
   --color-gray-100: #1e293b;
   --color-gray-200: #334155;
   --color-gray-300: #475569;
-  --color-gray-400: #5b6b80;
-  --color-gray-500: #64748b;
-  --color-gray-600: #94a3b8;
+  --color-gray-400: #4c5768;
+  --color-gray-500: #556374;
+  /* 캡션 최저 등급 — 흰 카드 위 WCAG AA(≈4.6:1) 확보 (기존 #94a3b8는 ~2.6:1로 미달) */
+  --color-gray-600: #64748b;
   --color-gray-700: #cbd5e1;
   --color-gray-800: #e2e8f0;
   --color-gray-900: #ffffff;

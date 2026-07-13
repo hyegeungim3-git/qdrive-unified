@@ -97,9 +97,10 @@ const ZONES = [
   { name: '만평네거리', type: '급출발', count: '주 58건', tag: 'AI 탐지' },
 ]
 
+// 축·격자는 CSS 변수로 — 라이트/다크 자동 적응(하드코딩 #8899a6는 라이트에서 대비 미달)
 const chartTheme = {
-  grid: '#8899a6',
-  tick: { fill: '#8899a6', fontSize: 11, fontWeight: 600 },
+  grid: 'var(--color-gray-800)',
+  tick: { fill: 'var(--color-gray-500)', fontSize: 11, fontWeight: 600 },
   tooltip: {
     contentStyle: { background: '#191f28', border: '1px solid #374151', borderRadius: 8, fontSize: 12, color: '#fff' },
     labelStyle: { color: '#cbd5e1' },

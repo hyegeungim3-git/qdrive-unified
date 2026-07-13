@@ -70,8 +70,8 @@ function planCalc(n: number) {
 }
 
 const chartTheme = {
-  grid: '#8899a6',
-  tick: { fill: '#8899a6', fontSize: 11, fontWeight: 600 },
+  grid: 'var(--color-gray-800)',
+  tick: { fill: 'var(--color-gray-500)', fontSize: 11, fontWeight: 600 },
   tooltip: {
     contentStyle: { background: '#191f28', border: '1px solid #374151', borderRadius: 8, fontSize: 12, color: '#fff' },
     labelStyle: { color: '#cbd5e1' },

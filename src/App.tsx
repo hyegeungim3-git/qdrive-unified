@@ -9,6 +9,7 @@ import PassengerApp from './views/PassengerApp'
 import ReportView from './views/ReportView'
 import TeaserView from './views/TeaserView'
 import CitizenPublic from './views/CitizenPublic'
+import CarbonAnalysis from './views/CarbonAnalysis'
 
 /** 해시 라우트 구독 — 시민 공개 페이지(#citizen)는 앱 셸 밖 독립 진입점 */
 function useHashRoute(): string {
@@ -26,6 +27,7 @@ const TABS = [
   { id: 'operator', label: '운수사 관제', sub: '버스회사' },
   { id: 'driver', label: '기사 앱', sub: '운전자' },
   { id: 'passenger', label: '승객 앱', sub: '시민·승객' },
+  { id: 'carbon', label: '🌱 탄소중립 분석', sub: '탄소·연료·안전·전환' },
   { id: 'report', label: '실증 리포트', sub: 'As-Is → To-Be' },
   { id: 'roadmap', label: '로드맵', sub: '플랫폼 확장' },
 ] as const
@@ -101,6 +103,7 @@ export default function App() {
         {tab === 'operator' && <OperatorView />}
         {tab === 'driver' && <DriverApp />}
         {tab === 'passenger' && <PassengerApp />}
+        {tab === 'carbon' && <CarbonAnalysis />}
         {tab === 'report' && <ReportView />}
         {tab === 'roadmap' && <TeaserView />}
       </main>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DemoControls from './components/DemoControls'
 import { toggleTheme, useTheme } from './theme'
 import { useSim } from './sim/store'
@@ -8,6 +8,18 @@ import DriverApp from './views/DriverApp'
 import PassengerApp from './views/PassengerApp'
 import ReportView from './views/ReportView'
 import TeaserView from './views/TeaserView'
+import CitizenPublic from './views/CitizenPublic'
+
+/** 해시 라우트 구독 — 시민 공개 페이지(#citizen)는 앱 셸 밖 독립 진입점 */
+function useHashRoute(): string {
+  const [hash, setHash] = useState(() => window.location.hash)
+  useEffect(() => {
+    const on = () => setHash(window.location.hash)
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
+  return hash
+}
 
 const TABS = [
   { id: 'city', label: '시티 대시보드', sub: '대구시 (지자체)' },
@@ -24,6 +36,10 @@ export default function App() {
   const [tab, setTab] = useState<TabId>('city')
   const snap = useSim()
   const theme = useTheme()
+  const hash = useHashRoute()
+
+  // 시민 공개 페이지 — 독립 진입점(공유·배포용), 앱 셸 없이 전체화면 렌더
+  if (hash === '#citizen') return <CitizenPublic />
 
   return (
     <div className="flex h-svh flex-col">
@@ -60,6 +76,15 @@ export default function App() {
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <DemoControls snap={snap} onNavigate={(t) => setTab(t as TabId)} />
+          <button
+            onClick={() => {
+              window.location.hash = 'citizen'
+            }}
+            className="whitespace-nowrap rounded-md border border-emerald-800 bg-emerald-950/40 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:text-emerald-200"
+            title="시민 탄소 공개 페이지 (별도 진입점)"
+          >
+            🌱 시민 공개
+          </button>
           <button
             onClick={toggleTheme}
             className="whitespace-nowrap rounded-md border border-gray-800 bg-gray-900 px-2.5 py-1 text-xs font-semibold text-gray-300 hover:text-gray-100"

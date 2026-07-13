@@ -757,23 +757,35 @@ export default function CityDashboard() {
             right={<span className="text-[11px] text-gray-500">공단 409 패킷 · 총 {kpi.totalEvents}건</span>}
             className="min-h-0 flex-1"
           >
-            <div className="flex max-h-48 flex-col gap-1.5 overflow-y-auto">
-              {snap.events.slice(0, 30).map((e, i) => (
-                <div
-                  key={`${e.vehicleId}-${e.simTime}-${i}`}
-                  className="flex items-center justify-between rounded-md bg-gray-800/50 px-2.5 py-1.5 text-[11px]"
-                >
-                  <span className={`font-semibold ${e.justified ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {e.justified && <span title={e.justifyReason}>🛡 </span>}
-                    {e.eventType}
-                  </span>
-                  <span className="text-gray-400">{e.vehicleId.slice(-4)}호</span>
-                  <span className="tabular-nums text-gray-500">{e.speedKmh} km/h</span>
-                  <span className="font-mono text-gray-600">{simClock(e.simTime)}</span>
-                </div>
-              ))}
+            {/* 하단 pb-10: 우하단 AI 코파일럿 플로팅 버튼에 마지막 행이 가리지 않도록 여백 확보 */}
+            <div className="flex max-h-48 flex-col gap-1 overflow-y-auto pb-10 pr-1">
+              {snap.events.slice(0, 30).map((e, i) => {
+                const ok = e.justified
+                const fast = e.speedKmh >= 50
+                return (
+                  <div
+                    key={`${e.vehicleId}-${e.simTime}-${i}`}
+                    className={`flex items-center gap-2 rounded-md border-l-2 py-1.5 pl-2 pr-2.5 text-[11px] ${
+                      ok ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-red-500/60 bg-gray-800/40'
+                    }`}
+                  >
+                    <span className={`flex w-[74px] shrink-0 items-center gap-1 font-semibold ${ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {ok && <span title={e.justifyReason}>🛡</span>}
+                      <span className="truncate">{e.eventType}</span>
+                    </span>
+                    <span className="w-[46px] shrink-0 font-mono text-gray-300">{e.vehicleId.slice(-4)}호</span>
+                    <span className={`flex-1 text-right tabular-nums ${fast ? 'font-semibold text-amber-300' : 'text-gray-300'}`}>
+                      {e.speedKmh}
+                      <span className="text-gray-500"> km/h</span>
+                    </span>
+                    <span className="w-[38px] shrink-0 text-right font-mono text-gray-500">{simClock(e.simTime)}</span>
+                  </div>
+                )
+              })}
               {snap.events.length === 0 && (
-                <div className="py-4 text-center text-xs text-gray-600">이벤트 없음</div>
+                <div className="py-6 text-center text-xs text-gray-600">
+                  아직 위험운전 이벤트가 없어요 — 배속을 올리면 쌓입니다
+                </div>
               )}
             </div>
           </Panel>

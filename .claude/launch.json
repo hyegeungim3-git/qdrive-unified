@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "qdrive-proto",
+      "name": "qdrive-unified",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "cwd": "C:\\Qdrive\\qdrive-proto",
+      "cwd": "C:\\Qdrive 통합\\qdrive-unified",
       "port": 5173
     }
   ]

@@ -180,6 +180,7 @@ export default function DriverApp() {
   ].sort((a, b) => (b[1] as number) - (a[1] as number))[0]
 
   const { ref: scaleRef, scale } = useFrameScale()
+  const [tab, setTab] = useState<'home' | 'report'>('home')
 
   return (
     <div className="flex h-full flex-col items-center justify-start gap-4 overflow-y-auto py-1">
@@ -223,8 +224,32 @@ export default function DriverApp() {
             </div>
           </div>
 
-          {/* 본문 3열 */}
-          <div className="grid h-[calc(100%-52px)] grid-cols-[250px_1fr_270px] gap-3 p-3">
+          {/* 본문: 좌측 내비 레일 + 콘텐츠 */}
+          <div className="flex h-[calc(100%-52px)]">
+            {/* 좌측 내비 레일 — 실제 태블릿 앱처럼 화면 내부 메뉴로 전환 */}
+            <div className="flex w-[72px] flex-none flex-col items-center gap-1.5 border-r border-gray-800/60 bg-gray-900/40 py-3">
+              <button
+                onClick={() => setTab('home')}
+                className={`flex w-14 flex-col items-center gap-1 rounded-xl py-2.5 transition-colors ${
+                  tab === 'home' ? 'bg-sky-500/15 text-sky-300' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <span className="text-xl leading-none">🚌</span>
+                <span className="text-[9px] font-bold">운행</span>
+              </button>
+              <button
+                onClick={() => setTab('report')}
+                className={`relative flex w-14 flex-col items-center gap-1 rounded-xl py-2.5 transition-colors ${
+                  tab === 'report' ? 'bg-sky-500/15 text-sky-300' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <span className="text-xl leading-none">📋</span>
+                <span className="text-[9px] font-bold">리포트</span>
+              </button>
+            </div>
+
+            {tab === 'home' ? (
+          <div className="grid min-w-0 flex-1 grid-cols-[250px_1fr_270px] gap-3 p-3">
             {/* 좌: 점수 + 오늘 누계 */}
             <div className="flex flex-col items-center justify-between rounded-2xl bg-gray-900/60 py-3">
               <div className="flex flex-col items-center">
@@ -551,6 +576,12 @@ export default function DriverApp() {
               </div>
             </div>
           </div>
+            ) : (
+              <div className="min-w-0 flex-1 overflow-y-auto p-3">
+                <ReportScreen rank={rank} score={v.score} co2Saved={co2Saved} driverName={v.driverName} />
+              </div>
+            )}
+          </div>
 
           {/* 위험운전 경고 — 상단 드롭 토스트 (테마 무관 고정 색상) */}
           {warnActive && v.lastEvent && v.lastEvent.justified && (
@@ -617,20 +648,14 @@ export default function DriverApp() {
       {/* 설명 */}
       <div className="flex max-w-4xl gap-8 text-[11px] leading-relaxed text-gray-500">
         <span>
-          <b className="text-gray-300">12.3" 차량 거치 인포테인먼트</b> — 주행 중 조작 없는 상시 표출
-          글랜스 UI. 위험운전 경고는 화면 전체로 (운전석에서 즉시 인지)
+          <b className="text-gray-300">12.3" 차량 거치 인포테인먼트</b> — 좌측 레일의 <b className="text-gray-300">운행/리포트</b> 메뉴로
+          화면을 전환합니다. 위험운전 경고는 어느 화면에서든 전체로 (운전석에서 즉시 인지)
         </span>
         <span>
-          점수·다음 정류장·날씨 지침·차량 점검 예정까지 <b className="text-gray-300">기사에게 필요한 모든
-          정보가 한 화면</b>. ⚡ 급감속 / 🌧 날씨 / 🔧 고장 버튼으로 시연하세요
+          운행 화면은 점수·다음 정류장·날씨 지침까지 <b className="text-gray-300">주행 중 조작 없는 글랜스
+          UI</b>, 리포트 화면은 배지·인사이트·내 에이전트. ⚡ 급감속 / 🌧 날씨 / 🔧 고장 버튼으로 시연하세요
         </span>
       </div>
-
-      {/* 내 운행 리포트 — 배지·퍼스널 인사이트 (운행 후 자발적 개선 유도) */}
-      <DriverReport rank={rank} score={v.score} co2Saved={co2Saved} driverName={v.driverName} />
-
-      {/* 내 에이전트 — 개인화 Q&A + 빠른 신청 (구 에이전트 플랫폼 '기사' 롤 흡수) */}
-      <MyAgent />
     </div>
   )
 }
@@ -682,7 +707,6 @@ function MyAgent() {
   const myRequests = requests.filter((r) => r.vehicleId === v.id).slice(0, 4)
 
   return (
-    <div className="w-full max-w-5xl px-2 pb-6">
       <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
         <div className="mb-3 flex items-center gap-2">
           <span className="text-lg">🤖</span>
@@ -790,6 +814,15 @@ function MyAgent() {
           </div>
         </div>
       </div>
+  )
+}
+
+/** 리포트 화면 — 좌측 레일 '리포트' 탭의 콘텐츠. 요약 + 배지·인사이트 + 내 에이전트를 프레임 안에서 스크롤. */
+function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; score: number; co2Saved: number; driverName: string }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <DriverReport rank={rank} score={score} co2Saved={co2Saved} driverName={driverName} />
+      <MyAgent />
     </div>
   )
 }
@@ -819,7 +852,7 @@ function DriverReport({ rank, score, co2Saved, driverName }: { rank: number; sco
   ]
 
   return (
-    <div className="w-full max-w-5xl px-2 pb-4">
+    <div>
       {/* 라이브 요약 스트립 */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-3">
         <div className="text-sm font-bold text-gray-100">📋 {driverName} 기사님 오늘의 리포트</div>

@@ -16,6 +16,8 @@ import { DEFAULT_ROUTES, getBisKey, setBisKey, startBis, stopBis, useBis } from 
 import { ROUTES } from '../sim/routes'
 import { focusMap, useMapFocus } from '../sim/mapFocus'
 import PolicyReport from './city/PolicyReport'
+import ActionCenterModal from './city/ActionCenterModal'
+import { actionOwnerReadyCount } from '../components/ActionCenter'
 
 /* ── 위젯 커스터마이즈 (표시 여부 localStorage 유지) ── */
 type WidgetId = 'ops' | 'incidents' | 'riders' | 'alerts' | 'occ' | 'kpi' | 'bis' | 'routes' | 'feed'
@@ -89,6 +91,7 @@ export default function CityDashboard() {
   const [showPrevDay, setShowPrevDay] = useState(true)
   const focusTarget = useMapFocus() // 탭 간 공유 (운행 이력 등에서 설정 가능)
   const [showPolicyReport, setShowPolicyReport] = useState(false)
+  const [showActionCenter, setShowActionCenter] = useState(false)
 
   const togglePref = (id: WidgetId) =>
     setPrefs((p) => {
@@ -141,8 +144,21 @@ export default function CityDashboard() {
   return (
     <div className="grid h-full grid-cols-[280px_1fr_360px] gap-3">
       {showPolicyReport && <PolicyReport onClose={() => setShowPolicyReport(false)} />}
+      {showActionCenter && <ActionCenterModal onClose={() => setShowActionCenter(false)} />}
       {/* ── 좌: 운영 통계 (신규) ── */}
       <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+        {/* 조치함 — 구 AI 업무센터의 대구시 업무 (민원소명·시의회답변·탄소보고서) */}
+        <button
+          onClick={() => setShowActionCenter(true)}
+          className="flex w-full items-center justify-between rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-left text-[11px] font-bold text-violet-300 hover:bg-violet-500/20"
+        >
+          <span>🗂️ 조치함</span>
+          {actionOwnerReadyCount('대구시', snap) > 0 && (
+            <span className="rounded-full bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-bold text-violet-200">
+              {actionOwnerReadyCount('대구시', snap)}건 승인 대기
+            </span>
+          )}
+        </button>
         {/* AI 정책 보고서 */}
         <button
           onClick={() => setShowPolicyReport(true)}

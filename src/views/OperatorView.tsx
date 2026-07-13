@@ -5,6 +5,7 @@ import { engine, useSim } from '../sim/store'
 import { ROUTES } from '../sim/routes'
 import { RISK_EVENT_TYPES } from '../sim/types'
 import { resolveRequest, useAgentRequests } from '../sim/agentRequests'
+import { ActionCenterList, actionOwnerReadyCount } from '../components/ActionCenter'
 import Scanner from './operator/Scanner'
 import MaintChat from './operator/MaintChat'
 import Depot from './operator/Depot'
@@ -39,6 +40,8 @@ export default function OperatorView() {
     snap.workOrders.filter((w) => w.status === '초안').length
   const requests = useAgentRequests()
   const pendingRequests = requests.filter((r) => r.status === '승인 대기')
+  const [showActionCenter, setShowActionCenter] = useState(false)
+  const actionReady = actionOwnerReadyCount('버스회사', snap)
 
   const subNav = (
     <div className="flex gap-1">
@@ -210,6 +213,29 @@ export default function OperatorView() {
           </div>
         </Panel>
       )}
+
+      {/* 조치함 — 구 AI 업무센터의 버스회사 업무 (민원회신·작업지시·코칭통보) */}
+      <Panel
+        title="🗂️ 조치함"
+        right={
+          <button
+            onClick={() => setShowActionCenter((v) => !v)}
+            className={`rounded-md px-2.5 py-1 text-[10px] font-bold ${
+              actionReady > 0 ? 'bg-violet-500/20 text-violet-300' : 'text-gray-500'
+            }`}
+          >
+            {actionReady > 0 ? `${actionReady}건 승인 대기` : '모두 처리됨'} {showActionCenter ? '▾' : '▸'}
+          </button>
+        }
+      >
+        {showActionCenter ? (
+          <ActionCenterList owner="버스회사" snap={snap} />
+        ) : (
+          <div className="text-[11px] text-gray-500">
+            민원 회신문·정비 작업지시·코칭 통보문을 AI가 초안 작성합니다 — 펼쳐서 검토·승인하세요.
+          </div>
+        )}
+      </Panel>
 
       {/* 고장예측 알림 배너 */}
       {fault && fault.predicted && (

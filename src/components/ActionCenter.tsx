@@ -1,42 +1,40 @@
 import { useState } from 'react'
-import { engine, useSim } from '../sim/store'
+import { engine } from '../sim/store'
 import { RISK_EVENT_TYPES, type SimSnapshot } from '../sim/types'
-import { simClock } from '../components/ui'
+import { simClock } from './ui'
 
 /**
- * AI 업무 자동화 센터 — 버스회사·대구시 담당자의 반복 업무를 LLM 에이전트가
- * 데이터 수집→분석→문서 초안까지 처리하고, 담당자는 검토·승인만 한다.
- * 노션 Agentic 설계(자율성 L2~L3, 승인 기반 실행, 평가·처벌 자동화 금지)의 실동작화.
- * 데모: 규칙 기반 + 실데이터 채운 문서. 실서비스: LLM(초안 생성) + RAG(공문 양식·규정) + 도구 호출.
+ * 조치함 — AI가 데이터 수집→분석→문서 초안까지 처리하고 담당자는 검토·승인만 하는 업무 목록.
+ * 구 "AI 업무 자동화 센터"(최상위 탭)를 해체해 대구시 조치는 시티 대시보드에, 버스회사 조치는
+ * 운수사 관제에 각자의 맥락에서 뜨도록 재배치. 승인 워크플로 패턴이 챗 어시스턴트와 근본적으로
+ * 달라 코파일럿에 흡수하지 않고 별도 유지 — 자율성 레벨(L2 추천 / L3 승인 후 실행)을 업무별로 분리.
  */
 
-type Owner = '버스회사' | '대구시'
+export type ActionOwner = '버스회사' | '대구시'
 
-interface AgentDoc {
+interface ActionDoc {
   title: string
   body: string
 }
 
-interface AgentTask {
+interface ActionTask {
   id: string
-  owner: Owner
+  owner: ActionOwner
   icon: string
   title: string
   autonomy: 'L2' | 'L3'
   autonomyLabel: string
   steps: string[]
-  /** 업무 발동 조건 (실데이터). false면 '대기 중' */
   ready: (s: SimSnapshot) => boolean
   waitingMsg: string
   summary: (s: SimSnapshot) => string
-  document: (s: SimSnapshot) => AgentDoc
+  document: (s: SimSnapshot) => ActionDoc
   approveLabel: string
   approvedMsg: string
-  /** 승인 시 엔진 연동 (선택) */
   onApprove?: (s: SimSnapshot) => void
 }
 
-const TASKS: AgentTask[] = [
+const TASKS: ActionTask[] = [
   /* ── 버스회사 담당자 업무 ── */
   {
     id: 'complaint-reply',
@@ -206,12 +204,15 @@ const TASKS: AgentTask[] = [
   },
 ]
 
-// 승인 완료 상태는 모듈 레벨로 유지 — 탭 전환(언마운트)에도 세션 내 보존
+// 승인 완료 상태는 모듈 레벨로 유지 — 탭 전환(언마운트)에도, 시티/운수사 어느 쪽에서 봐도 보존
 const doneStore = new Set<string>()
 
-export default function AgentCenter() {
-  const snap = useSim()
-  const [owner, setOwner] = useState<Owner>('버스회사')
+export function actionOwnerReadyCount(owner: ActionOwner, snap: SimSnapshot): number {
+  return TASKS.filter((t) => t.owner === owner && t.ready(snap) && !doneStore.has(t.id)).length
+}
+
+/** 조치함 카드 목록 — owner로 고정 필터, 토글 없음(대구시/버스회사 각자 맥락에 이미 있음) */
+export function ActionCenterList({ owner, snap }: { owner: ActionOwner; snap: SimSnapshot }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [, forceRender] = useState(0)
   const done = (id: string) => doneStore.has(id)
@@ -221,47 +222,9 @@ export default function AgentCenter() {
   }
 
   const tasks = TASKS.filter((t) => t.owner === owner)
-  const readyCount = tasks.filter((t) => t.ready(snap) && !done(t.id)).length
 
   return (
-    <div className="mx-auto flex h-full max-w-4xl flex-col gap-3 overflow-y-auto pr-1">
-      {/* 헤더 */}
-      <div className="rounded-xl border border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-gray-900/40 px-5 py-4">
-        <div className="text-[10px] font-semibold tracking-widest text-violet-400">AI WORK AUTOMATION · 승인 기반 실행</div>
-        <div className="mt-1 flex items-end justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-gray-100">AI 업무 자동화 센터</h2>
-            <div className="mt-0.5 text-[11px] leading-relaxed text-gray-500">
-              에이전트가 데이터 수집→분석→문서 초안까지 처리합니다. 담당자는 검토·승인만 — 평가·처벌·정산
-              확정은 사람이 최종 판단(자동화 금지).
-            </div>
-          </div>
-          <div className="shrink-0 text-right">
-            <div className="text-2xl font-extrabold tabular-nums text-violet-300">{readyCount}</div>
-            <div className="text-[10px] text-gray-500">승인 대기 업무</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 담당자 토글 */}
-      <div className="flex gap-1">
-        {(['버스회사', '대구시'] as Owner[]).map((o) => (
-          <button
-            key={o}
-            onClick={() => {
-              setOwner(o)
-              setExpanded(null)
-            }}
-            className={`rounded-md px-4 py-1.5 text-xs font-semibold transition-colors ${
-              owner === o ? 'bg-violet-600 text-white' : 'bg-gray-900 text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            {o === '버스회사' ? '🏢 버스회사 담당' : '🏛️ 대구시 담당'}
-          </button>
-        ))}
-      </div>
-
-      {/* 업무 카드 */}
+    <div className="flex flex-col gap-2.5">
       {tasks.map((t) => {
         const isReady = t.ready(snap)
         const isDone = done(t.id)
@@ -305,7 +268,6 @@ export default function AgentCenter() {
 
             {isOpen && doc && (
               <div className="border-t border-gray-800 px-4 py-3">
-                {/* 에이전트 처리 단계 */}
                 <div className="mb-3 flex flex-wrap gap-1.5">
                   {t.steps.map((step, i) => (
                     <span key={step} className="flex items-center gap-1 rounded-full bg-gray-800/60 px-2 py-0.5 text-[10px] text-gray-400">
@@ -313,12 +275,10 @@ export default function AgentCenter() {
                     </span>
                   ))}
                 </div>
-                {/* 생성 문서 미리보기 */}
                 <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
                   <div className="mb-1.5 text-[11px] font-bold text-gray-300">📄 {doc.title}</div>
                   <pre className="whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-gray-400">{doc.body}</pre>
                 </div>
-                {/* 승인 */}
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-[10px] text-gray-600">
                     🤖 초안은 AI 생성 · 발송/확정은 담당자 승인 필수 ({t.autonomyLabel})
@@ -344,7 +304,6 @@ export default function AgentCenter() {
           </div>
         )
       })}
-
       <div className="rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2.5 text-[10px] leading-relaxed text-gray-600">
         ⚠ 데모: 규칙 기반 + 실데이터 채운 문서. 실서비스: LLM(초안 생성) + RAG(공문 양식·규정·이력) + 도구
         호출(조회·발송). 자율성 레벨(L2 추천 / L3 승인 후 실행)을 업무별로 분리하며, 인사·평가·정산 확정 등

@@ -7,7 +7,6 @@ import CityDashboard from './views/CityDashboard'
 import OperatorView from './views/OperatorView'
 import DriverApp from './views/DriverApp'
 import PassengerApp from './views/PassengerApp'
-import AgentCenter from './views/AgentCenter'
 import CarbonAnalysis from './views/CarbonAnalysis'
 import ReportView from './views/ReportView'
 import TeaserView from './views/TeaserView'
@@ -19,7 +18,6 @@ const TABS = [
   { id: 'driver', label: '기사 앱', sub: '운전자' },
   { id: 'passenger', label: '승객 앱', sub: '시민·승객' },
   { id: 'carbon', label: '🌱 탄소중립 분석', sub: '탄소·연료·안전·전환' },
-  { id: 'agent', label: 'AI 업무센터', sub: '자동화·승인' },
   { id: 'report', label: '실증 리포트', sub: 'As-Is → To-Be' },
   { id: 'roadmap', label: '로드맵', sub: '플랫폼 확장' },
 ] as const
@@ -107,7 +105,6 @@ export default function App() {
         {tab === 'driver' && <DriverApp />}
         {tab === 'passenger' && <PassengerApp />}
         {tab === 'carbon' && <CarbonAnalysis />}
-        {tab === 'agent' && <AgentCenter />}
         {tab === 'report' && <ReportView />}
         {tab === 'roadmap' && <TeaserView />}
       </main>

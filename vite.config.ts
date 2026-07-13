@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/qdrive-proto/', // GitHub Pages 서브경로
+  base: '/qdrive-unified/', // GitHub Pages 서브경로 — 배포 저장소명과 일치시킬 것
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {

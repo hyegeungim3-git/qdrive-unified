@@ -29,7 +29,7 @@
 | 운수사 관제 | OperatorView 6서브탭 | 경영 손익(P&L)·V2G 잠재수익 → "경영 요약" 서브탭 추가 | ADD 서브탭 | ⬜ 미착수 |
 | 기사 앱 | DriverApp(랭킹·코칭·소명 유지) | 배지 6종·퍼스널 인사이트만 (탄소 정적 랭킹은 DROP) | MERGE 일부 | ⬜ 미착수 |
 | 승객 앱 | PassengerApp | — | 유지 | ✅ 유지 |
-| 시민 공개(별도 진입) | (kpi 집계 연결) | 시민 탄소 페이지(히어로·소나무·계산기·공유·등급) | ADD 진입 | ⬜ 미착수 |
+| 시민 공개(별도 진입) | (kpi 집계 연결) | 시민 탄소 페이지(히어로·소나무·계산기·공유·등급) | ADD 진입 | ✅ 완료(#citizen, 39721e3) |
 | 실증리포트/로드맵 | ReportView / TeaserView | — | 유지 | ✅ 유지 |
 | 공통 | 다크모드·DemoControls·BIS worker | 라이브 AI 코파일럿, 토스급 상태디자인 완성도 | ADD·통일 | ⬜ 미착수 |
 
@@ -64,8 +64,10 @@
 - git identity는 저장소 로컬 (hyegeungim3-git), --global 금지
 
 ## 검증
-- `npm run build` 통과 확인 (base 임포트 시점 통과 완료). 폰트 `../fonts/...` 미해결 경고는 런타임 해석이라 정상.
-- 브라우저 검증은 DOM 텍스트/상태 우선 (스크린샷은 타임아웃 잦음)
+- `npm run build` 통과 확인. 폰트 `../fonts/...` 미해결 경고는 런타임 해석이라 정상.
+- **vite 8(rolldown) 빌드 크래시 함정**: `node_modules/.vite` 캐시가 손상되면 "644 modules transformed" 직후 청크 렌더링 단계에서 네이티브 크래시(exit -1073740791, STATUS_STACK_BUFFER_OVERRUN, 패닉 메시지 없음). **해결: `node_modules/.vite`와 `dist` 삭제 후 재빌드.** 코드 문제로 오인 금지.
+- PowerShell에서 `npm run build 2>&1`은 vite stderr를 NativeCommandError로 감싸 exit 9로 보임 → 실제 판정은 `cmd /c "npx vite build > log 2>&1"` 후 `$LASTEXITCODE`로.
+- 브라우저 검증은 DOM 텍스트/상태 우선 (스크린샷은 라이브 카운터 리렌더로 타임아웃 잦음). 콘솔의 Electron sandboxed_renderer 에러는 프리뷰 하네스 내부 문제로 앱과 무관.
 
 ## 빌드 시퀀스 (각 슬라이스: 이식→빌드→브라우저 검증→커밋)
 1. **시민 공개 페이지**(별도 진입) ← 자기완결·실동작 위젯 많음, 첫 검증 슬라이스

@@ -1,0 +1,285 @@
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+/* ── Paperlogy — 브랜드 서체 (300~900, 7웨이트) ── */
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('../fonts/Paperlogy-3Light.ttf') format('truetype');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('../fonts/Paperlogy-4Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('../fonts/Paperlogy-5Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('../fonts/Paperlogy-6SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('../fonts/Paperlogy-7Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('../fonts/Paperlogy-8ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('../fonts/Paperlogy-9Black.ttf') format('truetype');
+  font-weight: 900;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+/* ── 라이트 테마: Tailwind 색상 변수를 스코프 내에서 반전 ──
+   다크 기준으로 작성된 유틸리티(text-gray-100, bg-gray-900 등)가
+   그대로 라이트 팔레트로 매핑된다. */
+html.light {
+  color-scheme: light;
+  /* 그레이 스케일 반전 */
+  --color-gray-50: #0f172a;
+  --color-gray-100: #1e293b;
+  --color-gray-200: #334155;
+  --color-gray-300: #475569;
+  --color-gray-400: #5b6b80;
+  --color-gray-500: #64748b;
+  --color-gray-600: #94a3b8;
+  --color-gray-700: #cbd5e1;
+  --color-gray-800: #e2e8f0;
+  --color-gray-900: #ffffff;
+  --color-gray-950: #f1f5f9;
+  /* 액센트 — 밝은 배경 대비 확보를 위해 진하게 */
+  --color-sky-100: #0c4a6e;
+  --color-sky-200: #075985;
+  --color-sky-300: #0369a1;
+  --color-sky-400: #0284c7;
+  --color-emerald-300: #047857;
+  --color-emerald-400: #059669;
+  --color-amber-200: #92400e;
+  --color-amber-300: #b45309;
+  --color-amber-400: #d97706;
+  --color-red-300: #b91c1c;
+  --color-red-400: #dc2626;
+  --color-violet-300: #6d28d9;
+  --color-violet-400: #7c3aed;
+  --color-indigo-300: #4338ca;
+}
+
+body {
+  margin: 0;
+  background: #0b0f17;
+  color: var(--color-gray-200, #e5e7eb);
+  font-family: 'Paperlogy', 'Segoe UI', 'Malgun Gothic', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 버튼·입력 등 폼 요소도 브랜드 서체 상속 */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* 포커스 접근성 — 키보드 탐색 시 명확한 링 */
+:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+html.light body {
+  background: #e8edf4;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Leaflet 다크 테마 보정 */
+.leaflet-container {
+  background: #0b0f17;
+  font: inherit;
+}
+.leaflet-control-attribution {
+  background: rgba(11, 15, 23, 0.7) !important;
+  color: #6b7280 !important;
+}
+.leaflet-control-attribution a {
+  color: #9ca3af !important;
+}
+html.light .leaflet-container {
+  background: #dde3ea;
+}
+html.light .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: #64748b !important;
+}
+
+/* 버스 마커 — 측면 버스 SVG */
+.bus-marker {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  transform: translate(-14px, -9px);
+}
+.bus-marker .bus-body {
+  display: block;
+  line-height: 0;
+}
+.bus-marker .bus-svg {
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.bus-marker .label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #e5e7eb;
+  background: rgba(11, 15, 23, 0.85);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid #1f2937;
+}
+html.light .bus-marker .label {
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #cbd5e1;
+}
+html.light .bus-marker .bus-svg {
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.35));
+}
+.bus-marker.warn .bus-svg {
+  animation: bus-warn 0.9s ease-in-out infinite;
+}
+@keyframes bus-warn {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.95));
+  }
+}
+/* BIS 실데이터 버스 — 아웃라인 차체로 시뮬레이션과 구분 */
+.bus-marker.real .bus-svg {
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.55));
+}
+.bus-marker.real .label {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+/* 돌발정보 마커 — 컬러 배지 + 유형·상태 태그 */
+.incident-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transform: translate(-16px, -16px);
+  white-space: nowrap;
+}
+.incident-marker .badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+  line-height: 1;
+  border-radius: 9999px;
+  border: 2px solid;
+  backdrop-filter: blur(2px);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+.incident-marker .tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid;
+  background: rgba(11, 15, 23, 0.85);
+}
+html.light .incident-marker .tag {
+  background: rgba(255, 255, 255, 0.92);
+}
+.incident-marker.fresh .badge {
+  animation: incident-pulse 1s ease-in-out infinite;
+}
+@keyframes incident-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+/* 토스트 등장 애니메이션 */
+.toast-in {
+  animation: toast-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+/* 기사 태블릿 경고 토스트 — 위에서 드롭 */
+.warn-drop {
+  animation: warn-drop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+@keyframes warn-drop {
+  from {
+    transform: translateY(-28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes toast-in {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 스크롤바 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 4px;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

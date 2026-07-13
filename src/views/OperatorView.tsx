@@ -1,0 +1,351 @@
+import { useState } from 'react'
+import { Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { Panel, PersonaChip, ScoreBadge, simClock } from '../components/ui'
+import { engine, useSim } from '../sim/store'
+import { ROUTES } from '../sim/routes'
+import { RISK_EVENT_TYPES } from '../sim/types'
+import Scanner from './operator/Scanner'
+import MaintChat from './operator/MaintChat'
+import Depot from './operator/Depot'
+import TripsLog from './operator/TripsLog'
+import AiReport from './operator/AiReport'
+
+const SUB_TABS = [
+  { id: 'ops', label: '관제 현황' },
+  { id: 'trips', label: '운행 이력' },
+  { id: 'report', label: 'AI 리포트' },
+  { id: 'scanner', label: '진단 스캐너' },
+  { id: 'chat', label: 'AI+ 정비도우미' },
+  { id: 'depot', label: '차고지·충전' },
+] as const
+
+type SubTab = (typeof SUB_TABS)[number]['id']
+
+export default function OperatorView() {
+  const [sub, setSub] = useState<SubTab>('ops')
+  const snap = useSim()
+  const fault = snap.fault
+
+  const sorted = [...snap.vehicles].sort((a, b) => b.score - a.score)
+  const pendingActions =
+    snap.recommendations.filter((r) => r.status !== '실행완료').length +
+    snap.workOrders.filter((w) => w.status === '초안').length
+
+  const subNav = (
+    <div className="flex gap-1">
+      {SUB_TABS.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => setSub(t.id)}
+          className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+            sub === t.id ? 'bg-gray-700 text-white' : 'bg-gray-900 text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          {t.label}
+          {t.id === 'scanner' && fault?.predicted && <span className="ml-1 text-red-400">●</span>}
+        </button>
+      ))}
+    </div>
+  )
+
+  if (sub !== 'ops') {
+    return (
+      <div className="flex h-full flex-col gap-3">
+        {subNav}
+        <div className="min-h-0 flex-1">
+          {sub === 'trips' && <TripsLog />}
+          {sub === 'report' && <AiReport />}
+          {sub === 'scanner' && <Scanner />}
+          {sub === 'chat' && <MaintChat />}
+          {sub === 'depot' && <Depot />}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
+      {subNav}
+      {/* Agentic — AI 추천 조치 (승인 기반 실행) */}
+      {(snap.recommendations.length > 0 || snap.workOrders.length > 0) && (
+        <Panel
+          title={
+            <span>
+              🤖 AI 추천 조치{' '}
+              <span className="ml-1 text-[10px] font-normal text-gray-500">
+                예측 → 조치안 생성 → <b className="text-sky-400">담당자 승인</b> → 실행 → 검증
+              </span>
+            </span>
+          }
+          right={
+            pendingActions > 0 ? (
+              <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-[10px] font-bold text-sky-300">
+                대기 {pendingActions}건
+              </span>
+            ) : (
+              <span className="text-[11px] text-gray-500">모두 처리됨</span>
+            )
+          }
+          className="border-sky-500/20"
+        >
+          <div className="space-y-2">
+            {snap.recommendations.map((r) => (
+              <div key={r.id} className="flex items-center gap-3 rounded-lg bg-gray-800/40 px-3 py-2.5">
+                <span className="text-lg">🚌</span>
+                <div className="flex-1 text-xs">
+                  <div className="font-semibold text-gray-200">
+                    배차간격 권고 — {ROUTES.find((x) => x.id === r.routeId)?.name} {r.vehicleId.slice(-4)}호:{' '}
+                    <span className="text-sky-300">{r.action}</span>
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-gray-500">
+                    근거: {r.reason} · 기대효과: <span className="text-emerald-400">{r.effect}</span>
+                  </div>
+                </div>
+                {r.status === '대기' ? (
+                  <button
+                    onClick={() => engine.approveRecommendation(r.id)}
+                    className="rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
+                  >
+                    승인
+                  </button>
+                ) : (
+                  <span
+                    className={`rounded-md px-2 py-1 text-[10px] font-bold ${
+                      r.status === '실행완료'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-amber-500/20 text-amber-400'
+                    }`}
+                  >
+                    {r.status === '실행완료' ? '✓ 실행완료 · 간격 회복 검증됨' : '승인됨 · 다음 정류장 실행'}
+                  </span>
+                )}
+              </div>
+            ))}
+            {snap.workOrders.map((w) => (
+              <div key={w.id} className="flex items-center gap-3 rounded-lg bg-gray-800/40 px-3 py-2.5">
+                <span className="text-lg">🔧</span>
+                <div className="flex-1 text-xs">
+                  <div className="font-semibold text-gray-200">
+                    정비 작업지시 초안 — {w.vehicleId.slice(-4)}호 <span className="text-amber-300">{w.kind}</span>
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-gray-500">
+                    점검항목: {w.items.join(' · ')} · 예상 {w.estHours}시간 · 2회차 종료 후 권장
+                  </div>
+                </div>
+                {w.status === '초안' ? (
+                  <button
+                    onClick={() => engine.approveWorkOrder(w.id)}
+                    className="rounded-md bg-amber-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-amber-500"
+                  >
+                    작업지시 발행
+                  </button>
+                ) : (
+                  <span className="rounded-md bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-400">
+                    ✓ 발행됨 · 정비팀 전달
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
+      {/* 고장예측 알림 배너 */}
+      {fault && fault.predicted && (
+        <div className="flex items-center gap-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-4">
+          <div className="text-3xl">⚠️</div>
+          <div className="flex-1">
+            <div className="text-sm font-bold text-amber-300">
+              고장예측 알림 — {fault.vehicleId} {fault.kind}
+            </div>
+            <div className="mt-1 text-xs leading-relaxed text-amber-200/70">
+              냉각수온이 정상범위(88~95°C)를 벗어나 상승 중입니다. 현재{' '}
+              <b className="tabular-nums">{fault.coolantTemp.toFixed(1)}°C</b> — 써모스탯/워터펌프 점검
+              권장. <b>운행 중단 전 예방 정비로 대응 가능</b> (예상 절감: 긴급출동 + 대차 비용 약 180만원)
+            </div>
+          </div>
+          <div className="h-20 w-64">
+            <ResponsiveContainer>
+              <LineChart data={fault.history}>
+                <XAxis dataKey="t" hide />
+                <YAxis domain={[85, 115]} hide />
+                <ReferenceLine y={100} stroke="#f59e0b" strokeDasharray="4 3" />
+                <Line
+                  type="monotone"
+                  dataKey="temp"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* 기사 소명함 — 급조작 직후 음성/버튼 소명 검토 (불이익 확정은 사람이) */}
+      {snap.pleas.length > 0 && (
+        <Panel
+          title="🎙 기사 소명함"
+          right={
+            <span className="text-[11px] text-gray-500">
+              검토 대기 {snap.pleas.filter((p) => p.status === '접수').length}건 · 인정 시 감점 즉시 복원
+            </span>
+          }
+          className="border-emerald-500/20"
+        >
+          <div className="space-y-2">
+            {snap.pleas.slice(0, 5).map((p) => (
+              <div key={p.id} className="flex items-center gap-3 rounded-lg bg-gray-800/40 px-3 py-2.5">
+                <span className="text-lg">{p.method === '음성' ? '🎙' : '🔘'}</span>
+                <div className="min-w-0 flex-1 text-xs">
+                  <div className="font-semibold text-gray-200">
+                    {p.vehicleId.slice(-4)}호 {p.driverName} 기사 — <span className="text-red-400">{p.eventType}</span>{' '}
+                    <span className="text-[10px] text-gray-500">({simClock(p.simTime)} · {p.method} 소명)</span>
+                  </div>
+                  <div className="mt-0.5 truncate text-[11px] italic text-gray-400">"{p.note}"</div>
+                </div>
+                {p.status === '접수' ? (
+                  <button
+                    onClick={() => engine.acknowledgePlea(p.id)}
+                    className="shrink-0 rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-500"
+                  >
+                    소명 인정
+                  </button>
+                ) : (
+                  <span className="shrink-0 rounded-md bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-400">
+                    ✓ 인정 · 감점 복원됨
+                  </span>
+                )}
+              </div>
+            ))}
+            <div className="text-[10px] text-gray-600">
+              전후 주행 데이터·DVR 클립(실증 시)이 자동 첨부됩니다 — AI는 면제를 자동으로, 불이익 확정은 사람이
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {/* 차량/기사 테이블 */}
+      <Panel title="차량 · 기사별 운행 현황" right={<span className="text-[11px] text-gray-500">OBD/CAN + DTG 통합</span>}>
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-gray-800 text-[11px] text-gray-500">
+              <th className="pb-2 pr-3 font-medium">차량번호</th>
+              <th className="pb-2 pr-3 font-medium">노선</th>
+              <th className="pb-2 pr-3 font-medium">기사</th>
+              <th className="pb-2 pr-3 font-medium">운전점수</th>
+              <th className="pb-2 pr-3 font-medium">속도</th>
+              <th className="pb-2 pr-3 font-medium">주행</th>
+              <th className="pb-2 pr-3 font-medium">연료(CNG)</th>
+              <th className="pb-2 pr-3 font-medium">재차율</th>
+              <th className="pb-2 pr-3 font-medium">위험운전</th>
+              <th className="pb-2 font-medium">상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((v) => {
+              const route = ROUTES.find((r) => r.id === v.routeId)!
+              const evTotal = RISK_EVENT_TYPES.reduce((s, t) => s + v.eventCounts[t], 0)
+              const isFault = fault?.predicted && fault.vehicleId === v.id
+              return (
+                <tr key={v.id} className="border-b border-gray-800/50 last:border-0">
+                  <td className="py-2 pr-3 font-mono font-semibold text-gray-200">{v.id}</td>
+                  <td className="py-2 pr-3">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full" style={{ background: route.color }} />
+                      {route.name}
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3 text-gray-300">
+                    {v.driverName} <PersonaChip persona={v.persona} />
+                  </td>
+                  <td className="py-2 pr-3">
+                    <ScoreBadge score={v.score} />
+                  </td>
+                  <td className="py-2 pr-3 tabular-nums text-gray-400">{Math.round(v.speedKmh)} km/h</td>
+                  <td className="py-2 pr-3 tabular-nums text-gray-400">{v.distanceKm.toFixed(1)} km</td>
+                  <td className="py-2 pr-3 tabular-nums text-gray-400">{v.fuelM3.toFixed(2)} m³</td>
+                  <td className="py-2 pr-3">
+                    <span
+                      className={`tabular-nums ${
+                        v.occupancy >= 0.7 ? 'text-red-400' : v.occupancy >= 0.4 ? 'text-amber-400' : 'text-gray-400'
+                      }`}
+                    >
+                      {Math.round(v.occupancy * 100)}%
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3">
+                    <span className={`tabular-nums ${evTotal > 5 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>
+                      {evTotal}건
+                    </span>
+                  </td>
+                  <td className="py-2">
+                    {isFault ? (
+                      <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
+                        점검필요
+                      </span>
+                    ) : v.dwellRemaining > 0 ? (
+                      <span className="rounded bg-gray-700/50 px-1.5 py-0.5 text-[10px] text-gray-400">정차</span>
+                    ) : (
+                      <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-400">
+                        운행중
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </Panel>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* 정비비 예측 */}
+        <Panel title="🔧 정비비 예측 (월간)" right={<span className="text-[11px] text-gray-500">OBD/CAN + 정비이력</span>}>
+          <div className="space-y-2.5 text-xs">
+            {[
+              ['브레이크 패드', '3742 · 5563', '잔여수명 2주', 'text-red-400'],
+              ['냉각계통', fault ? '3742 (진행중)' : '이상 없음', fault ? '즉시 점검' : '정상', fault ? 'text-amber-400' : 'text-emerald-400'],
+              ['엔진오일', '전 차량', '평균 잔여 3,200km', 'text-gray-400'],
+              ['타이어', '1205 · 0917', '마모율 72%', 'text-amber-400'],
+            ].map(([part, veh, status, cls]) => (
+              <div key={part as string} className="flex items-center justify-between rounded-md bg-gray-800/40 px-3 py-2">
+                <span className="font-semibold text-gray-300">{part}</span>
+                <span className="text-gray-500">{veh}</span>
+                <span className={`font-semibold ${cls}`}>{status}</span>
+              </div>
+            ))}
+            <div className="mt-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-300">
+              예방정비 전환 시 예상 절감: <b>월 약 340만원</b> (긴급수리 대비, 26개사 평균 추정)
+            </div>
+          </div>
+        </Panel>
+
+        {/* eTAS 제출 현황 = 운행기록 (521) */}
+        <Panel
+          title="eTAS 운행기록 자동제출"
+          right={<span className="text-[11px] text-gray-500">공단 521 패킷 · 법정 의무 자동화</span>}
+        >
+          <div className="flex max-h-52 flex-col gap-1.5 overflow-y-auto text-[11px]">
+            {snap.trips.slice(0, 12).map((t, i) => (
+              <div key={i} className="flex items-center justify-between rounded-md bg-gray-800/40 px-2.5 py-1.5">
+                <span className="font-mono text-gray-300">{t.vehicleId.slice(-4)}호</span>
+                <span className="text-gray-500">{t.routeName}</span>
+                <span className="tabular-nums text-gray-400">{t.distanceKm} km</span>
+                <span className="tabular-nums text-gray-400">{t.fuelM3} m³</span>
+                <span className="font-mono text-gray-600">{simClock(t.endSimTime)}</span>
+                <span className="font-semibold text-emerald-400">제출완료 ✓</span>
+              </div>
+            ))}
+            {snap.trips.length === 0 && (
+              <div className="py-4 text-center text-gray-600">
+                운행 완료 시 자동제출 기록이 표시됩니다 (배속을 올려보세요)
+              </div>
+            )}
+          </div>
+        </Panel>
+      </div>
+    </div>
+  )
+}

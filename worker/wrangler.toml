@@ -1,0 +1,6 @@
+name = "qdrive-bis-proxy"
+main = "src/worker.js"
+compatibility_date = "2026-07-01"
+
+# 인증키는 여기 쓰지 않는다 — 반드시 비밀변수로:
+#   npx wrangler secret put TAGO_KEY

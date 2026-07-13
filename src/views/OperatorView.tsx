@@ -4,6 +4,7 @@ import { Panel, PersonaChip, ScoreBadge, simClock } from '../components/ui'
 import { engine, useSim } from '../sim/store'
 import { ROUTES } from '../sim/routes'
 import { RISK_EVENT_TYPES } from '../sim/types'
+import { resolveRequest, useAgentRequests } from '../sim/agentRequests'
 import Scanner from './operator/Scanner'
 import MaintChat from './operator/MaintChat'
 import Depot from './operator/Depot'
@@ -25,6 +26,8 @@ const SUB_TABS = [
 
 type SubTab = (typeof SUB_TABS)[number]['id']
 
+const REQ_ICON = { 휴가: '🏖️', 상황설명: '🎙', 교육문의: '🎓', 근무변경: '🔁' } as const
+
 export default function OperatorView() {
   const [sub, setSub] = useState<SubTab>('ops')
   const snap = useSim()
@@ -34,6 +37,8 @@ export default function OperatorView() {
   const pendingActions =
     snap.recommendations.filter((r) => r.status !== '실행완료').length +
     snap.workOrders.filter((w) => w.status === '초안').length
+  const requests = useAgentRequests()
+  const pendingRequests = requests.filter((r) => r.status === '승인 대기')
 
   const subNav = (
     <div className="flex gap-1">
@@ -155,6 +160,57 @@ export default function OperatorView() {
           </div>
         </Panel>
       )}
+      {/* 기사 요청 승인함 — 구 에이전트 플랫폼 '회사' 롤 승인 기능 흡수 */}
+      {requests.length > 0 && (
+        <Panel
+          title="📥 기사 요청 승인함"
+          right={
+            pendingRequests.length > 0 ? (
+              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                대기 {pendingRequests.length}건
+              </span>
+            ) : (
+              <span className="text-[11px] text-gray-500">모두 처리됨</span>
+            )
+          }
+        >
+          <div className="space-y-1.5">
+            {requests.slice(0, 6).map((r) => (
+              <div key={r.id} className="flex items-center gap-2 rounded-md bg-gray-800/40 px-3 py-2 text-[11px]">
+                <span>{REQ_ICON[r.kind]}</span>
+                <span className="shrink-0 font-semibold text-gray-300">{r.kind}</span>
+                <span className="shrink-0 text-gray-500">{r.from} 기사</span>
+                <span className="min-w-0 flex-1 truncate text-gray-400">{r.detail}</span>
+                {r.status === '승인 대기' ? (
+                  <span className="flex shrink-0 gap-1">
+                    <button
+                      onClick={() => resolveRequest(r.id, '승인')}
+                      className="rounded bg-emerald-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-500"
+                    >
+                      승인
+                    </button>
+                    <button
+                      onClick={() => resolveRequest(r.id, '반려')}
+                      className="rounded border border-gray-700 px-2.5 py-1 text-[10px] text-gray-400 hover:text-gray-200"
+                    >
+                      반려
+                    </button>
+                  </span>
+                ) : (
+                  <span
+                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                      r.status === '승인' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/15 text-red-400'
+                    }`}
+                  >
+                    {r.status === '승인' ? '✓ 승인됨' : '반려'}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
+
       {/* 고장예측 알림 배너 */}
       {fault && fault.predicted && (
         <div className="flex items-center gap-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-4">

@@ -3,8 +3,9 @@ import { engine, useSim } from '../sim/store'
 import { DEMO_VEHICLE_ID } from '../sim/engine'
 import { ROUTES } from '../sim/routes'
 import { indexPolyline } from '../sim/geo'
-import { RISK_EVENT_TYPES } from '../sim/types'
+import { RISK_EVENT_TYPES, type SimSnapshot } from '../sim/types'
 import { simClock } from '../components/ui'
+import { submitRequest, useAgentRequests } from '../sim/agentRequests'
 
 const ROUTE_TOTAL_M = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points).totalM]))
 
@@ -627,6 +628,168 @@ export default function DriverApp() {
 
       {/* 내 운행 리포트 — 배지·퍼스널 인사이트 (운행 후 자발적 개선 유도) */}
       <DriverReport rank={rank} score={v.score} co2Saved={co2Saved} driverName={v.driverName} />
+
+      {/* 내 에이전트 — 개인화 Q&A + 빠른 신청 (구 에이전트 플랫폼 '기사' 롤 흡수) */}
+      <MyAgent />
+    </div>
+  )
+}
+
+/* ── 내 에이전트 — 개인화 응답 (에이전트 플랫폼에서 이관) ── */
+function driverAnswer(qRaw: string, snap: SimSnapshot): string {
+  const q = qRaw.replace(/\s/g, '')
+  const has = (...ws: string[]) => ws.some((w) => q.includes(w))
+  const v = snap.vehicles.find((x) => x.id === DEMO_VEHICLE_ID)!
+  const route = ROUTES.find((r) => r.id === v.routeId)!
+  const rank = [...snap.vehicles].sort((a, b) => b.score - a.score).findIndex((x) => x.id === v.id) + 1
+
+  if (has('배차', '노선', '오늘', '어디', '운행'))
+    return `오늘 배차는 ${route.name}(${v.id.slice(-4)}호)입니다. 현재 ${v.nextStopName} 방면 운행 중이며, 다음 교대는 14:00 성서차고지입니다.`
+  if (has('점수', '안전', '경제운전', '에코', '순위')) {
+    const top = RISK_EVENT_TYPES.map((t) => ({ t, c: v.eventCounts[t] })).sort((a, b) => b.c - a.c)[0]
+    return `오늘 안전점수는 ${Math.round(v.score)}점(사내 ${rank}위), 경제운전 점수는 ${Math.round(v.ecoScore)}점입니다. ${top.c > 0 ? `${top.t}이 개선 우선 항목이에요 — 정류장 접근 시 미리 발을 떼면 점수·연비가 함께 올라갑니다.` : '정속 주행이 잘 유지되고 있어요. 좋습니다!'}`
+  }
+  if (has('급여', '수당', '월급', '얼마'))
+    return `이번 달 예상 급여는 기본급 + 무사고·안전운전 리워드로 구성됩니다. 현재 방어운전 크레딧 ${v.defenseCredits}점, 안전점수 상위 시 인센티브가 가산됩니다. (정확한 금액은 급여 정산일 확정)`
+  if (has('차량', '내차', '점검', '고장'))
+    return snap.fault?.vehicleId === v.id && snap.fault.predicted
+      ? `${v.id.slice(-4)}호에 냉각계통 예방정비가 예정되어 있습니다. 금일 2회차 종료 후 차고지 입고이니 무리한 운행 없이 정상 주행하세요.`
+      : `${v.id.slice(-4)}호는 주요 계통 이상 신호 없이 정상입니다. 정기 점검 일정은 회사 공지를 확인하세요.`
+  if (has('교육', '코칭'))
+    return v.score < 78
+      ? '안전운전 코칭 프로그램 대상으로 안내되었습니다. 이는 평가가 아닌 사고 예방 지원이며, 아래 "교육 일정 신청"으로 신청할 수 있어요.'
+      : '현재 필수 교육 대상은 아닙니다. 자율 코칭 콘텐츠는 언제든 신청할 수 있어요.'
+  return '무엇이든 물어보세요. 예: "오늘 내 배차?", "내 안전점수 몇 점?", "내 차 점검 있어?", "이번 달 급여?", "교육 대상이야?" — 아래 빠른 신청도 이용하세요.'
+}
+
+const DRIVER_SUGGEST = ['오늘 내 배차?', '내 안전점수?', '내 차 점검 있어?', '이번 달 급여?']
+const KIND_ICON = { 휴가: '🏖️', 상황설명: '🎙', 교육문의: '🎓', 근무변경: '🔁' } as const
+
+function MyAgent() {
+  const snap = useSim()
+  const snapRef = useRef(snap)
+  snapRef.current = snap
+  const requests = useAgentRequests()
+  const v = snap.vehicles.find((x) => x.id === DEMO_VEHICLE_ID)!
+  const [msgs, setMsgs] = useState<{ who: 'me' | 'ai'; text: string }[]>([])
+  const [input, setInput] = useState('')
+
+  const send = (text: string) => {
+    if (!text.trim()) return
+    setMsgs((m) => [...m, { who: 'me', text }, { who: 'ai', text: driverAnswer(text, snapRef.current) }])
+    setInput('')
+  }
+  const myRequests = requests.filter((r) => r.vehicleId === v.id).slice(0, 4)
+
+  return (
+    <div className="w-full max-w-5xl px-2 pb-6">
+      <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-lg">🤖</span>
+          <span className="text-sm font-bold text-gray-100">내 에이전트</span>
+          <span className="text-[11px] text-gray-500">근무·점수·급여를 물어보고, 휴가·상황설명을 바로 신청하세요</span>
+        </div>
+
+        <div className="grid grid-cols-[1.3fr_1fr] gap-4 max-[860px]:grid-cols-1">
+          {/* 채팅 */}
+          <div className="flex min-h-[180px] flex-col rounded-xl border border-gray-800 bg-gray-950/60">
+            <div className="max-h-40 flex-1 space-y-2 overflow-y-auto p-3">
+              {msgs.length === 0 && (
+                <div className="py-4 text-center text-[11px] leading-relaxed text-gray-500">
+                  근무·점수·급여·차량 등 무엇이든 물어보세요.
+                </div>
+              )}
+              {msgs.map((m, i) =>
+                m.who === 'me' ? (
+                  <div key={i} className="flex justify-end">
+                    <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-sky-600/30 px-3 py-1.5 text-[11px] text-sky-100">{m.text}</div>
+                  </div>
+                ) : (
+                  <div key={i} className="flex justify-start">
+                    <div className="max-w-[90%] rounded-2xl rounded-tl-sm border border-gray-800 bg-gray-900/70 px-3 py-1.5 text-[11px] leading-relaxed text-gray-300">
+                      {m.text}
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1 border-t border-gray-800 px-2.5 pt-2">
+              {DRIVER_SUGGEST.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  className="rounded-full border border-gray-700 bg-gray-900 px-2 py-0.5 text-[10px] text-gray-400 hover:border-sky-500/50 hover:text-sky-300"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1.5 p-2.5">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && send(input)}
+                placeholder="무엇이든 물어보세요…"
+                className="min-w-0 flex-1 rounded-lg border border-gray-700 bg-gray-900 px-2.5 py-1.5 text-[11px] text-gray-200 placeholder:text-gray-600 focus:border-sky-500/60 focus:outline-none"
+              />
+              <button onClick={() => send(input)} className="rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500">
+                →
+              </button>
+            </div>
+          </div>
+
+          {/* 빠른 신청 + 내 신청 현황 */}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => submitRequest('휴가', v.driverName, v.id, '7월 15일 연차 신청합니다.', snap.simTime)}
+                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20"
+              >
+                🏖️ 휴가 신청
+              </button>
+              <button
+                onClick={() => submitRequest('상황설명', v.driverName, v.id, '앞차 급끼어들기로 급제동했습니다.', snap.simTime)}
+                className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/20"
+              >
+                🎙 상황 설명 제출
+              </button>
+              <button
+                onClick={() => submitRequest('교육문의', v.driverName, v.id, '안전운전 코칭 일정 문의합니다.', snap.simTime)}
+                className="rounded-full border border-violet-500/40 bg-violet-500/10 px-2.5 py-1 text-[11px] font-semibold text-violet-300 hover:bg-violet-500/20"
+              >
+                🎓 교육 일정 신청
+              </button>
+            </div>
+            <div className="flex-1 rounded-xl border border-gray-800 bg-gray-950/40 px-3 py-2.5">
+              <div className="mb-1.5 text-[10px] font-bold text-gray-500">📤 내 신청 현황</div>
+              {myRequests.length === 0 ? (
+                <div className="py-3 text-center text-[11px] text-gray-600">신청 내역이 없습니다</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {myRequests.map((r) => (
+                    <div key={r.id} className="flex items-center gap-2 rounded-md bg-gray-800/40 px-2 py-1.5 text-[11px]">
+                      <span>{KIND_ICON[r.kind]}</span>
+                      <span className="shrink-0 font-semibold text-gray-300">{r.kind}</span>
+                      <span className="min-w-0 flex-1 truncate text-gray-500">{r.detail}</span>
+                      <span
+                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                          r.status === '승인 대기'
+                            ? 'bg-amber-500/20 text-amber-300'
+                            : r.status === '승인'
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : 'bg-red-500/15 text-red-400'
+                        }`}
+                      >
+                        {r.status === '승인' ? '✓ 승인됨' : r.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

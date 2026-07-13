@@ -104,7 +104,7 @@ export default function App() {
         {tab === 'operator' && <OperatorView />}
         {tab === 'driver' && <DriverApp />}
         {tab === 'passenger' && <PassengerApp />}
-        {tab === 'carbon' && <CarbonAnalysis />}
+        {tab === 'carbon' && <CarbonAnalysis onNavigate={(t) => setTab(t as TabId)} />}
         {tab === 'report' && <ReportView />}
         {tab === 'roadmap' && <TeaserView />}
       </main>

@@ -6,10 +6,8 @@ import {
   Cell,
   ComposedChart,
   Line,
-  LineChart,
   Pie,
   PieChart,
-  ReferenceDot,
   ResponsiveContainer,
   Scatter,
   ScatterChart,
@@ -20,13 +18,15 @@ import {
 } from 'recharts'
 import { useSim } from '../sim/store'
 import { RISK_EVENT_TYPES } from '../sim/types'
-import { KpiCard, Panel } from '../components/ui'
+import { Panel } from '../components/ui'
+import { setOperatorSubtabIntent } from '../sim/navIntent'
 
 /**
- * 🌱 탄소중립 분석 — 대통합 신규 최상위 탭.
- * 탄소 플랫폼 관제 대시보드(dash 2·3·P)의 탄소·연료·안전 분석 + AI Planning·V2G 시뮬레이터를 이식.
- * best-of-both: 탄소의 서사·수식 + proto 엔진 실집계 연결(일간 성과·안전 게이지·이벤트는 라이브,
- * 전환/V2G 시뮬레이터는 what-if 계산). 경유 배출계수 2.68 kgCO₂/L 정합.
+ * 🌱 탄소중립 분석 — 대통합 신규 최상위 탭. 전 이해관계자 공용 "탄소중립 성과 증명" 요약판.
+ * 탄소 플랫폼 관제 대시보드(dash 2·3)의 탄소·연료·안전 분석을 이식.
+ * best-of-both: 탄소의 서사·수식 + proto 엔진 실집계 연결(일간 성과·안전 게이지·이벤트는 라이브).
+ * 경유 배출계수 2.68 kgCO₂/L 정합. 전기전환·V2G 시뮬레이터(투자 결정)는 운수사 관제 "경영·투자"로
+ * 이관해 손익과 함께 보도록 통합 — 여기서는 교차 링크만 제공.
  */
 
 // ── 기간별 성과 (원본 periodData 이식) — 월/연은 서사값, 일간은 엔진 라이브로 덮어씀 ──
@@ -97,23 +97,6 @@ const ZONES = [
   { name: '만평네거리', type: '급출발', count: '주 58건', tag: 'AI 탐지' },
 ]
 
-// AI Planning 전환 대상 TOP5
-const PLAN_TARGETS = [
-  { rank: 1, no: '세진 1812호', detail: '차령 11년 · 연비 2.08 km/L · 일 244km', co2: '36.2t/년' },
-  { rank: 2, no: '세운 2290호', detail: '차령 10년 · 연비 2.15 km/L · 일 238km', co2: '35.9t/년' },
-  { rank: 3, no: '경북 3117호', detail: '차령 9년 · 연비 2.21 km/L · 일 231km', co2: '35.6t/년' },
-  { rank: 4, no: '동명 0912호', detail: '차령 9년 · 연비 2.24 km/L · 일 226km', co2: '35.3t/년' },
-  { rank: 5, no: '세진 2044호', detail: '차령 8년 · 연비 급감(인젝터) · 일 229km', co2: '35.0t/년' },
-]
-
-// 전환 시뮬레이터 — AI가 효과 큰 차량부터 선정 → 한계 체감 (k번째 = 36.5 − 0.3k tCO₂/년)
-function planCalc(n: number) {
-  const co2 = 36.5 * n - 0.15 * n * (n + 1)
-  const fuelEok = (co2 * 1148000) / 1e8
-  const investEok = n * 1.1
-  return { co2: Math.round(co2), fuelEok, investEok, roi: investEok / fuelEok }
-}
-
 const chartTheme = {
   grid: '#8899a6',
   tick: { fill: '#8899a6', fontSize: 11, fontWeight: 600 },
@@ -127,15 +110,12 @@ const chartTheme = {
 const SUBTABS = [
   { id: 'fuel', label: '탄소·연료', sub: '연비 → CO₂ 인과' },
   { id: 'safety', label: '안전운행', sub: '위험운전 진단' },
-  { id: 'plan', label: 'AI Planning', sub: '전환·V2G 시뮬레이터' },
 ] as const
 type SubId = (typeof SUBTABS)[number]['id']
 
-export default function CarbonAnalysis() {
+export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const [sub, setSub] = useState<SubId>('fuel')
   const [period, setPeriod] = useState<PeriodId>('월간')
-  const [planN, setPlanN] = useState(12)
-  const [v2gN, setV2gN] = useState(40)
   const snap = useSim()
 
   // ── 엔진 실집계 (실동작 연결) ──
@@ -176,23 +156,12 @@ export default function CarbonAnalysis() {
     { x: 97, y: 2.42 },
   ]
 
-  const plan = planCalc(planN)
-  const planCurve = useMemo(() => Array.from({ length: 50 }, (_, i) => ({ x: i + 1, y: planCalc(i + 1).co2 })), [])
-
-  // V2G 24시간 충방전 프로파일 (심야 충전 음수 / 피크 방전 양수, MWh) + 전력수요
-  const demand = [65, 60, 57, 55, 54, 55, 60, 70, 78, 84, 88, 91, 93, 95, 97, 99, 100, 98, 93, 88, 82, 76, 72, 68]
-  const v2gData = useMemo(
-    () =>
-      Array.from({ length: 24 }, (_, h) => {
-        const isCharge = h >= 23 || h <= 5
-        const isDisch = h >= 14 && h <= 17
-        const val = isCharge ? -((v2gN * 80) / 7 / 1000) : isDisch ? (v2gN * 20) / 1000 : 0
-        return { h: `${h}시`, e: Math.round(val * 100) / 100, d: demand[h], charge: isCharge, disch: isDisch }
-      }),
-    [v2gN],
-  )
-
   const trendData = P.labels.map((l, i) => ({ l, fuel: P.trendFuel[i], co2: P.trendCo2[i] }))
+
+  const goInvest = () => {
+    setOperatorSubtabIntent('biz')
+    onNavigate?.('operator')
+  }
 
   return (
     <div className="mx-auto flex h-full max-w-6xl flex-col gap-3 overflow-y-auto pr-1">
@@ -220,6 +189,15 @@ export default function CarbonAnalysis() {
           ))}
         </nav>
       </div>
+
+      {/* 투자 결정(전환·V2G)은 운수사 경영·투자로 통합 — 손익과 함께 봐야 하는 숫자라 그쪽에 있음 */}
+      <button
+        onClick={goInvest}
+        className="flex items-center justify-between rounded-lg border border-violet-500/25 bg-violet-500/5 px-3.5 py-2 text-left text-[12px] text-violet-300 hover:bg-violet-500/10"
+      >
+        <span>💰 전기전환·V2G 투자 시뮬레이션은 운수사 관제의 <b>경영·투자</b>에서 손익과 함께 볼 수 있어요</span>
+        <span className="shrink-0 font-bold">바로가기 →</span>
+      </button>
 
       {/* ============ 탄소·연료 ============ */}
       {sub === 'fuel' && (
@@ -472,121 +450,6 @@ export default function CarbonAnalysis() {
         </div>
       )}
 
-      {/* ============ AI Planning ============ */}
-      {sub === 'plan' && (
-        <div className="flex flex-col gap-3">
-          {/* 현재 실적 (엔진) */}
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-[13px] font-semibold text-gray-300">
-                현재 시뮬레이션 감축 실적 <span className="ml-1 text-[11px] text-gray-500">(엔진 실집계)</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[13px] text-gray-400">
-                  누적 CO₂ <b className="text-emerald-400 tabular-nums">{(liveCo2 / 1000).toFixed(2)}t</b>
-                </span>
-                <span className="text-[13px] text-gray-400">
-                  KOC 크레딧 환산 <b className="text-emerald-400 tabular-nums">{Math.round((liveCo2 / 1000) * 8900).toLocaleString()}원</b>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* 전기전환 시뮬레이터 */}
-          <Panel title="전기버스 전환 시뮬레이터" right={<span className="text-[11px] text-gray-500">AI가 효과순 선정 → 한계 체감</span>}>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="text-[13px] font-semibold text-gray-400">전환 대수</span>
-              <span className="text-2xl font-extrabold tabular-nums text-violet-400">{planN}<span className="ml-0.5 text-sm text-gray-400">대</span></span>
-              <div className="ml-2 flex gap-1">
-                {[
-                  { label: '보수 6대', n: 6 },
-                  { label: '균형 12대', n: 12 },
-                  { label: '공격 24대', n: 24 },
-                ].map((s) => (
-                  <button
-                    key={s.n}
-                    onClick={() => setPlanN(s.n)}
-                    className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors ${planN === s.n ? 'border-violet-500 bg-violet-500/15 text-violet-300' : 'border-gray-700 text-gray-400 hover:text-gray-200'}`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <input type="range" min={1} max={50} value={planN} onChange={(e) => setPlanN(Number(e.target.value))} className="h-6 w-full cursor-pointer" style={{ accentColor: '#8b5cf6' }} aria-label="전환 대수" />
-            <div className="mt-3 grid grid-cols-5 gap-2 max-[720px]:grid-cols-2">
-              <KpiCard label="연 CO₂ 감축" value={plan.co2.toLocaleString()} unit="t" accent="text-emerald-400" />
-              <KpiCard label="연료비 절감" value={plan.fuelEok.toFixed(1)} unit="억원" accent="text-sky-400" />
-              <KpiCard label="실투자 (보조금 후)" value={plan.investEok.toFixed(1)} unit="억원" accent="text-gray-100" />
-              <KpiCard label="투자 회수" value={plan.roi.toFixed(1)} unit="년" accent="text-amber-400" />
-              <KpiCard label="KOC 크레딧" value={Math.round((plan.co2 * 8900) / 10000).toLocaleString()} unit="만원" accent="text-emerald-400" />
-            </div>
-            <div className="mt-3 h-52">
-              <ResponsiveContainer>
-                <LineChart data={planCurve} margin={{ top: 8, right: 12, left: -14, bottom: 4 }}>
-                  <CartesianGrid stroke={chartTheme.grid} strokeOpacity={0.2} strokeDasharray="3 3" vertical={false} />
-                  <XAxis type="number" dataKey="x" domain={[1, 50]} tick={chartTheme.tick} axisLine={false} tickLine={false} label={{ value: '전환 대수', position: 'insideBottom', offset: -2, fill: '#8899a6', fontSize: 11 }} />
-                  <YAxis tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}t`} />
-                  <Tooltip {...chartTheme.tooltip} formatter={(v) => [`${v}t/년`, 'CO₂ 감축']} labelFormatter={(l) => `${l}대 전환`} />
-                  <Line type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2.5} dot={false} fill="rgba(56,189,248,.06)" />
-                  <ReferenceDot x={planN} y={plan.co2} r={6} fill="#34d399" stroke="#fff" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-1 text-[11px] text-gray-500">대당 실투자 1.1억(차량가 3.9억 − 보조금 2.8억) · 감축량 = 36.5n − 0.15n(n+1) · KOC 8,900원/t</div>
-          </Panel>
-
-          {/* V2G 시뮬레이터 */}
-          <Panel title="V2G (전기버스 → 전력망) 시뮬레이터" right={<span className="text-[11px] text-gray-500">심야 충전 · 피크 방전</span>}>
-            <div className="mb-3 flex flex-wrap items-center gap-3">
-              <span className="text-[13px] font-semibold text-gray-400">V2G 참여</span>
-              <span className="text-2xl font-extrabold tabular-nums text-violet-400">{v2gN}<span className="ml-0.5 text-sm text-gray-400">대</span></span>
-              <input type="range" min={5} max={68} value={v2gN} onChange={(e) => setV2gN(Number(e.target.value))} className="h-6 max-w-xs flex-1 cursor-pointer" style={{ accentColor: '#8b5cf6' }} aria-label="V2G 참여 대수" />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <KpiCard label="월 수익" value={Math.round(v2gN * 14.4).toLocaleString()} unit="만원" accent="text-violet-400" />
-              <KpiCard label="연 환산" value={Math.round(v2gN * 14.4 * 12).toLocaleString()} unit="만원" accent="text-violet-400" />
-              <KpiCard label="피크 기여" value={(v2gN * 0.1).toFixed(1)} unit="MW" accent="text-amber-400" />
-            </div>
-            <div className="mt-3 h-52">
-              <ResponsiveContainer>
-                <ComposedChart data={v2gData} margin={{ top: 8, right: 4, left: -10, bottom: 0 }}>
-                  <CartesianGrid stroke={chartTheme.grid} strokeOpacity={0.2} strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="h" tick={{ ...chartTheme.tick, fontSize: 9 }} axisLine={false} tickLine={false} interval={2} />
-                  <YAxis yAxisId="E" tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}`} />
-                  <YAxis yAxisId="D" orientation="right" domain={[40, 110]} tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
-                  <Tooltip {...chartTheme.tooltip} />
-                  <Bar yAxisId="E" dataKey="e" name="충·방전(MWh)" radius={[2, 2, 0, 0]}>
-                    {v2gData.map((d, i) => (
-                      <Cell key={i} fill={d.charge ? 'rgba(56,189,248,0.75)' : d.disch ? 'rgba(52,211,153,0.85)' : '#475569'} />
-                    ))}
-                  </Bar>
-                  <Line yAxisId="D" type="monotone" dataKey="d" name="전력수요(%)" stroke="#a78bfa" strokeWidth={2} strokeDasharray="5 4" dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-1 text-[11px] text-gray-500">
-              월 수익 = 대당 일 방전 80kWh × 차익 60원 × 30일 = 14.4만원/대 · 심야(23~05시) 충전, 피크(14~17시) 방전
-            </div>
-          </Panel>
-
-          {/* 전환 대상 TOP5 */}
-          <Panel title="AI 선정 전환 대상 TOP5" right={<span className="text-[11px] text-gray-500">차령·연비·일주행 기반</span>}>
-            <div className="flex flex-col gap-2">
-              {PLAN_TARGETS.map((t) => (
-                <div key={t.rank} className="flex items-center gap-3 rounded-lg bg-gray-900/40 px-3 py-2">
-                  <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-md text-xs font-bold ${t.rank <= 3 ? 'bg-violet-500 text-white' : 'bg-gray-800 text-gray-300'}`}>{t.rank}</span>
-                  <div className="flex-1">
-                    <div className="text-[13px] font-semibold text-gray-100">{t.no}</div>
-                    <div className="text-[11px] text-gray-500">{t.detail}</div>
-                  </div>
-                  <span className="text-[13px] font-bold tabular-nums text-emerald-400">{t.co2}</span>
-                </div>
-              ))}
-            </div>
-          </Panel>
-        </div>
-      )}
     </div>
   )
 }

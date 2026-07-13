@@ -6,6 +6,7 @@ import { ROUTES } from '../sim/routes'
 import { RISK_EVENT_TYPES } from '../sim/types'
 import { resolveRequest, useAgentRequests } from '../sim/agentRequests'
 import { ActionCenterList, actionOwnerReadyCount } from '../components/ActionCenter'
+import { consumeOperatorSubtabIntent } from '../sim/navIntent'
 import Scanner from './operator/Scanner'
 import MaintChat from './operator/MaintChat'
 import Depot from './operator/Depot'
@@ -16,7 +17,7 @@ import BizSummary from './operator/BizSummary'
 
 const SUB_TABS = [
   { id: 'ops', label: '관제 현황' },
-  { id: 'biz', label: '💰 경영 요약' },
+  { id: 'biz', label: '💰 경영·투자' },
   { id: 'trips', label: '운행 이력' },
   { id: 'report', label: 'AI 리포트' },
   { id: 'eco', label: '연료·에코 AI' },
@@ -30,7 +31,7 @@ type SubTab = (typeof SUB_TABS)[number]['id']
 const REQ_ICON = { 휴가: '🏖️', 상황설명: '🎙', 교육문의: '🎓', 근무변경: '🔁' } as const
 
 export default function OperatorView() {
-  const [sub, setSub] = useState<SubTab>('ops')
+  const [sub, setSub] = useState<SubTab>(() => (consumeOperatorSubtabIntent() as SubTab | null) ?? 'ops')
   const snap = useSim()
   const fault = snap.fault
 

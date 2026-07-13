@@ -22,6 +22,12 @@
 별도 진입점: **시민 공개 페이지**(소나무·계산기·공유·등급조회 — 승객 앱과 공존)
 공통 오버레이: **라이브 AI 코파일럿**(사용자 키→실제 Claude 직접호출, HITL 단계공개)
 
+## 배포 (2026-07-13)
+- **저장소(공개)**: https://github.com/hyegeungim3-git/qdrive-unified
+- **라이브**: https://hyegeungim3-git.github.io/qdrive-unified/ (main push 시 Actions 자동 배포)
+- **시민 공개**: https://hyegeungim3-git.github.io/qdrive-unified/#citizen
+- Pages는 `.github/workflows/deploy.yml`(트리거 `main`, npm install, dist 업로드). vite base `/qdrive-unified/` = 저장소명 일치. 민감정보 미커밋 확인 후 공개.
+
 ## 통합 매트릭스 (best-of-both — 진행 상태)
 | 통합 대상 | proto 기반(유지) | 탄소 플랫폼에서 이식 | 결정 | 상태 |
 |---|---|---|---|---|

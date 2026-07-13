@@ -9,9 +9,11 @@ import MaintChat from './operator/MaintChat'
 import Depot from './operator/Depot'
 import TripsLog from './operator/TripsLog'
 import AiReport from './operator/AiReport'
+import BizSummary from './operator/BizSummary'
 
 const SUB_TABS = [
   { id: 'ops', label: '관제 현황' },
+  { id: 'biz', label: '💰 경영 요약' },
   { id: 'trips', label: '운행 이력' },
   { id: 'report', label: 'AI 리포트' },
   { id: 'scanner', label: '진단 스캐너' },
@@ -53,6 +55,7 @@ export default function OperatorView() {
       <div className="flex h-full flex-col gap-3">
         {subNav}
         <div className="min-h-0 flex-1">
+          {sub === 'biz' && <BizSummary />}
           {sub === 'trips' && <TripsLog />}
           {sub === 'report' && <AiReport />}
           {sub === 'scanner' && <Scanner />}

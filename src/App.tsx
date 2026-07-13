@@ -1,16 +1,32 @@
 import { useEffect, useState } from 'react'
 import DemoControls from './components/DemoControls'
+import Copilot from './components/Copilot'
 import { toggleTheme, useTheme } from './theme'
 import { useSim } from './sim/store'
 import CityDashboard from './views/CityDashboard'
 import OperatorView from './views/OperatorView'
 import DriverApp from './views/DriverApp'
 import PassengerApp from './views/PassengerApp'
+import AgentCenter from './views/AgentCenter'
+import AgentPlatform from './views/AgentPlatform'
+import CarbonAnalysis from './views/CarbonAnalysis'
 import ReportView from './views/ReportView'
 import TeaserView from './views/TeaserView'
 import CitizenPublic from './views/CitizenPublic'
-import CarbonAnalysis from './views/CarbonAnalysis'
-import Copilot from './components/Copilot'
+
+const TABS = [
+  { id: 'city', label: '시티 대시보드', sub: '대구시 (지자체)' },
+  { id: 'operator', label: '운수사 관제', sub: '버스회사' },
+  { id: 'driver', label: '기사 앱', sub: '운전자' },
+  { id: 'passenger', label: '승객 앱', sub: '시민·승객' },
+  { id: 'carbon', label: '🌱 탄소중립 분석', sub: '탄소·연료·안전·전환' },
+  { id: 'agent', label: 'AI 업무센터', sub: '자동화·승인' },
+  { id: 'platform', label: '에이전트 플랫폼', sub: '회사·기사' },
+  { id: 'report', label: '실증 리포트', sub: 'As-Is → To-Be' },
+  { id: 'roadmap', label: '로드맵', sub: '플랫폼 확장' },
+] as const
+
+type TabId = (typeof TABS)[number]['id']
 
 /** 해시 라우트 구독 — 시민 공개 페이지(#citizen)는 앱 셸 밖 독립 진입점 */
 function useHashRoute(): string {
@@ -22,18 +38,6 @@ function useHashRoute(): string {
   }, [])
   return hash
 }
-
-const TABS = [
-  { id: 'city', label: '시티 대시보드', sub: '대구시 (지자체)' },
-  { id: 'operator', label: '운수사 관제', sub: '버스회사' },
-  { id: 'driver', label: '기사 앱', sub: '운전자' },
-  { id: 'passenger', label: '승객 앱', sub: '시민·승객' },
-  { id: 'carbon', label: '🌱 탄소중립 분석', sub: '탄소·연료·안전·전환' },
-  { id: 'report', label: '실증 리포트', sub: 'As-Is → To-Be' },
-  { id: 'roadmap', label: '로드맵', sub: '플랫폼 확장' },
-] as const
-
-type TabId = (typeof TABS)[number]['id']
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('city')
@@ -105,12 +109,14 @@ export default function App() {
         {tab === 'driver' && <DriverApp />}
         {tab === 'passenger' && <PassengerApp />}
         {tab === 'carbon' && <CarbonAnalysis />}
+        {tab === 'agent' && <AgentCenter />}
+        {tab === 'platform' && <AgentPlatform />}
         {tab === 'report' && <ReportView />}
         {tab === 'roadmap' && <TeaserView />}
       </main>
 
-      {/* 공통 AI 코파일럿 오버레이 (전 탭) */}
-      <Copilot />
+      {/* AI 관제 코파일럿 — 어느 탭에서든 호출 */}
+      <Copilot onNavigate={(t) => setTab(t as TabId)} />
     </div>
   )
 }

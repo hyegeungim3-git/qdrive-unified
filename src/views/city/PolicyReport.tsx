@@ -90,7 +90,7 @@ function buildPolicyReport(snap: SimSnapshot, period: Period): { paras: Para[]; 
           : `금일 접수 민원은 없습니다. 시민안내 에이전트가 정비·기상·돌발 상황을 시민 언어로 자동 공지하여 사전 민원을 억제하고 있습니다.`,
       evidence: [
         `민원 ${complaints.length}건 (자동매칭 ${evidenced} · 해결 ${resolved})`,
-        `하차 예약 ${snap.reservation ? '진행 1건' : '대기'} · 소명 ${snap.pleas.length}건`,
+        `하차 예약 ${snap.reservation ? '진행 1건' : '대기'} · 상황 설명 ${snap.pleas.length}건`,
       ],
     },
   ]
@@ -102,7 +102,7 @@ function buildPolicyReport(snap: SimSnapshot, period: Period): { paras: Para[]; 
     proposals.push(`② 에코드라이빙 코칭의 전 차량 확대 — 실증 절감률 ${kpi.fuelSavedPct.toFixed(1)}% 기준 연간 약 ${annualEok.toFixed(1)}억원 재정 효과 (증액 없는 절감 사업)`)
   if (snap.weather.condition !== '맑음')
     proposals.push(`③ 기상 대응 표준화 — ${snap.weather.condition} 시 예비차 선배정·감속 지침·시민 공지가 자동 연동됨을 확인, 매뉴얼 반영 권고`)
-  proposals.push(`${proposals.length === 0 ? '①' : ['①', '②', '③', '④'][proposals.length]} 정당 판정·소명 체계의 노조 협의 자료화 — 감점 제외 ${justified}건 실적은 "감시 아닌 코칭" 수용성 근거`)
+  proposals.push(`${proposals.length === 0 ? '①' : ['①', '②', '③', '④'][proposals.length]} 정당 판정·상황 설명 체계의 노조 협의 자료화 — 감점 제외 ${justified}건 실적은 "감시 아닌 코칭" 수용성 근거`)
   if (occMax >= 70) proposals.push(`⑤ 첨두 재차율 ${occMax}% 구간 배차 간격 조정 검토`)
 
   return { paras, proposals, asOf: simClock(snap.simTime) }

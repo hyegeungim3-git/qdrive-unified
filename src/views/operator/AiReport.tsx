@@ -121,11 +121,11 @@ function buildReport(snap: SimSnapshot, period: Period): { paras: Para[]; asOf: 
         ? `${worstEvents.t} 빈도(${worstEvents.c}건)가 높아 해당 유형 중심의 맞춤 코칭이 필요합니다.`
         : `이벤트는 적으나 점수 회복 구간으로 지속 관찰이 필요합니다.`) +
       (snap.pleas.filter((p) => p.status === '인정').length > 0
-        ? ` 금일 소명 인정 ${snap.pleas.filter((p) => p.status === '인정').length}건이 반영되어 점수가 복원되었습니다.`
+        ? ` 금일 상황 설명 인정 ${snap.pleas.filter((p) => p.status === '인정').length}건이 반영되어 점수가 복원되었습니다.`
         : ''),
     evidence: [
       `점수 분포 ${Math.round(worst.score)}~${Math.round(best.score)}점 (${snap.vehicles.length}명)`,
-      `소명 ${snap.pleas.length}건 (인정 ${snap.pleas.filter((p) => p.status === '인정').length})`,
+      `상황 설명 ${snap.pleas.length}건 (인정 ${snap.pleas.filter((p) => p.status === '인정').length})`,
     ],
   })
 
@@ -226,14 +226,14 @@ function buildDriverReport(snap: SimSnapshot, v: VehicleState, period: Period): 
       effective > 0
         ? `감점 대상 위험운전은 ${fmtN(effective * k)}건으로 10km당 ${density.toFixed(1)}건(사내 평균 ${fleetDensity.toFixed(1)}건)입니다. ` +
           `최다 유형은 ${topType.t}(${fmtN(topType.c * k)}건)이며, 별도로 ${fmtN(justified * k)}건은 맥락 판정(회피·정류장·기상)으로 감점에서 제외되었고 ` +
-          `소명 인정 ${fmtN(myPleas.filter((p) => p.status === '인정').length * k)}건을 포함해 방어운전 크레딧 ${fmtN(v.defenseCredits * k)}점을 보유합니다.`
+          `상황 설명 인정 ${fmtN(myPleas.filter((p) => p.status === '인정').length * k)}건을 포함해 방어운전 크레딧 ${fmtN(v.defenseCredits * k)}점을 보유합니다.`
         : `감점 대상 위험운전이 없습니다. 정당 판정 ${fmtN(justified * k)}건·방어운전 크레딧 ${fmtN(v.defenseCredits * k)}점으로 모범적인 방어 운행입니다.`,
     evidence: [
       `유형별: ${RISK_EVENT_TYPES.filter((t) => v.eventCounts[t] > 0)
         .map((t) => `${t} ${fmtN(v.eventCounts[t] * k)}`)
         .join(' · ') || '없음'}`,
       `밀도 ${density.toFixed(1)}건/10km (사내 ${fleetDensity.toFixed(1)})`,
-      `정당 ${fmtN(justified * k)}건 · 소명 ${fmtN(myPleas.length * k)}건 · 크레딧 ${fmtN(v.defenseCredits * k)}`,
+      `정당 ${fmtN(justified * k)}건 · 상황 설명 ${fmtN(myPleas.length * k)}건 · 크레딧 ${fmtN(v.defenseCredits * k)}`,
     ],
   })
 

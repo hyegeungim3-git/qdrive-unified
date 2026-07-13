@@ -3,8 +3,9 @@
 대구 시내버스 통합 플랫폼의 사업 제안용 라이브 데모. **두 선행 프로토타입을 하나의 통일된 플랫폼으로 통합한 정본**이다.
 
 ## 출신 (통합 대상)
-- **base = qdrive-proto** (Vite/React 19/TS/Tailwind 4): 실제 시뮬레이터 엔진 + 6탭 골격. 이 저장소의 뼈대.
+- **base = qdrive-proto** (Vite/React 19/TS/Tailwind 4): 실제 시뮬레이터 엔진 + 이해관계자 탭. 이 저장소의 뼈대.
   - 원본: `../Qdrive/qdrive-proto`, 구 저장소 github.com/hyegeungim3-git/qdrive-proto
+  - **proto 업그레이드 동기화 지점: `64cfa39`** (2026-07-13 반영). 이후 원본이 더 나가면 `git -C ../Qdrive/qdrive-proto log --oneline 64cfa39..HEAD`로 델타 확인 후 반영.
 - **탄소 플랫폼** (정적 HTML `.dc.html` + dc-runtime, 토스 디자인): 탄소중립 서사·V2G/AI Planning 시뮬레이터·시민 공개 대시보드·운수사 경영 손익. 기능/콘텐츠를 React로 이식.
   - 원본: `../AI 기반 탄소중립 운영 플랫폼`, 구 저장소 github.com/hyegeungim3-git/qdrive-carbon-platform
 - 이 통합본 저장소: **로컬 git만** (main 브랜치). GitHub 원격은 미연결 (사용자 지시 시 연결).
@@ -79,4 +80,11 @@
 
 ## 대통합 1차 완료 (2026-07-13)
 6개 슬라이스 전부 이식·검증·커밋. 라이트(기본)/다크 테마·375px 반응형 무오버플로 확인. 원본 2개 프로젝트 무손상.
+
+## proto 업그레이드 반영 (2026-07-13, 51914ca→64cfa39)
+원본 proto 8커밋 델타를 통합본에 반영. 별도 저장소라 cherry-pick 대신 **무충돌 파일 통째 복사 + 충돌 파일 proto판 복사 후 내 추가분 재적용** 방식.
+- **proto 신규(통째 반영)**: engine.ts(headway·ecoScore·fuelWaste·예측형 에코코칭)·types.ts·agentRequests.ts / 뷰: AgentCenter(AI 업무센터 탭)·AgentPlatform(에이전트 플랫폼 탭)·operator/EcoFuel(연료·에코 AI 서브탭) / PolicyReport·AiReport 소폭 / DEMO_GUIDE.md
+- **충돌 파일 병합**: App(proto agent/platform 탭 + 내 carbon/citizen), OperatorView(proto eco 서브탭·headway 열·소명순화 + 내 biz 서브탭), DriverApp(proto headway·에코·소명순화 + 내 리포트), Copilot(**proto 엔진 규칙기반 코파일럿 + 내 라이브-Claude 모드 병합** — 추천질문=규칙조회, 자유입력=라이브키 시 실제 Claude)
+- 최종 탭 9개: 시티·운수사·기사·승객·🌱탄소중립분석·AI업무센터·에이전트플랫폼·리포트·로드맵 (+시민공개 #citizen, +코파일럿 오버레이). 빌드 통과(JS 1029KB), 전 기능 DOM 검증.
+
 남은 후보: GitHub 새 저장소 연결·Pages 배포(사용자 지시 시) / AI Planning·V2G의 엔진 심화 연결 / 스크린샷 기반 화면설계서.

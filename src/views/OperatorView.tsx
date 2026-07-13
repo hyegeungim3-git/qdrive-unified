@@ -9,6 +9,7 @@ import MaintChat from './operator/MaintChat'
 import Depot from './operator/Depot'
 import TripsLog from './operator/TripsLog'
 import AiReport from './operator/AiReport'
+import EcoFuel from './operator/EcoFuel'
 import BizSummary from './operator/BizSummary'
 
 const SUB_TABS = [
@@ -16,6 +17,7 @@ const SUB_TABS = [
   { id: 'biz', label: '💰 경영 요약' },
   { id: 'trips', label: '운행 이력' },
   { id: 'report', label: 'AI 리포트' },
+  { id: 'eco', label: '연료·에코 AI' },
   { id: 'scanner', label: '진단 스캐너' },
   { id: 'chat', label: 'AI+ 정비도우미' },
   { id: 'depot', label: '차고지·충전' },
@@ -58,6 +60,7 @@ export default function OperatorView() {
           {sub === 'biz' && <BizSummary />}
           {sub === 'trips' && <TripsLog />}
           {sub === 'report' && <AiReport />}
+          {sub === 'eco' && <EcoFuel />}
           {sub === 'scanner' && <Scanner />}
           {sub === 'chat' && <MaintChat />}
           {sub === 'depot' && <Depot />}
@@ -189,10 +192,10 @@ export default function OperatorView() {
       {/* 기사 소명함 — 급조작 직후 음성/버튼 소명 검토 (불이익 확정은 사람이) */}
       {snap.pleas.length > 0 && (
         <Panel
-          title="🎙 기사 소명함"
+          title="🎙 기사 상황 설명"
           right={
             <span className="text-[11px] text-gray-500">
-              검토 대기 {snap.pleas.filter((p) => p.status === '접수').length}건 · 인정 시 감점 즉시 복원
+              확인 대기 {snap.pleas.filter((p) => p.status === '접수').length}건 · 인정 시 감점 즉시 복원
             </span>
           }
           className="border-emerald-500/20"
@@ -204,7 +207,7 @@ export default function OperatorView() {
                 <div className="min-w-0 flex-1 text-xs">
                   <div className="font-semibold text-gray-200">
                     {p.vehicleId.slice(-4)}호 {p.driverName} 기사 — <span className="text-red-400">{p.eventType}</span>{' '}
-                    <span className="text-[10px] text-gray-500">({simClock(p.simTime)} · {p.method} 소명)</span>
+                    <span className="text-[10px] text-gray-500">({simClock(p.simTime)} · {p.method} 설명)</span>
                   </div>
                   <div className="mt-0.5 truncate text-[11px] italic text-gray-400">"{p.note}"</div>
                 </div>
@@ -213,7 +216,7 @@ export default function OperatorView() {
                     onClick={() => engine.acknowledgePlea(p.id)}
                     className="shrink-0 rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-500"
                   >
-                    소명 인정
+                    설명 확인
                   </button>
                 ) : (
                   <span className="shrink-0 rounded-md bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-400">
@@ -242,6 +245,7 @@ export default function OperatorView() {
               <th className="pb-2 pr-3 font-medium">주행</th>
               <th className="pb-2 pr-3 font-medium">연료(CNG)</th>
               <th className="pb-2 pr-3 font-medium">재차율</th>
+              <th className="pb-2 pr-3 font-medium">배차간격</th>
               <th className="pb-2 pr-3 font-medium">위험운전</th>
               <th className="pb-2 font-medium">상태</th>
             </tr>
@@ -277,6 +281,28 @@ export default function OperatorView() {
                     >
                       {Math.round(v.occupancy * 100)}%
                     </span>
+                  </td>
+                  <td className="py-2 pr-3">
+                    {v.headway && v.headway.peers >= 2 ? (
+                      <span
+                        className={`tabular-nums ${
+                          v.headway.status === 'bunching'
+                            ? 'font-semibold text-amber-400'
+                            : v.headway.status === 'gap'
+                              ? 'text-sky-400'
+                              : 'text-gray-400'
+                        }`}
+                        title={`앞차 ${v.headway.frontId ? `${v.headway.frontGapMin.toFixed(1)}분` : '없음(선두)'} / 뒤차 ${v.headway.rearId ? `${v.headway.rearGapMin.toFixed(1)}분` : '없음'} · 이상 ${v.headway.idealMin.toFixed(1)}분`}
+                      >
+                        {!v.headway.frontId
+                          ? '선두'
+                          : v.headway.status === 'bunching'
+                            ? `⚠ ${v.headway.frontGapMin.toFixed(1)}분`
+                            : `${v.headway.frontGapMin.toFixed(1)}분`}
+                      </span>
+                    ) : (
+                      <span className="text-gray-600">—</span>
+                    )}
                   </td>
                   <td className="py-2 pr-3">
                     <span className={`tabular-nums ${evTotal > 5 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>

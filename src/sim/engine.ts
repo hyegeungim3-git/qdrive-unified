@@ -13,6 +13,7 @@ import {
   type Plea,
   type RiskEventType,
   type SimSnapshot,
+  type Headway,
   type VehicleFault,
   type VehicleState,
   type WeatherCondition,
@@ -431,6 +432,8 @@ export class SimEngine {
       v.rpm = 650
       v.fuelM3 += IDLE_FUEL_PER_S * dt
       v.baselineFuelM3 += IDLE_FUEL_PER_S * dt * (1 + BASELINE_PENALTY[v.persona] * 0.3)
+      // 공회전 낭비: 정차 연료의 일부는 불필요 공회전으로 간주 (엔진 정지 미실시분)
+      v.fuelWaste.idle += IDLE_FUEL_PER_S * dt * 0.4
       if (v.dwellRemaining <= 0) {
         v.bellPressed = false // 정류장 출발 시 하차벨 해제
         // 예약된 하차 정류장에서 출발 → 예약 완료 처리
@@ -450,6 +453,17 @@ export class SimEngine {
       target = Math.max(8, (distToStop / STOP_APPROACH_M) * persona.cruiseKmh)
     }
 
+    // 경제운전(관성주행) 점수: 정류장 접근 감속 구간에서 조기에 발을 떼면 가점
+    // 페르소나별 목표치로 수렴 (A 모범 ~94, B ~78, C ~62) + 미세 변동
+    const ecoTarget = v.persona === 'A' ? 94 : v.persona === 'B' ? 78 : 62
+    if (distToStop < STOP_APPROACH_M && v.speedKmh > 12) {
+      const coasting = target < v.speedKmh // 감속 국면
+      v.ecoScore += ((coasting ? ecoTarget + 4 : ecoTarget - 8) - v.ecoScore) * 0.02 * dt
+    } else {
+      v.ecoScore += (ecoTarget - v.ecoScore) * 0.01 * dt
+    }
+    v.ecoScore = Math.max(30, Math.min(100, v.ecoScore))
+
     // 가감속 (모범기사일수록 부드럽게)
     const accelLimit = v.persona === 'C' ? 2.6 : v.persona === 'B' ? 1.8 : 1.3 // m/s²
     const diff = target - v.speedKmh
@@ -463,12 +477,16 @@ export class SimEngine {
     v.odoOnRoute += dM * v.dir
     v.distanceKm += dM / 1000
 
-    // 연료: 실제(코칭 적용) vs 기준선(미적용) · 폭염 시 냉방부하 가산
+    // 연료: 실제(코칭 적용) vs 기준선(미적용) · 폭염 시 냉방부하 가산 + 낭비 요인 분해
     const acLoad = this.weather.condition === '폭염' ? 1.08 : 1
-    const fuel = (dM / 1000) * FUEL_PER_KM * (1 + persona.fuelPenalty) * acLoad
+    const idealFuel = (dM / 1000) * FUEL_PER_KM // 이상(습관·냉방 0) 최소 연료
+    const fuel = idealFuel * (1 + persona.fuelPenalty) * acLoad
     v.fuelM3 += fuel
     v.baselineFuelM3 += (dM / 1000) * FUEL_PER_KM * (1 + BASELINE_PENALTY[v.persona]) * acLoad
     v.co2Kg = v.fuelM3 * CO2_PER_M3
+    // 낭비 분해: 운전습관(급가감속 페널티) · 냉방부하
+    v.fuelWaste.habit += idealFuel * persona.fuelPenalty
+    v.fuelWaste.ac += idealFuel * (1 + persona.fuelPenalty) * (acLoad - 1)
 
     // 노선 끝 처리 (순환선은 랩, 왕복선은 방향 전환) → 521 운행기록 제출
     if (v.odoOnRoute >= ctx.idx.totalM || v.odoOnRoute <= 0) {
@@ -581,9 +599,10 @@ export class SimEngine {
     }
     v.lastEvent = ev
     v.lastEventWall = Date.now()
-    // 급조작은 연료도 소모
+    // 급조작은 연료도 소모 (전액 낭비 요인)
     v.fuelM3 += 0.012
     v.baselineFuelM3 += 0.012
+    v.fuelWaste.harsh += 0.012
     // 속도 급변 연출
     if (type === '급감속' || type === '급정지') v.speedKmh = Math.max(0, v.speedKmh - 22)
     if (type === '급가속' || type === '급출발') v.speedKmh += 14
@@ -675,6 +694,8 @@ export class SimEngine {
       nextStopDistM: 0,
       bellPressed: false,
       defenseCredits: 0,
+      ecoScore: seed.persona === 'A' ? 92 : seed.persona === 'B' ? 76 : 60,
+      fuelWaste: { idle: 0, harsh: 0, habit: 0, ac: 0 },
       targetSpeed: 0,
       nextStopM: 0,
       tripStartTime: 0,
@@ -707,8 +728,66 @@ export class SimEngine {
 
   /* ── 스냅샷 / 구독 ────────────────────────────────────────── */
 
+  /** 같은 노선·같은 방향 차량들의 앞차/뒤차 배차 간격 계산 */
+  private computeHeadways(vehicles: VehicleState[]) {
+    const AVG_M_PER_MIN = 416 // 25km/h
+    // 노선+방향으로 그룹핑
+    const groups = new Map<string, VehicleState[]>()
+    for (const v of vehicles) {
+      const ctx = this.routes.get(v.routeId)
+      if (!ctx) continue
+      const key = ctx.route.loop ? v.routeId : `${v.routeId}|${v.dir}`
+      const g = groups.get(key)
+      if (g) g.push(v)
+      else groups.set(key, [v])
+    }
+    for (const [, group] of groups) {
+      const first = group[0]
+      const ctx = this.routes.get(first.routeId)!
+      const total = ctx.idx.totalM
+      const loop = ctx.route.loop
+      // 진행 방향 기준 위치 (dir=-1이면 역순 진행이므로 반전)
+      const prog = (v: VehicleState) => (loop || v.dir === 1 ? v.odoOnRoute : total - v.odoOnRoute)
+      const sorted = [...group].sort((a, b) => prog(a) - prog(b))
+      const n = sorted.length
+      const idealMin = total / Math.max(1, n) / AVG_M_PER_MIN
+      sorted.forEach((v, i) => {
+        if (n < 2) {
+          v.headway = { frontId: null, frontGapMin: 0, rearId: null, rearGapMin: 0, idealMin, status: 'normal', peers: n }
+          return
+        }
+        // 앞차 = 진행 방향으로 다음 위치. 순환선은 wrap, 왕복선은 끝 차량이면 앞차 없음
+        const frontIdx = loop ? (i + 1) % n : i + 1
+        const rearIdx = loop ? (i - 1 + n) % n : i - 1
+        const front = frontIdx < n ? sorted[frontIdx] : null
+        const rear = rearIdx >= 0 ? sorted[rearIdx] : null
+        const gapTo = (o: VehicleState | null) => {
+          if (!o) return Infinity
+          let d = prog(o) - prog(v)
+          if (loop) d = ((d % total) + total) % total
+          return Math.abs(d) / AVG_M_PER_MIN
+        }
+        const frontGapMin = gapTo(front)
+        const rearGapMin = gapTo(rear)
+        let status: Headway['status'] = 'normal'
+        if (front && frontGapMin < idealMin * 0.5) status = 'bunching'
+        else if (rear && rearGapMin > idealMin * 1.6 && rearGapMin !== Infinity) status = 'gap'
+        v.headway = {
+          frontId: front?.id ?? null,
+          frontGapMin: frontGapMin === Infinity ? 0 : frontGapMin,
+          rearId: rear?.id ?? null,
+          rearGapMin: rearGapMin === Infinity ? 0 : rearGapMin,
+          idealMin,
+          status,
+          peers: n,
+        }
+      })
+    }
+  }
+
   private buildSnapshot(): SimSnapshot {
     const vehicles = this.vehicles.map((v) => ({ ...v, eventCounts: { ...v.eventCounts } }))
+    this.computeHeadways(vehicles)
     const totalFuel = vehicles.reduce((s, v) => s + v.fuelM3, 0)
     const totalBaseline = vehicles.reduce((s, v) => s + v.baselineFuelM3, 0)
     const totalDist = vehicles.reduce((s, v) => s + v.distanceKm, 0)

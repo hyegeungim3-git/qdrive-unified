@@ -68,16 +68,35 @@ function ScoreGauge({ score }: { score: number }) {
 const WEATHER_ICON = { 맑음: '☀️', 폭우: '🌧️', 폭염: '🥵' } as const
 
 /** 실시간 에코·안전 코칭 — 차량 상태에서 파생 */
-function coaching(v: { dwellRemaining: number; rpm: number; speedKmh: number }, recentWarn: boolean) {
+/**
+ * 예측형 에코 코칭 — 낭비가 일어난 뒤 벌점을 주는 게 아니라, 앞 상황을 보고 미리 안내한다.
+ * 다음 정류장 거리·앞차 간격·현재 속도를 종합해 "지금 발을 떼라(관성주행)"를 예측 제시.
+ */
+function coaching(
+  v: { dwellRemaining: number; rpm: number; speedKmh: number; nextStopDistM: number },
+  recentWarn: boolean,
+  bunching: boolean,
+) {
   if (recentWarn)
-    return { icon: '🛡️', msg: '방금 급조작이 감지됐어요 — 차간거리를 여유 있게 확보하세요', tone: 'warn' as const }
+    return { icon: '🛡️', msg: '방금 급조작이 감지됐어요 — 차간거리를 여유 있게 확보하세요', tone: 'warn' as const, eco: false }
   if (v.dwellRemaining > 0)
-    return { icon: '🚏', msg: '승하차 중 — 출발 시 완만하게 가속하면 점수·연비 모두 좋아져요', tone: 'ok' as const }
+    return { icon: '🚏', msg: '승하차 중 — 출발 시 완만하게 가속하면 점수·연비 모두 좋아져요', tone: 'ok' as const, eco: false }
+  // 🌿 예측형: 정류장 접근 구간에서 미리 발 떼기(관성주행) 권장
+  if (v.nextStopDistM < 160 && v.nextStopDistM > 20 && v.speedKmh > 18)
+    return {
+      icon: '🌿',
+      msg: `${Math.round(v.nextStopDistM)}m 앞 정류장 — 지금 가속 페달을 떼고 관성으로 진입하면 연료가 절약됩니다`,
+      tone: 'eco' as const,
+      eco: true,
+    }
+  // 🌿 예측형: 앞차 근접 시 가속 불필요
+  if (bunching && v.speedKmh > 25)
+    return { icon: '🌿', msg: '앞차가 가깝습니다 — 가속 대신 관성 유지가 연료·간격 모두 유리합니다', tone: 'eco' as const, eco: true }
   if (v.rpm > 2200)
-    return { icon: '⚙️', msg: 'RPM이 높아요 — 정속 유지 시 연료 소모가 줄어듭니다', tone: 'warn' as const }
+    return { icon: '⚙️', msg: 'RPM이 높아요 — 정속 유지 시 연료 소모가 줄어듭니다', tone: 'warn' as const, eco: false }
   if (v.speedKmh > 52)
-    return { icon: '🚦', msg: '속도가 높습니다 — 여유 운행으로 안전점수를 지키세요', tone: 'warn' as const }
-  return { icon: '👍', msg: '정속 주행 중 — 연비 최적 구간입니다. 좋아요!', tone: 'ok' as const }
+    return { icon: '🚦', msg: '속도가 높습니다 — 여유 운행으로 안전점수를 지키세요', tone: 'warn' as const, eco: false }
+  return { icon: '👍', msg: '정속 주행 중 — 연비 최적 구간입니다. 좋아요!', tone: 'ok' as const, eco: false }
 }
 
 export default function DriverApp() {
@@ -98,7 +117,7 @@ export default function DriverApp() {
       engine.submitPlea(v.id, note, method)
       setPleaState('sent')
     }
-    if (!SR) return submit('방어 운전 소명 (음성 미지원 환경 — 버튼 접수)', '버튼')
+    if (!SR) return submit('방어 운전 상황 설명 (음성 미지원 환경 — 버튼 접수)', '버튼')
     try {
       const rec = new SR()
       rec.lang = 'ko-KR'
@@ -111,8 +130,8 @@ export default function DriverApp() {
         submit(note, method)
       }
       rec.onresult = (e: any) => finish(e.results[0][0].transcript, '음성')
-      rec.onerror = () => finish('방어 운전 소명 (음성 인식 실패 — 버튼 접수)', '버튼')
-      rec.onend = () => finish('방어 운전 소명 (음성 무입력 — 버튼 접수)', '버튼')
+      rec.onerror = () => finish('방어 운전 상황 설명 (음성 인식 실패 — 버튼 접수)', '버튼')
+      rec.onend = () => finish('방어 운전 상황 설명 (음성 무입력 — 버튼 접수)', '버튼')
       rec.start()
       setTimeout(() => {
         try {
@@ -122,14 +141,13 @@ export default function DriverApp() {
         }
       }, 5000)
     } catch {
-      submit('방어 운전 소명 (버튼 접수)', '버튼')
+      submit('방어 운전 상황 설명 (버튼 접수)', '버튼')
     }
   }
   const co2Saved = Math.max(0, (v.baselineFuelM3 - v.fuelM3) * 2.2)
   const w = snap.weather
   const restDue = snap.simTime > 5400
   const isFaulty = snap.fault?.predicted && snap.fault.vehicleId === v.id
-  const coach = coaching(v, warnActive)
   const rank = [...snap.vehicles].sort((a, b) => b.score - a.score).findIndex((x) => x.id === v.id) + 1
 
   // 노선 진행 현황 (기점→종점, 방향 반영)
@@ -138,6 +156,27 @@ export default function DriverApp() {
   const pct = route.loop || v.dir === 1 ? rawPct : 1 - rawPct
   const fromStop = route.loop ? route.stops[0].name : (v.dir === 1 ? route.stops[0] : route.stops[route.stops.length - 1]).name
   const toStop = route.loop ? '' : (v.dir === 1 ? route.stops[route.stops.length - 1] : route.stops[0]).name
+
+  // 앞차·뒤차 배차 간격 + 진행 바에 표시할 동일 방향 이웃 버스 위치
+  const hw = v.headway
+  const progPct = (o: (typeof snap.vehicles)[number]) =>
+    route.loop || o.dir === 1 ? o.odoOnRoute / totalM : 1 - o.odoOnRoute / totalM
+  const peerBuses = hw
+    ? snap.vehicles
+        .filter((o) => o.id === hw.frontId || o.id === hw.rearId)
+        .map((o) => ({ id: o.id, pct: Math.max(0, Math.min(1, progPct(o))), rel: o.id === hw.frontId ? '앞차' : '뒤차' }))
+    : []
+
+  const coach = coaching(v, warnActive, hw?.status === 'bunching')
+  // 오늘 연료 낭비 요인 (m³) — 큰 순
+  const waste = v.fuelWaste
+  const wasteTotal = waste.idle + waste.harsh + waste.habit + waste.ac
+  const wasteTop = [
+    ['운전습관', waste.habit],
+    ['공회전', waste.idle],
+    ['급조작', waste.harsh],
+    ['냉방부하', waste.ac],
+  ].sort((a, b) => (b[1] as number) - (a[1] as number))[0]
 
   const { ref: scaleRef, scale } = useFrameScale()
 
@@ -278,14 +317,88 @@ export default function DriverApp() {
                       style={{ left: `${(route.loop || v.dir === 1 ? s.at : 1 - s.at) * 100}%` }}
                     />
                   ))}
+                  {/* 뒤차·앞차 위치 (같은 방향, 반투명 회색 버스) */}
+                  {hw &&
+                    peerBuses.map((p) => (
+                      <span
+                        key={p.id}
+                        title={`${p.rel} ${p.id.slice(-4)}호`}
+                        className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm leading-none opacity-45 transition-all duration-500"
+                        style={{ left: `${p.pct * 100}%`, transform: `translate(-50%,-50%)${v.dir === -1 && !route.loop ? '' : ' scaleX(-1)'}` }}
+                      >
+                        🚌
+                      </span>
+                    ))}
                   <span
-                    className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-base leading-none transition-all duration-500"
+                    className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-base leading-none transition-all duration-500"
                     style={{ left: `${pct * 100}%`, transform: `translate(-50%,-50%)${v.dir === -1 && !route.loop ? '' : ' scaleX(-1)'}` }}
                   >
                     🚌
                   </span>
                 </div>
               </div>
+
+              {/* 앞차·뒤차 배차 간격 */}
+              {hw && hw.peers >= 2 && (
+                <div
+                  className={`rounded-2xl border px-5 py-3 ${
+                    hw.status === 'bunching'
+                      ? 'border-amber-500/40 bg-amber-500/10'
+                      : hw.status === 'gap'
+                        ? 'border-sky-500/30 bg-sky-500/10'
+                        : 'border-gray-800 bg-gray-900/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-gray-500">🔗 앞·뒤차 배차 간격</span>
+                    <span
+                      className={`font-bold ${
+                        hw.status === 'bunching'
+                          ? 'text-amber-300'
+                          : hw.status === 'gap'
+                            ? 'text-sky-300'
+                            : 'text-emerald-400'
+                      }`}
+                    >
+                      {hw.status === 'bunching'
+                        ? '⚠ 앞차 근접 — 몰림 주의'
+                        : hw.status === 'gap'
+                          ? '뒤차와 벌어짐'
+                          : '정상 간격 유지'}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-stretch gap-2 text-center">
+                    <div className="flex-1 rounded-lg bg-gray-800/50 py-1.5">
+                      <div className="text-[9px] text-gray-500">뒤차 {hw.rearId ? `${hw.rearId.slice(-4)}호` : '없음'}</div>
+                      <div className="text-lg font-extrabold tabular-nums text-gray-200">
+                        {hw.rearId ? `${hw.rearGapMin.toFixed(1)}` : '—'}
+                        {hw.rearId && <span className="text-[10px] font-medium text-gray-500">분</span>}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center justify-center px-1">
+                      <span className="text-[9px] text-gray-500">이상</span>
+                      <span className="text-xs font-bold tabular-nums text-gray-400">{hw.idealMin.toFixed(1)}분</span>
+                    </div>
+                    <div
+                      className={`flex-1 rounded-lg py-1.5 ${hw.status === 'bunching' ? 'bg-amber-500/15' : 'bg-gray-800/50'}`}
+                    >
+                      <div className="text-[9px] text-gray-500">앞차 {hw.frontId ? `${hw.frontId.slice(-4)}호` : '없음'}</div>
+                      <div
+                        className={`text-lg font-extrabold tabular-nums ${hw.status === 'bunching' ? 'text-amber-300' : 'text-gray-200'}`}
+                      >
+                        {hw.frontId ? `${hw.frontGapMin.toFixed(1)}` : '—'}
+                        {hw.frontId && <span className="text-[10px] font-medium text-gray-500">분</span>}
+                      </div>
+                    </div>
+                  </div>
+                  {hw.status === 'bunching' && (
+                    <div className="mt-1.5 text-[10px] leading-relaxed text-amber-200/80">
+                      앞차와 간격이 좁습니다 — 정류장에서 잠시 여유를 두면 배차가 고르게 유지됩니다 (관제 배차
+                      권고와 연동)
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 다음 정류장 */}
               <div className="flex items-center justify-between gap-4 rounded-2xl bg-gray-900/60 px-6 py-4">
@@ -336,16 +449,56 @@ export default function DriverApp() {
                 </div>
               )}
 
-              {/* 실시간 코칭 */}
+              {/* 실시간 코칭 (예측형 에코 코칭 포함) */}
               <div
                 className={`flex flex-1 flex-col justify-center rounded-xl border px-4 py-3 ${
-                  coach.tone === 'warn' ? 'border-amber-500/30 bg-amber-500/10' : 'border-emerald-500/25 bg-emerald-500/5'
+                  coach.tone === 'warn'
+                    ? 'border-amber-500/30 bg-amber-500/10'
+                    : coach.tone === 'eco'
+                      ? 'border-emerald-500/50 bg-emerald-500/15'
+                      : 'border-emerald-500/25 bg-emerald-500/5'
                 }`}
               >
-                <div className={`text-[11px] font-bold ${coach.tone === 'warn' ? 'text-amber-300' : 'text-emerald-400'}`}>
-                  {coach.icon} 실시간 코칭
+                <div
+                  className={`text-[11px] font-bold ${
+                    coach.tone === 'warn' ? 'text-amber-300' : 'text-emerald-400'
+                  }`}
+                >
+                  {coach.icon} {coach.eco ? '실시간 에코 코칭 (예측)' : '실시간 코칭'}
                 </div>
                 <div className="mt-1 text-xs leading-relaxed text-gray-300">{coach.msg}</div>
+              </div>
+
+              {/* 경제운전(관성주행) 점수 + 오늘 연료 낭비 1위 */}
+              <div className="rounded-xl bg-gray-900/60 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-gray-500">🌿 경제운전 점수</span>
+                  <span
+                    className={`text-lg font-extrabold tabular-nums ${
+                      v.ecoScore >= 85 ? 'text-emerald-400' : v.ecoScore >= 70 ? 'text-amber-400' : 'text-red-400'
+                    }`}
+                  >
+                    {Math.round(v.ecoScore)}
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-800">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      v.ecoScore >= 85 ? 'bg-emerald-500' : v.ecoScore >= 70 ? 'bg-amber-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${v.ecoScore}%` }}
+                  />
+                </div>
+                <div className="mt-1.5 text-[10px] leading-relaxed text-gray-500">
+                  관성주행(정류장 전 발 떼기) 비율 기준 ·{' '}
+                  {wasteTotal > 0.05 ? (
+                    <>
+                      오늘 연료 낭비 1위 <b className="text-amber-400">{wasteTop[0]}</b>
+                    </>
+                  ) : (
+                    <b className="text-emerald-400">낭비 요인 거의 없음 — 우수</b>
+                  )}
+                </div>
               </div>
 
               {/* 사내 랭킹 (게이미피케이션) */}
@@ -440,7 +593,7 @@ export default function DriverApp() {
                     className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-black"
                     style={{ background: 'rgba(254, 202, 202, 0.95)', color: '#7f1d1d' }}
                   >
-                    🎙 소명 남기기
+                    🎙 상황 설명하기
                   </button>
                 )}
                 {pleaState === 'listening' && (
@@ -450,7 +603,7 @@ export default function DriverApp() {
                 )}
                 {pleaState === 'sent' && (
                   <span className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold" style={{ background: 'rgba(52,211,153,0.2)', color: '#a7f3d0' }}>
-                    ✓ 소명 접수 — 관제 검토 후 복원
+                    ✓ 설명 전달됨 — 관제 확인 후 반영
                   </span>
                 )}
               </div>

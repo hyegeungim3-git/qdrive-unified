@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { engine, useSim } from '../sim/store'
 import { DEMO_VEHICLE_ID } from '../sim/engine'
 import { ROUTES } from '../sim/routes'
@@ -817,18 +818,187 @@ function MyAgent() {
   )
 }
 
-/** 리포트 화면 — 좌측 레일 '리포트' 탭의 콘텐츠. 요약 + 배지·인사이트 + 내 에이전트를 프레임 안에서 스크롤. */
+/** 주간 연비 추이(내 연비 vs 회사평균, 월~일) — 탄소 플랫폼 원본 서사값 그대로 이식 */
+const WEEKLY_FUEL_TREND = ['월', '화', '수', '목', '금', '토', '일'].map((d, i) => ({
+  d,
+  me: [3.2, 3.3, 3.1, 3.4, 3.3, 3.5, 3.4][i],
+  avg: [3.0, 3.0, 2.9, 3.1, 3.0, 3.1, 3.0][i],
+}))
+
+/** AI 코칭 팁 3종 — 탄소 플랫폼 원본 "개선 포인트" 그대로 이식 */
+const COACHING_TIPS = [
+  { tag: '공회전', title: '대기 중 시동 끄기', desc: '동대구역 회차 대기 시 공회전이 하루 평균 22분이에요. 5분 이상 대기 시 시동을 꺼 보세요.', effect: '월 14L 연료 절감', accent: 'text-amber-400', badge: 'bg-amber-500/12 text-amber-400' },
+  { tag: '정속', title: '신천대로 정속 유지', desc: '70km/h 정속 구간에서 가감속이 잦아요. 페달을 일정하게 유지해 보세요.', effect: '연비 +0.2km/L 기대', accent: 'text-sky-400', badge: 'bg-sky-500/12 text-sky-400' },
+  { tag: '예측', title: '신호 예측 감속', desc: '반월당 네거리 진입 300m 전부터 서서히 감속하면 급감속을 줄일 수 있어요.', effect: '안전점수 +1.5점 기대', accent: 'text-emerald-400', badge: 'bg-emerald-500/12 text-emerald-400' },
+]
+
+/** 리포트 화면 — 좌측 레일 '리포트' 탭의 콘텐츠. 탄소 플랫폼 원본 「내 운행 리포트」 전 구성을 프레임 안에서 재현. */
 function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; score: number; co2Saved: number; driverName: string }) {
+  const snap = useSim()
+  const v = snap.vehicles.find((x) => x.id === DEMO_VEHICLE_ID)!
+  const myTrips = [...snap.trips].filter((t) => t.vehicleId === DEMO_VEHICLE_ID).reverse().slice(0, 4)
+  const ranked = [...snap.vehicles].sort((a, b) => b.score - a.score)
+
   return (
     <div className="flex flex-col gap-3">
-      <DriverReport rank={rank} score={score} co2Saved={co2Saved} driverName={driverName} />
+      {/* 라이브 요약 스트립 */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-3">
+        <div className="text-sm font-bold text-gray-100">📋 {driverName} 기사님 오늘의 리포트</div>
+        <div className="flex flex-wrap items-center gap-4 text-[13px]">
+          <span className="text-gray-400">오늘 점수 <b className="tabular-nums text-gray-100">{Math.round(score)}</b></span>
+          <span className="text-gray-400">사내 순위 <b className="tabular-nums text-sky-300">{rank}위</b></span>
+          <span className="text-gray-400">오늘 절감 <b className="tabular-nums text-emerald-400">{co2Saved.toFixed(2)}kg</b></span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[11px] font-bold text-emerald-400">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />LIVE
+          </span>
+        </div>
+      </div>
+
+      {/* 이번 주 KPI 3종 — 원본 서사값(시뮬레이터는 하루 단위라 "주간" 실측 불가), 오늘 실측 각주 병기 */}
+      <div className="grid grid-cols-3 gap-3 max-[720px]:grid-cols-1">
+        <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+          <div className="text-[12px] font-semibold text-gray-500">이번 주 주행</div>
+          <div className="mt-1.5 text-2xl font-bold tabular-nums text-gray-100">
+            642<span className="ml-0.5 text-sm font-semibold text-gray-400">km</span>
+          </div>
+          <div className="mt-1 text-[11px] font-semibold text-gray-500">22회차 운행 · 오늘 {v.distanceKm.toFixed(1)}km</div>
+        </div>
+        <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+          <div className="text-[12px] font-semibold text-gray-500">평균 연비</div>
+          <div className="mt-1.5 text-2xl font-bold tabular-nums text-sky-400">
+            3.3<span className="ml-0.5 text-sm font-semibold text-gray-400">km/L</span>
+          </div>
+          <div className="mt-1 text-[11px] font-semibold text-emerald-400">▲ 회사 평균보다 +8%</div>
+        </div>
+        <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+          <div className="text-[12px] font-semibold text-gray-500">이번 주 탄소 절감</div>
+          <div className="mt-1.5 text-2xl font-bold tabular-nums text-emerald-400">
+            38.2<span className="ml-0.5 text-sm font-semibold text-gray-400">kg</span>
+          </div>
+          <div className="mt-1 text-[11px] font-semibold text-gray-500">연료 14.3L 절감 환산</div>
+        </div>
+      </div>
+
+      {/* 주간 연비 추이 + 내 운행 기록 */}
+      <div className="grid grid-cols-[1.4fr_1fr] gap-3 max-[860px]:grid-cols-1">
+        <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+          <div className="mb-2 text-sm font-bold text-gray-100">주간 연비 추이</div>
+          <div className="h-[168px]">
+            <ResponsiveContainer>
+              <LineChart data={WEEKLY_FUEL_TREND} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                <CartesianGrid stroke="#374151" strokeOpacity={0.3} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="d" tick={{ fill: '#8899a6', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis domain={[2.6, 3.8]} tick={{ fill: '#8899a6', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: '#191f28', border: '1px solid #374151', borderRadius: 8, fontSize: 11 }} labelStyle={{ color: '#cbd5e1' }} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Line type="monotone" dataKey="me" name="내 연비" stroke="#38bdf8" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="avg" name="회사 평균" stroke="#6b7280" strokeDasharray="6 5" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+          <div className="mb-2 flex items-center gap-1.5 text-sm font-bold text-gray-100">
+            운행 기록
+            <span className="rounded bg-emerald-500/12 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">LIVE</span>
+          </div>
+          <div className="flex flex-col">
+            {myTrips.length === 0 ? (
+              <div className="py-6 text-center text-[11px] text-gray-600">회차 종료 시 자동 기록됩니다 (배속을 올려보세요)</div>
+            ) : (
+              myTrips.map((t, i) => (
+                <div key={i} className="flex items-center gap-2.5 border-b border-gray-800/60 py-2.5 last:border-0">
+                  <div className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-gray-800/60 text-[12px] font-bold tabular-nums text-gray-300">
+                    {myTrips.length - i}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12px] font-bold text-gray-200">
+                      {simClock(t.startSimTime)}–{simClock(t.endSimTime)}
+                    </div>
+                    <div className="truncate text-[10.5px] text-gray-500">{t.routeName} · {t.distanceKm}km</div>
+                  </div>
+                  <div className="flex-none text-right">
+                    <div className="text-[12.5px] font-bold tabular-nums text-sky-300">{(t.distanceKm / t.fuelM3).toFixed(1)}km/L</div>
+                    <div className="text-[10px] font-semibold tabular-nums text-gray-500">{t.co2Kg.toFixed(1)}kg CO₂</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 사내 랭킹(엔진 실시간) + 내 배지 */}
+      <div className="grid grid-cols-[1fr_1.4fr] gap-3 max-[860px]:grid-cols-1">
+        <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-sm font-bold text-gray-100">사내 안전운전 랭킹</span>
+            <span className="rounded-full bg-sky-500/12 px-2 py-0.5 text-[10px] font-bold text-sky-300">세운버스(주) · LIVE</span>
+          </div>
+          <div className="flex flex-col">
+            {ranked.map((rv, i) => {
+              const me = rv.id === v.id
+              return (
+                <div key={rv.id} className={`flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 ${me ? 'bg-sky-500/10' : ''}`}>
+                  <div
+                    className={`flex h-6 w-6 flex-none items-center justify-center rounded-md text-[11px] font-bold ${
+                      i === 0 ? 'bg-sky-500 text-white' : 'bg-gray-800 text-gray-400'
+                    }`}
+                  >
+                    {i + 1}
+                  </div>
+                  <div className="min-w-0 flex-1 truncate text-[12.5px] font-bold text-gray-200">
+                    {rv.driverName}
+                    {me && <span className="ml-1.5 rounded bg-sky-500 px-1.5 py-0.5 text-[9px] font-bold text-white">나</span>}
+                  </div>
+                  <span className="flex-none text-[13px] font-bold tabular-nums text-gray-100">{Math.round(rv.score)}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-2.5 border-t border-gray-800 pt-2 text-[10.5px] font-semibold leading-relaxed text-gray-500">
+            1위 유지 시 <b className="text-emerald-400">인센티브 +80,000원</b>
+          </div>
+        </div>
+
+        {/* 배지 */}
+        <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+          <BadgesPanel rank={rank} />
+        </div>
+      </div>
+
+      {/* 퍼스널 인사이트 */}
+      <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+        <InsightsPanel />
+      </div>
+
+      {/* 개선 포인트 — AI 코칭 팁 3종 */}
+      <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-sm font-bold text-gray-100">개선 포인트</span>
+          <span className="rounded-full bg-sky-500/12 px-2 py-0.5 text-[11px] font-bold text-sky-300">AI 코칭</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2.5 max-[720px]:grid-cols-1">
+          {COACHING_TIPS.map((t) => (
+            <div key={t.title} className="rounded-xl border border-gray-800 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${t.badge}`}>{t.tag}</span>
+                <span className="text-[12.5px] font-bold text-gray-100">{t.title}</span>
+              </div>
+              <div className="mt-2 text-[11.5px] leading-relaxed text-gray-400">{t.desc}</div>
+              <div className={`mt-2 flex items-center gap-1 text-[11.5px] font-bold ${t.accent}`}>✓ {t.effect}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <MyAgent />
     </div>
   )
 }
 
-/** 운행 후 리포트 — 게이미피케이션(배지 6종) + AI 퍼스널 인사이트. 월간 MVP 배지는 엔진 실시간 순위 연동. */
-function DriverReport({ rank, score, co2Saved, driverName }: { rank: number; score: number; co2Saved: number; driverName: string }) {
+/** 배지 6종. 월간 MVP 배지는 엔진 실시간 순위 연동. */
+function BadgesPanel({ rank }: { rank: number }) {
   const badges = [
     { icon: '🌿', name: '에코 마스터', cond: '월 연비 상위 10%', got: true },
     { icon: '🛡️', name: '무사고 500일', cond: '537일 달성 중', got: true },
@@ -844,70 +1014,54 @@ function DriverReport({ rank, score, co2Saved, driverName }: { rank: number; sco
     },
   ]
   const gotCount = badges.filter((b) => b.got).length
+  return (
+    <>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm font-bold text-gray-100">🎖️ 내 배지</span>
+        <span className="text-[12px] font-semibold text-gray-500">{gotCount}/6 획득</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2.5">
+        {badges.map((b) => (
+          <div
+            key={b.name}
+            className={`rounded-xl border px-3 py-3 text-center transition ${
+              b.got ? 'border-emerald-500/25 bg-emerald-500/5' : 'border-gray-800 bg-gray-900/40 opacity-55 grayscale'
+            }`}
+          >
+            <div className="text-2xl">{b.icon}</div>
+            <div className="mt-1 text-[12px] font-bold text-gray-100">{b.name}</div>
+            <div className="mt-0.5 text-[10px] leading-tight text-gray-500">{b.cond}</div>
+            {b.got && <div className="mt-1 text-[10px] font-bold text-emerald-400">획득 ✓</div>}
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
 
+/** AI 퍼스널 인사이트 3종. */
+function InsightsPanel() {
   const insights = [
     { icon: '⚠', title: '취약 시간대', head: '오후 2~4시', body: '급가속이 다른 시간대의 1.8배예요 — 점심 후 첫 회차를 여유 있게 시작해 보세요.', cls: 'border-amber-500/20 bg-amber-500/5', accent: 'text-amber-400' },
     { icon: '★', title: '나의 최고 조건', head: '비 오는 화요일 96.8점', body: '궂은 날 예측 감속이 몸에 배어 있어요 — 이 습관을 맑은 날에도.', cls: 'border-emerald-500/20 bg-emerald-500/5', accent: 'text-emerald-400' },
     { icon: '↗', title: '3개월 성장', head: '+4.2점 · 연비 +0.3', body: '전사 486명 중 성장 폭 상위 8% — 이 속도면 다음 달 사내 신기록이에요.', cls: 'border-sky-500/20 bg-sky-500/5', accent: 'text-sky-400' },
   ]
-
   return (
-    <div>
-      {/* 라이브 요약 스트립 */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-3">
-        <div className="text-sm font-bold text-gray-100">📋 {driverName} 기사님 오늘의 리포트</div>
-        <div className="flex flex-wrap items-center gap-4 text-[13px]">
-          <span className="text-gray-400">오늘 점수 <b className="tabular-nums text-gray-100">{Math.round(score)}</b></span>
-          <span className="text-gray-400">사내 순위 <b className="tabular-nums text-sky-300">{rank}위</b></span>
-          <span className="text-gray-400">오늘 절감 <b className="tabular-nums text-emerald-400">{co2Saved.toFixed(2)}kg</b></span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[11px] font-bold text-emerald-400">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />LIVE
-          </span>
-        </div>
+    <>
+      <div className="mb-1 flex items-center gap-2">
+        <span className="text-sm font-bold text-gray-100">AI가 발견한 나의 패턴</span>
+        <span className="rounded-full bg-violet-500/12 px-2 py-0.5 text-[11px] font-bold text-violet-300">3개월 데이터 분석</span>
       </div>
-
-      <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
-        {/* 배지 */}
-        <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-bold text-gray-100">🎖️ 내 배지</span>
-            <span className="text-[12px] font-semibold text-gray-500">{gotCount}/6 획득</span>
+      <div className="mb-3 text-[12px] font-semibold text-gray-500">운행 264회를 학습해 찾아냈어요 — 데이터가 쌓일수록 코칭이 정확해져요.</div>
+      <div className="grid grid-cols-3 gap-2.5 max-[720px]:grid-cols-1">
+        {insights.map((i) => (
+          <div key={i.title} className={`rounded-xl border px-4 py-3 ${i.cls}`}>
+            <div className={`text-[12px] font-bold ${i.accent}`}>{i.icon} {i.title}</div>
+            <div className="mt-1 text-sm font-bold text-gray-100">{i.head}</div>
+            <div className="mt-1 text-[11.5px] font-semibold leading-relaxed text-gray-400">{i.body}</div>
           </div>
-          <div className="grid grid-cols-3 gap-2.5">
-            {badges.map((b) => (
-              <div
-                key={b.name}
-                className={`rounded-xl border px-3 py-3 text-center transition ${
-                  b.got ? 'border-emerald-500/25 bg-emerald-500/5' : 'border-gray-800 bg-gray-900/40 opacity-55 grayscale'
-                }`}
-              >
-                <div className="text-2xl">{b.icon}</div>
-                <div className="mt-1 text-[12px] font-bold text-gray-100">{b.name}</div>
-                <div className="mt-0.5 text-[10px] leading-tight text-gray-500">{b.cond}</div>
-                {b.got && <div className="mt-1 text-[10px] font-bold text-emerald-400">획득 ✓</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 퍼스널 인사이트 */}
-        <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
-          <div className="mb-1 flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-100">AI가 발견한 나의 패턴</span>
-            <span className="rounded-full bg-violet-500/12 px-2 py-0.5 text-[11px] font-bold text-violet-300">3개월 데이터 분석</span>
-          </div>
-          <div className="mb-3 text-[12px] font-semibold text-gray-500">운행 264회를 학습해 찾아냈어요 — 데이터가 쌓일수록 코칭이 정확해져요.</div>
-          <div className="flex flex-col gap-2.5">
-            {insights.map((i) => (
-              <div key={i.title} className={`rounded-xl border px-4 py-3 ${i.cls}`}>
-                <div className={`text-[12px] font-bold ${i.accent}`}>{i.icon} {i.title}</div>
-                <div className="mt-1 text-sm font-bold text-gray-100">{i.head}</div>
-                <div className="mt-1 text-[11.5px] font-semibold leading-relaxed text-gray-400">{i.body}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
-    </div>
+    </>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Panel, simClock } from '../../components/ui'
+import { copyToClipboard, Panel, simClock } from '../../components/ui'
 import { useSim } from '../../sim/store'
 import { ROUTES } from '../../sim/routes'
 import { indexPolyline, pointAt, haversine } from '../../sim/geo'
@@ -258,7 +258,7 @@ function buildDriverReport(snap: SimSnapshot, v: VehicleState, period: Period): 
 
 export default function AiReport() {
   const snap = useSim()
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<null | boolean>(null)
   const [target, setTarget] = useState('전체')
   const [periodId, setPeriodId] = useState<Period['id']>('today')
   const period = PERIODS.find((p) => p.id === periodId)!
@@ -273,9 +273,9 @@ export default function AiReport() {
     const text =
       `[Qdrive AI ${reportTitle}] ${asOf} 기준 (자동 생성)\n\n` +
       paras.map((p) => `■ ${p.title}\n${p.text}\n근거: ${p.evidence.join(' / ')}`).join('\n\n')
-    navigator.clipboard?.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+    copyToClipboard(text).then((ok) => {
+      setCopied(ok)
+      setTimeout(() => setCopied(null), 2000)
     })
   }
 
@@ -318,7 +318,7 @@ export default function AiReport() {
             onClick={copyText}
             className="rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100"
           >
-            {copied ? '✓ 복사됨' : '📋 복사'}
+            {copied === true ? '✓ 복사됨' : copied === false ? '복사 실패 — 권한 확인' : '📋 복사'}
           </button>
         </div>
       </div>

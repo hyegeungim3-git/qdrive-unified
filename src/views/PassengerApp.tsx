@@ -86,6 +86,8 @@ export default function PassengerApp() {
   const notice = cityNotice(snap)
   const myComplaint = snap.complaints[0]
 
+  const [filed, setFiled] = useState(false) // 불편사항 접수 직후 인라인 확인 + 중복 방지
+
   /* ── 하차 예약 (졸음·놓침 방지) — 예약 정보는 엔진에 저장되어 탭 전환에도 유지 ── */
   const [pickRoute, setPickRoute] = useState<string | null>(null)
   const [destSel, setDestSel] = useState('')
@@ -400,10 +402,18 @@ export default function PassengerApp() {
               </span>
             </div>
             <button
-              onClick={() => engine.fileComplaint()}
-              className="w-full rounded-xl bg-violet-600 py-2.5 text-xs font-bold text-white hover:bg-violet-500"
+              onClick={() => {
+                if (filed) return
+                engine.fileComplaint()
+                setFiled(true)
+                setTimeout(() => setFiled(false), 3000)
+              }}
+              disabled={filed}
+              className={`w-full rounded-xl py-2.5 text-xs font-bold text-white transition-colors ${
+                filed ? 'bg-emerald-600' : 'bg-violet-600 hover:bg-violet-500'
+              }`}
             >
-              📢 불편사항 접수하기
+              {filed ? '✓ 접수됐어요 — 위 처리 현황에서 추적할 수 있어요' : '📢 불편사항 접수하기'}
             </button>
           </div>
         </div>

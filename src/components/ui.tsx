@@ -74,6 +74,33 @@ export function PersonaChip({ persona }: { persona: 'A' | 'B' | 'C' }) {
   return <span className={`rounded border px-1.5 py-0.5 text-[10px] ${cls}`}>{label}</span>
 }
 
+/**
+ * 클립보드 복사 — Clipboard API 우선, 미지원(비-https·구형) 시 execCommand 폴백.
+ * 성공 여부를 boolean으로 반환해 호출부가 성공/실패 피드백을 줄 수 있게 한다.
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    /* 폴백으로 진행 */
+  }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;'
+    document.body.appendChild(ta)
+    ta.select()
+    const ok = document.execCommand('copy')
+    ta.remove()
+    return ok
+  } catch {
+    return false
+  }
+}
+
 /** 시뮬레이션 시각 → HH:MM 표기 (데모는 06:00 출발 가정) */
 export function simClock(simTime: number): string {
   const base = 6 * 3600

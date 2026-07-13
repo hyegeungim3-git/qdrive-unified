@@ -51,7 +51,7 @@ export default function OperatorView() {
           key={t.id}
           onClick={() => setSub(t.id)}
           className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-            sub === t.id ? 'bg-gray-700 text-white' : 'bg-gray-900 text-gray-500 hover:text-gray-300'
+            sub === t.id ? 'bg-sky-600 text-white' : 'bg-gray-900 text-gray-500 hover:text-gray-300'
           }`}
         >
           {t.label}

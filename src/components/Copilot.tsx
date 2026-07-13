@@ -17,7 +17,8 @@ import { simClock } from './ui'
 interface Reply {
   text: string
   evidence?: string[]
-  action?: { label: string; run: () => void }
+  /** run(): 실행 결과 메시지를 반환하면 그 문구를, 없으면 label 기반 기본 문구를 채팅에 추가 */
+  action?: { label: string; run: () => string | void }
   nav?: { tab: string; label: string }
 }
 
@@ -77,14 +78,26 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
       return {
         text: `${b.id.slice(-4)}호가 앞차와 ${fmt1(b.headway!.frontGapMin)}분 간격(이상 ${fmt1(b.headway!.idealMin)}분)으로 몰림 상태입니다. 배차 조정을 권고할까요?`,
         evidence: [`몰림 ${bunched.length}대`, `앞차 간격 ${fmt1(b.headway!.frontGapMin)}분`],
-        action: { label: '배차 권고 생성', run: () => engine.forceRecommendation() },
+        action: {
+          label: '배차 권고 생성',
+          run: () =>
+            engine.forceRecommendation() === 'created'
+              ? '✓ 배차 권고를 생성했습니다 — 운수사 관제에서 승인해 주세요.'
+              : '이미 대기 중인 배차 권고가 있어요 — 운수사 관제에서 먼저 승인해 주세요.',
+        },
         nav: { tab: 'operator', label: '운수사에서 승인' },
       }
     }
     return {
       text: '현재 배차 몰림 없이 고른 간격을 유지 중입니다. 필요 시 배차 권고를 생성해 시뮬레이션할 수 있습니다.',
       evidence: [`운행 ${vehicles.length}대 · 몰림 0`],
-      action: { label: '배차 권고 생성(시연)', run: () => engine.forceRecommendation() },
+      action: {
+        label: '배차 권고 생성(시연)',
+        run: () =>
+          engine.forceRecommendation() === 'created'
+            ? '✓ 배차 권고를 생성했습니다 — 운수사 관제에서 승인해 주세요.'
+            : '이미 대기 중인 배차 권고가 있어요 — 운수사 관제에서 먼저 승인해 주세요.',
+      },
     }
   }
 
@@ -408,8 +421,8 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
                       {m.reply?.action && (
                         <button
                           onClick={() => {
-                            m.reply!.action!.run()
-                            setMsgs((prev) => [...prev, { role: 'ai', text: `✓ 실행했습니다: ${m.reply!.action!.label}` }])
+                            const result = m.reply!.action!.run()
+                            setMsgs((prev) => [...prev, { role: 'ai', text: result || `✓ 실행했습니다: ${m.reply!.action!.label}` }])
                           }}
                           className="rounded-md bg-emerald-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-500"
                         >

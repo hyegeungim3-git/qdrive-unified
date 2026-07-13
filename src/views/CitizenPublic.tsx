@@ -151,7 +151,7 @@ export default function CitizenPublic() {
             </div>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-xs font-bold">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#7ee2a8]" />
-              실시간 집계 중 · 시뮬레이션 연동
+              운행 데이터 기준 실시간 반영
             </span>
           </div>
 

@@ -3,7 +3,7 @@ import { useSim } from '../../sim/store'
 import { ROUTES } from '../../sim/routes'
 
 /**
- * 연료·에코 AI — 테너지식 사후 급가속 카운트와 차별화된 "예방형 연료절감".
+ * 연료·에코 AI — 사후 집계가 아닌 "예방형 연료절감".
  * 연료 낭비를 4요인으로 분해하고, 코칭으로 줄일 수 있는 부분을 대구 전 차량 연간으로 환산.
  */
 
@@ -55,8 +55,8 @@ export default function EcoFuel() {
           <div>
             <h2 className="text-lg font-bold text-gray-100">연료·에코 분석</h2>
             <div className="mt-0.5 text-[11px] text-gray-500">
-              낭비가 일어난 뒤 벌점이 아니라, 앞 상황을 예측해 관성주행을 실시간 안내 — 테너지식 사후
-              급가속 카운트와의 차별점
+              낭비가 일어난 뒤 벌점을 매기는 사후 집계가 아니라, 앞 상황을 예측해 관성주행을 실시간으로
+              안내해 낭비를 발생 전에 억제합니다.
             </div>
           </div>
           <div className="text-right">

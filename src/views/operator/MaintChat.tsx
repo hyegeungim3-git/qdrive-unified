@@ -60,9 +60,9 @@ export default function MaintChat() {
         <div className="flex flex-1 flex-col items-center justify-center gap-4">
           <div className="text-2xl">
             <span className="mr-2 inline-block h-6 w-6 animate-pulse rounded-full bg-gradient-to-tr from-violet-500 to-sky-400 align-middle" />
-            <span className="align-middle font-bold text-gray-200">안녕하세요, 정비사님</span>
+            <span className="align-middle font-bold text-gray-200">AI 정비 도우미</span>
           </div>
-          <div className="text-xs text-gray-500">차량번호를 입력하면 최근 진단 결과를 요약해 드립니다</div>
+          <div className="text-xs text-gray-500">차량번호를 입력하면 최근 진단 결과와 권장 점검을 요약해 드립니다</div>
         </div>
       ) : (
         <div className="flex-1 space-y-3 overflow-y-auto py-4 pr-2">
@@ -78,9 +78,9 @@ export default function MaintChat() {
                 <span className="mt-1 h-5 w-5 shrink-0 rounded-full bg-gradient-to-tr from-violet-500 to-sky-400" />
                 <div className="whitespace-pre-line rounded-2xl rounded-tl-sm border border-gray-800 bg-gray-900/70 px-4 py-3 text-xs leading-relaxed text-gray-300">
                   {m.text}
-                  <div className="mt-2 border-t border-gray-800 pt-1.5 text-[10px] text-gray-600">
-                    답변이 도움 되었나요? 👍 👎 · AI가 제공한 정보는 오류가 있을 수 있으므로 반드시 검토 후
-                    활용하세요
+                  <div className="mt-2 border-t border-gray-800 pt-1.5 text-[10px] text-gray-500">
+                    ℹ️ 이 답변은 참고용입니다 — AI가 제공한 정보는 오류가 있을 수 있으므로 정비 전 반드시
+                    확인하세요
                   </div>
                 </div>
               </div>

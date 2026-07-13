@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Panel, simClock } from '../../components/ui'
+import { copyToClipboard, Panel, simClock } from '../../components/ui'
 import { useSim } from '../../sim/store'
 import { fmtN, PERIODS, topZones, type Para, type Period } from '../operator/AiReport'
 import { type SimSnapshot } from '../../sim/types'
@@ -110,7 +110,7 @@ function buildPolicyReport(snap: SimSnapshot, period: Period): { paras: Para[]; 
 
 export default function PolicyReport({ onClose }: { onClose: () => void }) {
   const snap = useSim()
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<null | boolean>(null)
   const [periodId, setPeriodId] = useState<Period['id']>('today')
   const period = PERIODS.find((p) => p.id === periodId)!
   const { paras, proposals, asOf } = buildPolicyReport(snap, period)
@@ -120,9 +120,9 @@ export default function PolicyReport({ onClose }: { onClose: () => void }) {
       `[Qdrive AI 정책 보고서 — 대구시 버스운영과] ${asOf} 기준 (자동 생성)\n\n` +
       paras.map((p) => `■ ${p.title}\n${p.text}\n근거: ${p.evidence.join(' / ')}`).join('\n\n') +
       `\n\n■ 정책 제언\n${proposals.join('\n')}`
-    navigator.clipboard?.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+    copyToClipboard(text).then((ok) => {
+      setCopied(ok)
+      setTimeout(() => setCopied(null), 2000)
     })
   }
 
@@ -149,7 +149,7 @@ export default function PolicyReport({ onClose }: { onClose: () => void }) {
               ))}
             </select>
             <button onClick={copyText} className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100">
-              {copied ? '✓ 복사됨' : '📋 복사'}
+              {copied === true ? '✓ 복사됨' : copied === false ? '복사 실패 — 권한 확인' : '📋 복사'}
             </button>
             <button onClick={onClose} className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100">
               ✕ 닫기

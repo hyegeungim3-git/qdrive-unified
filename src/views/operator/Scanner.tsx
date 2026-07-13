@@ -107,9 +107,9 @@ export default function Scanner() {
       </div>
 
       <div className="rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2 text-[11px] text-gray-500">
-        💡 GPS 속도와 <b className="text-gray-300">내부 차량속도</b>의 차이가 표시됩니다 — Qdrive가 점수
-        산출에 GPS가 아닌 차량속도를 쓰는 이유(테너지 "점수 제각각" 실패 요인)를 이 화면으로 시연하세요.
-        고장 시나리오 진행 중이면 냉각수 온도 행이 붉게 상승합니다.
+        💡 GPS 속도와 <b className="text-gray-300">내부 차량속도</b>의 차이가 표시됩니다 — Qdrive는 점수
+        산출에 GPS가 아닌 차량 내부속도를 사용해, 터널·고층 사이 등 GPS 음영·오차 구간에서도 운전점수가
+        일관되게 유지됩니다. 냉각수온이 상승하면 해당 행이 붉게 강조됩니다.
       </div>
     </div>
   )

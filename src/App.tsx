@@ -86,7 +86,7 @@ export default function App() {
             onClick={() => {
               window.location.hash = 'citizen'
             }}
-            className="whitespace-nowrap rounded-md border border-emerald-800 bg-emerald-950/40 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:text-emerald-200"
+            className="whitespace-nowrap rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-500"
             title="시민 탄소 공개 페이지 (별도 진입점)"
           >
             🌱 시민 공개

@@ -104,12 +104,12 @@ export default function TeaserView() {
       {/* Agentic 운영 원칙 */}
       <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-5 py-4">
         <div className="text-sm font-bold text-sky-300">
-          🤖 Agentic AI 운영 원칙 — "보는 시스템"이 아니라 "조치안을 만드는 시스템"
+          🤖 AI 제안 · 사람 승인 원칙 — "보는 시스템"이 아니라 "조치안을 만드는 시스템"
         </div>
         <div className="mt-1.5 grid grid-cols-2 gap-4 text-xs leading-relaxed text-gray-400">
           <div>
             모든 AI 조치는 <b className="text-gray-200">예측 → 조치안 생성 → 담당자 승인 → 실행 → 결과
-            검증</b> 흐름을 따름. 배차 변경·정비 지시는 승인 필수(L2~L3), 기사 평가·징계·정산 확정은{' '}
+            검증</b> 흐름을 따름. 배차 변경·정비 지시는 승인 필수, 기사 평가·징계·정산 확정은{' '}
             <b className="text-red-400">자동화 금지</b> — 공공 안전·행정의 최종 판단은 사람이 한다.
           </div>
           <div>
@@ -153,7 +153,7 @@ export default function TeaserView() {
       </div>
 
       <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-5 py-4">
-        <div className="text-sm font-bold text-violet-300">💡 선순환 구조 (As-Is → To-Be)</div>
+        <div className="text-sm font-bold text-violet-300">💡 선순환 구조 (도입 전 → 후)</div>
         <div className="mt-1.5 text-xs leading-relaxed text-gray-400">
           현황: 차량(DTG·OBD)과 운행(BIS·BMS·ITS) 데이터가 분산 — 민원은 감으로 처리, 정책은 데이터 없이 수립.
           <br />

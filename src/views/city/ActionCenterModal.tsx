@@ -10,7 +10,7 @@ export default function ActionCenterModal({ onClose }: { onClose: () => void }) 
         <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-700 bg-gray-900 px-5 py-4 shadow-2xl">
           <div className="min-w-0">
             <div className="text-[10px] font-semibold tracking-widest text-violet-400">AI WORK AUTOMATION · 대구시</div>
-            <h2 className="mt-0.5 text-lg font-bold text-gray-100">🗂️ 조치함</h2>
+            <h2 className="mt-0.5 text-lg font-bold text-gray-100">📋 업무함</h2>
             <div className="mt-0.5 text-[11px] leading-relaxed text-gray-500">
               에이전트가 데이터 수집→분석→문서 초안까지 처리합니다. 담당자는 검토·승인만 — 정산 확정 등은
               자동화하지 않습니다.

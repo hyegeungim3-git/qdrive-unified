@@ -126,7 +126,7 @@ export default function Depot() {
               ))}
               <div className="rounded-md border border-gray-800 bg-gray-900/40 px-3 py-2 text-[10px] leading-relaxed text-gray-500">
                 투입 판단 요소: 정비대기 대수 · 날씨(폭우/폭염) · 행사/재난 수요 예측 · 노선별 결행 위험.
-                투입은 <b className="text-gray-300">관제 승인 후 실행</b> (Agentic L2)
+                투입은 <b className="text-gray-300">관제 승인 후 실행</b>
               </div>
             </div>
           </Panel>

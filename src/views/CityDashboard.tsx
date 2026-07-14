@@ -265,7 +265,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
           onClick={() => setShowActionCenter(true)}
           className="flex w-full items-center justify-between rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-left text-[11px] font-bold text-violet-300 hover:bg-violet-500/20"
         >
-          <span>🗂️ 조치함</span>
+          <span>📋 업무함</span>
           {actionOwnerReadyCount('대구시', snap) > 0 && (
             <span className="rounded-full bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-bold text-violet-200">
               {actionOwnerReadyCount('대구시', snap)}건 승인 대기

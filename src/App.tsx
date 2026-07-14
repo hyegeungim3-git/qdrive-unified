@@ -18,7 +18,7 @@ const TABS = [
   { id: 'driver', label: '기사 앱', sub: '운전자' },
   { id: 'passenger', label: '승객 앱', sub: '시민·승객' },
   { id: 'carbon', label: '🌱 탄소중립 분석', sub: '탄소·연료·안전·전환' },
-  { id: 'report', label: '실증 리포트', sub: 'As-Is → To-Be' },
+  { id: 'report', label: '실증 리포트', sub: '도입 전 → 후 비교' },
   { id: 'roadmap', label: '로드맵', sub: '플랫폼 확장' },
 ] as const
 
@@ -87,9 +87,9 @@ export default function App() {
               window.location.hash = 'citizen'
             }}
             className="whitespace-nowrap rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-500"
-            title="시민 탄소 공개 페이지 (별도 진입점)"
+            title="시민이 보는 탄소 절감 현황 화면 (공유 가능한 별도 링크)"
           >
-            🌱 시민 공개
+            🌱 시민 화면 보기
           </button>
           <button
             onClick={toggleTheme}

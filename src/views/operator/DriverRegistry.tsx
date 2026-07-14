@@ -50,7 +50,7 @@ export default function DriverRegistry({ onSub }: { onSub?: (t: 'ops') => void }
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-lg font-bold text-gray-100">👥 기사 관리</div>
-          <div className="text-xs text-gray-500">기사 등록·성과·교육을 인사 관점에서 관리해요 · 코칭 실행은 관제 조치함으로</div>
+          <div className="text-xs text-gray-500">기사 등록·성과·교육을 인사 관점에서 관리해요 · 코칭 실행은 관제 업무함으로</div>
         </div>
         <span className="text-[10px] text-gray-600">
           준공영제 참여 5개사 486명 · 412대 (세운버스 98대 포함) · <b className="text-emerald-400">실증 {n}명 라이브</b>

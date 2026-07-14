@@ -305,9 +305,9 @@ export function ActionCenterList({ owner, snap }: { owner: ActionOwner; snap: Si
         )
       })}
       <div className="rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2.5 text-[10px] leading-relaxed text-gray-600">
-        ⚠ 데모: 규칙 기반 + 실데이터 채운 문서. 실서비스: LLM(초안 생성) + RAG(공문 양식·규정·이력) + 도구
-        호출(조회·발송). 자율성 레벨(L2 추천 / L3 승인 후 실행)을 업무별로 분리하며, 인사·평가·정산 확정 등
-        불이익 결정은 자동화하지 않습니다(노션 Agentic 거버넌스 원칙).
+        ⚠ 데모: 규칙 기반 + 실데이터로 채운 문서예요. 실서비스에서는 LLM(초안 생성) + RAG(공문 양식·규정·이력 조회) + 실제
+        시스템 연동으로 동작해요. 업무 종류에 따라 자동 실행 여부를 다르게 두며, 인사·평가·정산 확정처럼 불이익이 걸린
+        결정은 자동화하지 않습니다.
       </div>
     </div>
   )

@@ -21,8 +21,8 @@ const SUB_TABS = [
   { id: 'ops', label: '관제 현황' },
   { id: 'biz', label: '💰 경영·투자' },
   { id: 'trips', label: '운행 이력' },
-  { id: 'report', label: 'AI 리포트' },
-  { id: 'eco', label: '연료·에코 AI' },
+  { id: 'report', label: 'AI 운영 리포트' },
+  { id: 'eco', label: '연료 절감 AI' },
   { id: 'scanner', label: '진단 스캐너' },
   { id: 'chat', label: 'AI+ 정비도우미' },
   { id: 'depot', label: '차고지·충전' },
@@ -271,7 +271,7 @@ export default function OperatorView() {
 
       {/* 조치함 — 구 AI 업무센터의 버스회사 업무 (민원회신·작업지시·코칭통보) */}
       <Panel
-        title="🗂️ 조치함"
+        title="📋 업무함"
         right={
           <button
             onClick={() => setShowActionCenter((v) => !v)}

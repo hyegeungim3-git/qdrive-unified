@@ -117,7 +117,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
     return {
       text: `현재 코칭 절감률은 ${fmt1(snap.kpi.fuelSavedPct)}%입니다. 전 차량 연료 낭비 1위 요인은 ${total > 0 ? `${top[0]}(${Math.round(((top[1] as number) / total) * 100)}%)` : '집계 중'}이며, 예측형 에코 코칭(정류장 전 관성주행 안내)으로 발생 전에 억제하고 있습니다.`,
       evidence: [`절감률 ${fmt1(snap.kpi.fuelSavedPct)}%`, `CO₂ 절감 ${fmt1(snap.kpi.totalCo2SavedKg)}kg`],
-      nav: { tab: 'operator', label: '연료·에코 AI' },
+      nav: { tab: 'operator', label: '연료 절감 AI' },
     }
   }
 

@@ -256,8 +256,8 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                     <YAxis yAxisId="L" tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}${P.fuelUnit}`} />
                     <YAxis yAxisId="R" orientation="right" tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}t`} />
                     <Tooltip {...chartTheme.tooltip} />
-                    <Bar yAxisId="L" dataKey="fuel" name={`연료 절감(${P.fuelUnit})`} fill="rgba(56,189,248,.75)" radius={[6, 6, 0, 0]} barSize={22} />
-                    <Line yAxisId="R" type="monotone" dataKey="co2" name="CO₂ 절감(t)" stroke="#34d399" strokeWidth={2.5} dot={{ r: 3.5 }} />
+                    <Bar yAxisId="L" dataKey="fuel" name={`연료 절감(${P.fuelUnit})`} fill="rgba(56,189,248,.75)" radius={[6, 6, 0, 0]} barSize={22} isAnimationActive={false} />
+                    <Line yAxisId="R" type="monotone" dataKey="co2" name="CO₂ 절감(t)" stroke="#34d399" strokeWidth={2.5} dot={{ r: 3.5 }} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>

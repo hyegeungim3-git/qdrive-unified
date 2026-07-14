@@ -156,7 +156,7 @@ export default function CitizenPublic() {
           </div>
 
           <div className="mt-[52px] text-center">
-            <div className="text-base font-bold text-[#a7d9bd]">오늘, 대구 시내버스 412대가 아낀 탄소</div>
+            <div className="text-base font-bold text-[#a7d9bd]">오늘, 대구 준공영제 참여 버스 412대가 아낀 탄소</div>
             <div className="mt-2.5 text-[clamp(54px,10vw,76px)] font-bold leading-[1.1] tracking-[-3px] tabular-nums">
               {heroKg.toLocaleString()}
               <span className="ml-1.5 text-[30px] font-bold tracking-[-0.5px] text-[#a7d9bd]">kg CO₂</span>

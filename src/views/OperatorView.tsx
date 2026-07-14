@@ -14,6 +14,7 @@ import TripsLog from './operator/TripsLog'
 import AiReport from './operator/AiReport'
 import EcoFuel from './operator/EcoFuel'
 import BizSummary from './operator/BizSummary'
+import VehicleRegistry from './operator/VehicleRegistry'
 
 const SUB_TABS = [
   { id: 'ops', label: '관제 현황' },
@@ -24,6 +25,7 @@ const SUB_TABS = [
   { id: 'scanner', label: '진단 스캐너' },
   { id: 'chat', label: 'AI+ 정비도우미' },
   { id: 'depot', label: '차고지·충전' },
+  { id: 'vehicles', label: '🚌 차량 관리' },
 ] as const
 
 type SubTab = (typeof SUB_TABS)[number]['id']
@@ -43,6 +45,18 @@ export default function OperatorView() {
   const pendingRequests = requests.filter((r) => r.status === '승인 대기')
   const [showActionCenter, setShowActionCenter] = useState(false)
   const actionReady = actionOwnerReadyCount('버스회사', snap)
+
+  // 관제 로스터 검색 — 차량번호·기사·노선 부분일치(라이브 9대). 대규모 플릿 확장성 시연
+  const [rosterQ, setRosterQ] = useState('')
+  const rq = rosterQ.trim()
+  const rosterRows = rq
+    ? sorted.filter(
+        (v) =>
+          v.id.includes(rq) ||
+          v.driverName.includes(rq) ||
+          (ROUTES.find((r) => r.id === v.routeId)?.name.includes(rq) ?? false),
+      )
+    : sorted
 
   const subNav = (
     <div className="flex gap-1">
@@ -73,6 +87,7 @@ export default function OperatorView() {
           {sub === 'scanner' && <Scanner />}
           {sub === 'chat' && <MaintChat />}
           {sub === 'depot' && <Depot />}
+          {sub === 'vehicles' && <VehicleRegistry onSub={(t) => setSub(t as SubTab)} />}
         </div>
       </div>
     )
@@ -352,7 +367,22 @@ export default function OperatorView() {
       )}
 
       {/* 차량/기사 테이블 */}
-      <Panel title="차량 · 기사별 운행 현황" right={<span className="text-[11px] text-gray-500">OBD/CAN + DTG 통합</span>}>
+      <Panel
+        title="차량 · 기사별 운행 현황"
+        right={
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] tabular-nums text-gray-500">
+              {rosterRows.length}/{snap.vehicles.length}대 · 실증 라이브
+            </span>
+            <input
+              value={rosterQ}
+              onChange={(e) => setRosterQ(e.target.value)}
+              placeholder="차량번호·기사·노선 검색"
+              className="w-40 rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-[11px] text-gray-200 placeholder:text-gray-600 focus:border-sky-500/60 focus:outline-none"
+            />
+          </div>
+        }
+      >
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-gray-800 text-[11px] text-gray-500">
@@ -370,7 +400,7 @@ export default function OperatorView() {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((v) => {
+            {rosterRows.map((v) => {
               const route = ROUTES.find((r) => r.id === v.routeId)!
               const evTotal = RISK_EVENT_TYPES.reduce((s, t) => s + v.eventCounts[t], 0)
               const isFault = fault?.predicted && fault.vehicleId === v.id
@@ -444,6 +474,13 @@ export default function OperatorView() {
                 </tr>
               )
             })}
+            {rosterRows.length === 0 && (
+              <tr>
+                <td colSpan={11} className="py-6 text-center text-[11px] text-gray-600">
+                  '{rq}' 검색 결과가 없어요 — 차량번호·기사명·노선으로 검색해 보세요
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Panel>

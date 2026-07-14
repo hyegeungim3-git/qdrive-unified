@@ -327,7 +327,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
               <div className="flex h-44 items-center">
                 <ResponsiveContainer>
                   <PieChart>
-                    <Pie data={FUEL_MIX} dataKey="v" nameKey="name" innerRadius={40} outerRadius={62} paddingAngle={2} strokeWidth={0}>
+                    <Pie data={FUEL_MIX} dataKey="v" nameKey="name" innerRadius={40} outerRadius={62} paddingAngle={2} strokeWidth={0} isAnimationActive={false}>
                       {FUEL_MIX.map((f) => (
                         <Cell key={f.name} fill={f.color} />
                       ))}

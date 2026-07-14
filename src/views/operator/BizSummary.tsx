@@ -135,7 +135,7 @@ export default function BizSummary() {
             <div className="mt-1 text-[27px] font-extrabold tabular-nums text-emerald-300">
               +1,175<span className="ml-1 text-sm font-semibold">만원</span>
             </div>
-            <div className="mt-0.5 text-[11.5px] font-semibold text-emerald-200/70">연 환산 약 1.4억원</div>
+            <div className="mt-0.5 text-[11.5px] font-semibold text-emerald-200">연 환산 약 1.4억원</div>
           </div>
         </div>
       </div>
@@ -159,7 +159,7 @@ export default function BizSummary() {
           <div className="flex h-40 items-center justify-center">
             <ResponsiveContainer>
               <PieChart>
-                <Pie data={DIST} dataKey="v" nameKey="name" innerRadius={42} outerRadius={64} paddingAngle={2} strokeWidth={0}>
+                <Pie data={DIST} dataKey="v" nameKey="name" innerRadius={42} outerRadius={64} paddingAngle={2} strokeWidth={0} isAnimationActive={false}>
                   {DIST.map((d) => (
                     <Cell key={d.name} fill={d.color} />
                   ))}
@@ -185,9 +185,9 @@ export default function BizSummary() {
         <div className="flex flex-col gap-2.5">
           {BENCH.map((b) => (
             <div key={b.name} className="flex items-center gap-2.5">
-              <span className="w-24 flex-none text-[13px] font-bold text-gray-200">
+              <span className="flex w-32 flex-none items-center whitespace-nowrap text-[13px] font-bold text-gray-200">
                 {b.name}
-                {b.me && <span className="ml-1.5 rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold text-white">우리</span>}
+                {b.me && <span className="ml-1.5 shrink-0 rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">우리</span>}
               </span>
               <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-800">
                 <div className="h-full rounded-full" style={{ width: `${b.w}%`, background: b.me ? '#34d399' : 'rgba(52,211,153,0.4)' }} />

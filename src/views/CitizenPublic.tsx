@@ -213,7 +213,7 @@ export default function CitizenPublic() {
                 ['참여 버스', '412대', 'text-gray-100'],
                 ['안전운전 기사님', '486명', 'text-gray-100'],
                 ['친환경 버스 (전기·CNG)', '140대', 'text-emerald-400'],
-                ['에코 드라이빙 실천율', '78%', 'text-sky-400'],
+                ['에코 드라이빙 실천율 (5개사 평균)', '78%', 'text-sky-400'],
               ].map(([k, v, cls]) => (
                 <div key={k} className="flex items-baseline justify-between">
                   <span className="text-[13.5px] font-semibold text-gray-400">{k}</span>

@@ -15,6 +15,7 @@ import AiReport from './operator/AiReport'
 import EcoFuel from './operator/EcoFuel'
 import BizSummary from './operator/BizSummary'
 import VehicleRegistry from './operator/VehicleRegistry'
+import DriverRegistry from './operator/DriverRegistry'
 
 const SUB_TABS = [
   { id: 'ops', label: '관제 현황' },
@@ -26,6 +27,7 @@ const SUB_TABS = [
   { id: 'chat', label: 'AI+ 정비도우미' },
   { id: 'depot', label: '차고지·충전' },
   { id: 'vehicles', label: '🚌 차량 관리' },
+  { id: 'drivers', label: '👥 기사 관리' },
 ] as const
 
 type SubTab = (typeof SUB_TABS)[number]['id']
@@ -59,7 +61,7 @@ export default function OperatorView() {
     : sorted
 
   const subNav = (
-    <div className="flex gap-1">
+    <div className="flex flex-wrap gap-1">
       {SUB_TABS.map((t) => (
         <button
           key={t.id}
@@ -88,6 +90,7 @@ export default function OperatorView() {
           {sub === 'chat' && <MaintChat />}
           {sub === 'depot' && <Depot />}
           {sub === 'vehicles' && <VehicleRegistry onSub={setSub} />}
+          {sub === 'drivers' && <DriverRegistry onSub={setSub} />}
         </div>
       </div>
     )

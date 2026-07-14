@@ -197,7 +197,7 @@ export default function BizSummary() {
           ))}
         </div>
         <div className="mt-3.5 border-t border-gray-800 pt-2.5 text-[12px] font-semibold text-gray-500">
-          에코 드라이빙 실천율 91% — 격차의 핵심은 기사 참여율이에요.
+          세운버스 에코 실천율 91% (준공영제 5개사 평균 78%) — 격차의 핵심은 기사 참여율이에요.
         </div>
       </Panel>
 

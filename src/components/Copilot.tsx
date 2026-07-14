@@ -5,7 +5,7 @@ import { topZones } from '../views/operator/AiReport'
 import { simClock } from './ui'
 
 /**
- * AI 관제 코파일럿 — 자연어 질문에 실시간 스냅샷을 조회해 답하고 조치까지 제안한다.
+ * AI Q (공통 AI 도우미) — 자연어 질문에 실시간 스냅샷을 조회해 답하고 조치까지 제안한다.
  * 노션 아이데이션의 "관제 Copilot"을 실동작화. 화면 어디서든 호출(플로팅).
  *
  * 대통합: proto의 규칙 기반 엔진 조회(조치 제안·탭 이동) + 탄소 플랫폼의 라이브 모드(사용자 키 → 실제 Claude)를 병합.
@@ -216,7 +216,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
 function buildLiveSystem(snap: SimSnapshot): string {
   const worst = [...snap.vehicles].sort((a, b) => a.score - b.score)[0]
   return (
-    '너는 Qdrive(대구 시내버스 탄소중립 운영 플랫폼) 관제 코파일럿이다. 아래는 지금 이 순간의 시뮬레이션 실시간 스냅샷이다. 이 데이터를 근거로 관제 관리자에게 한국어 2~4문장으로 간결히 답하라. 데이터에 없는 건 모른다고 정직하게 말하고 수치를 지어내지 마라.\n' +
+    "너는 'AI Q' — Qdrive(대구 시내버스 탄소중립 운영 플랫폼)의 AI 도우미다. 아래는 지금 이 순간의 시뮬레이션 실시간 스냅샷이다. 이 데이터를 근거로 사용자에게 한국어 2~4문장으로 간결히 답하라. 데이터에 없는 건 모른다고 정직하게 말하고 수치를 지어내지 마라.\n" +
     `[실시간] ${simClock(snap.simTime)} · 운행 ${snap.vehicles.length}대 · 총주행 ${fmt1(snap.kpi.totalDistanceKm)}km · 평균안전점수 ${fmt1(snap.kpi.avgScore)} · 연료절감률 ${fmt1(snap.kpi.fuelSavedPct)}% · CO₂절감 ${fmt1(snap.kpi.totalCo2SavedKg)}kg · 위험운전 ${snap.kpi.totalEvents}건 · 탑승 ${snap.passengers}명\n` +
     `[차량별 점수] ${snap.vehicles.map((v) => `${v.id.slice(-4)}호(${v.driverName}) ${Math.round(v.score)}`).join(', ')}\n` +
     `[최저점수] ${worst.id.slice(-4)}호 ${Math.round(worst.score)}점 · [날씨] ${snap.weather.condition} ${snap.weather.tempC}°C · [고장예측] ${snap.fault?.predicted ? `${snap.fault.vehicleId.slice(-4)}호 ${snap.fault.kind}` : '없음'} · [민원] ${snap.complaints.length}건 · [돌발진행] ${snap.incidents.filter((i) => i.status !== '완료').length}건\n` +
@@ -322,10 +322,10 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
       <button
         onClick={() => setOpen((o) => !o)}
         className="fixed bottom-5 right-5 z-[2500] flex items-center gap-2 rounded-full bg-gradient-to-tr from-violet-600 to-sky-500 px-4 py-3 text-sm font-bold text-white shadow-2xl hover:from-violet-500 hover:to-sky-400"
-        title="AI 관제 코파일럿 — 무엇이든 물어보세요"
+        title="AI Q — 무엇이든 물어보세요"
       >
         <span className="text-lg leading-none">{open ? '✕' : '✨'}</span>
-        {!open && <span className="hidden sm:inline">AI 코파일럿</span>}
+        {!open && <span className="hidden sm:inline">AI Q</span>}
         {!open && hasKey && <span className="h-2 w-2 rounded-full bg-emerald-300" title="라이브 연결됨" />}
       </button>
 
@@ -335,7 +335,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
           <div className="flex items-center gap-2 border-b border-gray-800 bg-gray-900 px-4 py-3">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-tr from-violet-500 to-sky-400 text-xs">✨</span>
             <div className="flex-1">
-              <div className="text-sm font-bold text-gray-100">AI 관제 코파일럿</div>
+              <div className="text-sm font-bold text-gray-100">AI Q</div>
               <div className="flex items-center gap-1 text-[10px] text-gray-500">
                 {hasKey ? (
                   <>

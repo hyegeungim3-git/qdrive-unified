@@ -966,7 +966,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
             right={<span className="text-[11px] text-gray-500">공단 409 패킷 · 총 {kpi.totalEvents}건</span>}
             className="min-h-0 flex-1"
           >
-            {/* 하단 pb-10: 우하단 AI 코파일럿 플로팅 버튼에 마지막 행이 가리지 않도록 여백 확보 */}
+            {/* 하단 pb-10: 우하단 AI Q 플로팅 버튼에 마지막 행이 가리지 않도록 여백 확보 */}
             <div className="flex max-h-48 flex-col gap-1 overflow-y-auto pb-10 pr-1">
               {snap.events.slice(0, 30).map((e, i) => {
                 const ok = e.justified

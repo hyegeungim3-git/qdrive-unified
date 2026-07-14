@@ -112,7 +112,7 @@ export default function App() {
         {tab === 'roadmap' && <TeaserView />}
       </main>
 
-      {/* AI 관제 코파일럿 — 어느 탭에서든 호출 */}
+      {/* AI Q — 공통 AI 도우미, 어느 탭에서든 호출 */}
       <Copilot onNavigate={(t) => setTab(t as TabId)} />
     </div>
   )

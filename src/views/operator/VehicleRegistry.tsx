@@ -6,7 +6,9 @@ import { useSim } from '../../sim/store'
 /**
  * 🚌 차량 관리 — 원본 탄소 플랫폼 「차량 관리(dash V)」 자산·대장 렌즈 이식.
  * 운영(ops) 렌즈와 분리: 여기선 자산 컬럼(유종·차령·누적주행·운수회사·최근정비일)만 다룬다.
- * 스케일 3단 분리 — 시(412) / 당사·5개사 예시 대장(정적) / 실증 9대(라이브).
+ * 스케일 3단 분리 — 준공영제 참여 5개사(412) / 예시 대장(정적) / 실증 9대(라이브).
+ *   주의: 412는 '시 전체'가 아니다. 대구 CNG 시내버스는 약 1,513대·26개사(PolicyReport DAEGU_CNG_FLEET),
+ *   412는 준공영제 참여 5개사(CarbonAnalysis CO_RANKS 합계 98+86+84+76+68)의 부분집합.
  * 예지정비·진단·정비비 예측 등 살아있는 코어는 재현하지 않고 관제·진단으로 딥링크한다.
  */
 
@@ -75,7 +77,7 @@ function LiveChip() {
   )
 }
 
-export default function VehicleRegistry({ onSub }: { onSub?: (t: string) => void }) {
+export default function VehicleRegistry({ onSub }: { onSub?: (t: 'scanner') => void }) {
   const snap = useSim()
   const [q, setQ] = useState('')
   const [registered, setRegistered] = useState(false)
@@ -86,9 +88,12 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: string) => void
   const draftWO = snap.workOrders.filter((w) => w.status === '초안').length
   const predicted = snap.fault?.predicted ?? false
 
-  // 자산 대장 검색(정적 데이터의 클라이언트 필터 — 실동작)
+  // 자산 대장 검색(정적 데이터의 클라이언트 필터 — 실동작). 대소문자 무시(유종 'CNG' 소문자 검색 대응)
   const kw = q.trim()
-  const rows = kw ? REGISTRY.filter((r) => r.no.includes(kw) || r.co.includes(kw) || r.fuel.includes(kw)) : REGISTRY
+  const kwl = kw.toLowerCase()
+  const rows = kw
+    ? REGISTRY.filter((r) => r.no.toLowerCase().includes(kwl) || r.co.toLowerCase().includes(kwl) || r.fuel.toLowerCase().includes(kwl))
+    : REGISTRY
 
   // 최근 정비 이력 — 3742 발행 작업지시가 있으면 라이브 승격 1건 prepend(비용은 예상치로 구분)
   const liveFix = snap.workOrders
@@ -108,11 +113,11 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: string) => void
       {/* 서브탭 헤더 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-sm font-bold text-gray-100">🚌 차량 관리</div>
-          <div className="text-[11px] text-gray-500">차량 등록·조회와 정비 이력, AI 예지정비를 자산 대장 관점에서 관리해요</div>
+          <div className="text-lg font-bold text-gray-100">🚌 차량 관리</div>
+          <div className="text-xs text-gray-500">차량 등록·조회와 정비 이력, AI 예지정비를 자산 대장 관점에서 관리해요</div>
         </div>
         <span className="text-[10px] text-gray-600">
-          시 전체 412대 = 5개사 합계(세운 98 포함) · <b className="text-emerald-400">실증 9대 라이브</b>
+          준공영제 참여 5개사 412대 (세운 98 포함) · <b className="text-emerald-400">실증 9대 라이브</b>
         </span>
       </div>
 
@@ -144,7 +149,8 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: string) => void
             {snap.vehicles.map((v) => {
               const odoBase = 150000 + (Number(v.id.slice(-4)) % 400) * 1000
               const isFault = predicted && snap.fault?.vehicleId === v.id
-              const isDemoFix = issuedWO > 0 && snap.fault?.vehicleId === v.id
+              // 발행된 작업지시의 createdAt을 시간 소스로 사용 — 하단 '최근 정비 이력' 라이브 카드와 완전 일치
+              const demoWO = snap.workOrders.find((w) => w.status === '발행됨' && w.vehicleId === v.id)
               return (
                 <tr key={v.id} className="border-b border-gray-800/50 last:border-0">
                   <td className="py-2 pr-3 font-mono font-semibold text-gray-200">{v.id}</td>
@@ -153,7 +159,7 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: string) => void
                     <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-sky-300">CNG</span>
                   </td>
                   <td className="py-2 pr-3 tabular-nums text-gray-400">{(odoBase + v.distanceKm).toLocaleString(undefined, { maximumFractionDigits: 0 })} km</td>
-                  <td className="py-2 pr-3 tabular-nums text-gray-500">{isDemoFix ? `${simClock(snap.fault!.startedAt)} 발행` : '2026-06월'}</td>
+                  <td className="py-2 pr-3 tabular-nums text-gray-500">{demoWO ? `${simClock(demoWO.createdAt)} 발행` : '—'}</td>
                   <td className="py-2">
                     {isFault ? (
                       <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">점검필요</span>
@@ -168,7 +174,7 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: string) => void
             })}
           </tbody>
         </table>
-        <div className="mt-1.5 text-[10px] text-gray-600">누적주행 = 차량별 기준 주행거리 + 이번 세션 실주행(라이브) · 유종은 엔진 단일 CNG 모델</div>
+        <div className="mt-1.5 text-[10px] text-gray-600">누적주행 = 차량별 기준 주행거리 + 이번 세션 실주행(라이브) · 유종은 엔진 단일 CNG 모델 · 최근 정비는 예지정비 발행 시 실시간 표시(그 외 '—')</div>
       </Panel>
 
       {/* B. 자산 대장 조회(정적 5개사 예시) + 검색 */}
@@ -240,13 +246,14 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: string) => void
             <div className="h-36 w-36 shrink-0">
               <ResponsiveContainer>
                 <PieChart>
-                  <Pie data={STATUS_DONUT} dataKey="v" nameKey="name" innerRadius={40} outerRadius={62} paddingAngle={2} strokeWidth={0}>
+                  <Pie data={STATUS_DONUT} dataKey="v" nameKey="name" innerRadius={40} outerRadius={62} paddingAngle={2} strokeWidth={0} isAnimationActive={false}>
                     {STATUS_DONUT.map((d) => (
                       <Cell key={d.name} fill={d.color} />
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ background: 'var(--color-gray-900)', border: '1px solid var(--color-gray-700)', borderRadius: 8, fontSize: 11 }}
+                    contentStyle={{ background: '#191f28', border: '1px solid #374151', borderRadius: 8, fontSize: 11 }}
+                    labelStyle={{ color: '#cbd5e1' }}
                     formatter={(v, n) => [`${v}대`, n]}
                   />
                 </PieChart>
@@ -262,7 +269,7 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: string) => void
                   <span className="tabular-nums font-semibold text-gray-200">{d.v}대</span>
                 </div>
               ))}
-              <div className="mt-1 border-t border-gray-800 pt-1.5 text-[10px] text-gray-600">합계 412대 (회사 전체)</div>
+              <div className="mt-1 border-t border-gray-800 pt-1.5 text-[10px] text-gray-600">합계 412대 (참여 5개사)</div>
             </div>
           </div>
         </Panel>

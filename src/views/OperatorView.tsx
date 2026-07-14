@@ -87,7 +87,7 @@ export default function OperatorView() {
           {sub === 'scanner' && <Scanner />}
           {sub === 'chat' && <MaintChat />}
           {sub === 'depot' && <Depot />}
-          {sub === 'vehicles' && <VehicleRegistry onSub={(t) => setSub(t as SubTab)} />}
+          {sub === 'vehicles' && <VehicleRegistry onSub={setSub} />}
         </div>
       </div>
     )

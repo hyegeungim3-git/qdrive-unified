@@ -87,9 +87,9 @@ export default function App() {
               window.location.hash = 'citizen'
             }}
             className="whitespace-nowrap rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-500"
-            title="시민이 보는 탄소 절감 현황 화면 (공유 가능한 별도 링크)"
+            title="시민에게 공개되는 탄소 절감 리포트 (SNS·메신저로 공유 가능한 별도 링크)"
           >
-            🌱 시민 화면 보기
+            📊 시민 탄소 리포트
           </button>
           <button
             onClick={toggleTheme}

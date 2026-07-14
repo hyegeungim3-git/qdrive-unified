@@ -149,3 +149,9 @@ AI 업무센터·에이전트 플랫폼은 최상위 탭에서 해체돼 각 소
   - OperatorView 3-패치 + **subNav flex-wrap**(10번째 버튼 오버플로 방지).
   - 검증: 빌드 통과. DOM+기능 — 4KPI·성과관리 3행·분포 렌더 / 에코 진행바 라이브 동기(79%→80% 활동 시 변동, width=값) / 성과분포 3/4/2 합9 / 교육대상 딥링크→관제현황 / BizSummary·CitizenPublic 정합 편집 확인. 앱 콘솔 에러 0.
 - **전체 감사 restore 후보 19건 전량 처리 완료** (A그룹 6 + B그룹 4 + C그룹 5 + 앞서 정책제안·KOC 2 + drop-justified 4). 남은 후보 없음.
+
+## UI 최적화 패스 (2026-07-14, 사용자 지적 → 전체 훑기)
+사용자가 스크린샷으로 UI 깨짐 지적 + "전체적으로 훑어보고 최적화".
+- **사용자 직접 지적 3계열**(커밋 4b5a2d5): ①BizSummary '우리' 배지 고정폭 w-24 줄바꿈→w-32+nowrap. ②저대비 텍스트 — index.css html.light에 emerald/red/violet-200 오버라이드 **누락**(sky/amber-200만 있었음) → #065f46/#991b1b/#5b21b6 추가(체계적). ③**도넛 공백** — recharts Pie가 엔진 250ms 리렌더에 애니메이션 취소돼 sector path 미렌더. BizSummary·CarbonAnalysis 두 도넛 isAnimationActive={false}(VehicleRegistry 도넛·지도 줌과 동일 계열). **교훈 재확인: 라이브(useSim) 뷰의 모든 recharts에 isAnimationActive={false} 필수.**
+- **전 뷰 반응형 감사**(다중에이전트 69, 62 스캔 → 확정 24, 커밋 f9c2499): 전부 협폭(375/768) 가로 오버플로. 대부분 데스크톱 무영향 브레이크포인트 추가. 핵심: App 헤더탭 flex-wrap / CityDashboard 3분할 grid lg: 분기+지도 max-lg:min-h / OperatorView 로스터 11열 overflow-x-auto 래퍼 / 각 grid-cols-N에 max-[900px]·max-[860px] 분기 / PassengerApp flex-col xl:flex-row / 모달 헤더 min-w-0+닫기 shrink-0 / Copilot max-h-[calc(100dvh-6rem)] / **DriverApp 리포트: 고정 1020px 태블릿 프레임(scale 축소) 내부의 뷰포트 브레이크포인트 5곳 제거**(오작동). 검증: 375px 최상위 7탭·운수사 8서브탭·시민 전부 body 오버플로 **0**(이전 260px+), 768 전 탭 0, 데스크톱 1280 3분할 그리드 유지 회귀 없음.
+- **잔여 오탐 기록**: 감사 [22] DriverApp 운전석 flex는 프레임이 scale로 축소되므로 '모바일 눌림' 전제가 틀림 → 스킵. DriverApp:718 max-[860px]은 리포트 밖 다른 스크린이라 보수적 유지.

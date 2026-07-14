@@ -44,7 +44,7 @@ export default function Depot() {
         </div>
       </div>
 
-      <div className="grid flex-1 grid-cols-2 gap-3">
+      <div className="grid flex-1 grid-cols-1 gap-3 min-[900px]:grid-cols-2">
         {/* 충전 스케줄 */}
         <Panel title="⛽ CNG 충전 스케줄 (심야 자동 편성)" right={<span className="text-[11px] text-gray-500">단가 유리 시간대 우선</span>}>
           <table className="w-full text-left text-[11px]">
@@ -135,7 +135,7 @@ export default function Depot() {
 
       {/* 노선별 출고 배정 */}
       <Panel title="내일 출고 배정 (자동 생성 초안)">
-        <div className="grid grid-cols-3 gap-2 text-[11px]">
+        <div className="grid grid-cols-1 gap-2 text-[11px] min-[480px]:grid-cols-2 min-[720px]:grid-cols-3">
           {ROUTES.map((r) => {
             const buses = snap.vehicles.filter((v) => v.routeId === r.id)
             return (

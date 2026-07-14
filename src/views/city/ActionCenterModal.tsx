@@ -7,8 +7,8 @@ export default function ActionCenterModal({ onClose }: { onClose: () => void }) 
   return (
     <div className="fixed inset-0 z-[3000] flex items-start justify-center overflow-y-auto bg-black/60 p-6 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-2xl space-y-3" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between rounded-xl border border-gray-700 bg-gray-900 px-5 py-4 shadow-2xl">
-          <div>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-700 bg-gray-900 px-5 py-4 shadow-2xl">
+          <div className="min-w-0">
             <div className="text-[10px] font-semibold tracking-widest text-violet-400">AI WORK AUTOMATION · 대구시</div>
             <h2 className="mt-0.5 text-lg font-bold text-gray-100">🗂️ 조치함</h2>
             <div className="mt-0.5 text-[11px] leading-relaxed text-gray-500">
@@ -16,7 +16,7 @@ export default function ActionCenterModal({ onClose }: { onClose: () => void }) 
               자동화하지 않습니다.
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100">
+          <button onClick={onClose} className="shrink-0 whitespace-nowrap rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100">
             ✕ 닫기
           </button>
         </div>

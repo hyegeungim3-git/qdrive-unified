@@ -263,7 +263,7 @@ export default function BizSummary() {
           </span>
           <input type="range" min={5} max={68} value={v2gN} onChange={(e) => setV2gN(Number(e.target.value))} className="h-6 max-w-xs flex-1 cursor-pointer" style={{ accentColor: '#8b5cf6' }} aria-label="V2G 참여 대수" />
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 max-[520px]:grid-cols-2">
           <KpiCard label="월 수익" value={Math.round(v2gN * 14.4).toLocaleString()} unit="만원" accent="text-violet-400" />
           <KpiCard label="연 환산" value={Math.round(v2gN * 14.4 * 12).toLocaleString()} unit="만원" accent="text-violet-400" />
           <KpiCard label="피크 기여" value={(v2gN * 0.1).toFixed(1)} unit="MW" accent="text-amber-400" />

@@ -294,9 +294,9 @@ export default function OperatorView() {
 
       {/* 고장예측 알림 배너 */}
       {fault && fault.predicted && (
-        <div className="flex items-center gap-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-4">
+        <div className="flex flex-wrap items-center gap-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-4">
           <div className="text-3xl">⚠️</div>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <div className="text-sm font-bold text-amber-300">
               고장예측 알림 — {fault.vehicleId} {fault.kind}
             </div>
@@ -386,7 +386,8 @@ export default function OperatorView() {
           </div>
         }
       >
-        <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto -mx-1 px-1">
+        <table className="w-full min-w-[760px] text-left text-xs">
           <thead>
             <tr className="border-b border-gray-800 text-[11px] text-gray-500">
               <th className="pb-2 pr-3 font-medium">차량번호</th>
@@ -486,9 +487,10 @@ export default function OperatorView() {
             )}
           </tbody>
         </table>
+        </div>
       </Panel>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 max-[860px]:grid-cols-1">
         {/* 정비비 예측 */}
         <Panel title="🔧 정비비 예측 (월간)" right={<span className="text-[11px] text-gray-500">OBD/CAN + 정비이력</span>}>
           <div className="space-y-2.5 text-xs">

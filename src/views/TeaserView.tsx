@@ -85,7 +85,7 @@ export default function TeaserView() {
       </div>
 
       {/* 4-이해관계자 총괄 커버리지 */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           ['🏛️', '대구시', '민원 증빙 자동매칭 · 정산 검증 · 노선 평가 · 탄소중립', '시티 대시보드'],
           ['🏢', '버스회사', 'AI 진단·예지정비 · 배차 권고 승인 · eTAS 자동제출', '운수사 관제'],
@@ -121,13 +121,13 @@ export default function TeaserView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {PHASES.map((p) => {
           const st = STATUS_STYLE[p.status]
           return (
             <div key={p.n} className={`flex flex-col rounded-xl border bg-gray-900/60 ${st.card}`}>
               <div className="border-b border-gray-800 px-4 py-3">
-                <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${st.badge}`}>
+                <span className={`inline-block whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold ${st.badge}`}>
                   {st.label}
                 </span>
                 <div className="mt-2 text-base font-bold text-gray-100">

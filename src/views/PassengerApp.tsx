@@ -138,7 +138,7 @@ export default function PassengerApp() {
   })
 
   return (
-    <div className="flex h-full items-start justify-center gap-10 overflow-y-auto py-2">
+    <div className="flex h-full flex-col items-center gap-6 overflow-y-auto py-2 xl:flex-row xl:items-start xl:justify-center xl:gap-10">
       {/* 폰 프레임 */}
       <div className="relative w-[340px] shrink-0 rounded-[36px] border-4 border-gray-700 bg-black p-2 shadow-2xl">
         <div className="mx-auto mb-1 h-5 w-28 rounded-b-2xl bg-gray-800" />
@@ -279,13 +279,13 @@ export default function PassengerApp() {
                       : 'border-gray-800 bg-gray-900'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-200">
-                    <span className="h-2 w-2 rounded-full" style={{ background: ridingRoute.color }} />
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1.5 break-keep text-[11px] font-bold text-gray-200">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ridingRoute.color }} />
                     {ridingRoute.name} {ridingBus.id.slice(-4)}호 탑승 중 →{' '}
                     <b className="text-sky-300">{riding.stopName}</b>
                     {riding.auto && (
-                      <span className="rounded bg-sky-500/20 px-1 py-0.5 text-[9px] font-bold text-sky-300">
+                      <span className="shrink-0 whitespace-nowrap rounded bg-sky-500/20 px-1 py-0.5 text-[9px] font-bold text-sky-300">
                         자동예약
                       </span>
                     )}
@@ -420,7 +420,7 @@ export default function PassengerApp() {
       </div>
 
       {/* 설명 패널 */}
-      <div className="max-w-md space-y-4 pt-6">
+      <div className="w-full max-w-md space-y-4 px-2 pt-2 xl:px-0 xl:pt-6">
         <h2 className="text-lg font-bold text-gray-100">승객 앱 — 시민이 체감하는 데이터</h2>
         <ul className="space-y-3 text-sm leading-relaxed text-gray-400">
           <li>

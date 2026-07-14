@@ -63,7 +63,7 @@ export default function App() {
               안전운전 · 연료절감 · 탄소중립을 한 화면에서
             </div>
           </div>
-          <nav className="flex gap-1">
+          <nav className="flex flex-wrap gap-1">
             {TABS.map((t) => (
               <button
                 key={t.id}

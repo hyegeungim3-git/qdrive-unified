@@ -351,11 +351,11 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
           <Panel title="운수회사별 절감 성과 (절감률 순)">
             <div className="flex flex-col gap-2">
               {CO_RANKS.map((c) => (
-                <div key={c.rank} className="flex items-center gap-3">
+                <div key={c.rank} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                   <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-md text-xs font-bold ${c.rank === 1 ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-gray-300'}`}>{c.rank}</span>
                   <span className="w-28 flex-none text-[13px] font-semibold text-gray-200">{c.name}</span>
                   <span className="w-12 flex-none text-[11px] text-gray-500">{c.buses}</span>
-                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-800">
+                  <div className="h-2.5 flex-1 basis-[120px] overflow-hidden rounded-full bg-gray-800">
                     <div className="h-full rounded-full" style={{ width: `${c.w}%`, background: c.rank === 1 ? '#34d399' : 'rgba(52,211,153,0.45)' }} />
                   </div>
                   <span className={`w-12 flex-none text-right text-[13px] font-bold tabular-nums ${c.rank === 1 ? 'text-emerald-400' : 'text-gray-300'}`}>{c.pct}</span>

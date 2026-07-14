@@ -70,7 +70,7 @@ export default function ReportView() {
       </div>
 
       {/* 핵심 수치 */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-3 max-[900px]:grid-cols-2">
         <KpiCard
           label="연비 개선"
           value={`+${improvement.toFixed(1)}`}

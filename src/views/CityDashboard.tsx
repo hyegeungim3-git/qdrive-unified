@@ -257,7 +257,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
         </button>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[280px_1fr_360px] gap-3">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[280px_minmax(0,1fr)_360px]">
       {/* ── 좌: 운영 통계 (신규) ── */}
       <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
         {/* 조치함 — 구 AI 업무센터의 대구시 업무 (민원소명·시의회답변·탄소보고서) */}
@@ -608,7 +608,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
       </div>
 
       {/* ── 중: 지도 ── */}
-      <div className="relative min-h-0">
+      <div className="relative min-h-0 max-lg:min-h-[360px]">
         <MapView
           vehicles={snap.vehicles}
           events={snap.events}
@@ -730,25 +730,25 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
             <div className="space-y-2 text-xs">
               {bis.status === 'idle' &&
                 (import.meta.env.DEV ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 text-gray-500">
                       실제 대구 버스({DEFAULT_ROUTES.join('·')}) 위치를 지도에 오버레이
                     </span>
                     <button
                       onClick={() => (getBisKey() ? startBis() : setShowKeyForm(true))}
-                      className="rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
+                      className="shrink-0 whitespace-nowrap rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
                     >
                       연동 시작
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 text-gray-500">
                       실제 대구 버스({DEFAULT_ROUTES.join('·')}) 위치를 지도에 오버레이 — 프록시 경유, 키 입력 불필요
                     </span>
                     <button
                       onClick={() => startBis()}
-                      className="rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
+                      className="shrink-0 whitespace-nowrap rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
                     >
                       연동 시작
                     </button>
@@ -756,14 +756,14 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                 ))}
               {bis.status === 'loading' && <div className="text-sky-300">⏳ {bis.message || '연결 중…'}</div>}
               {bis.status === 'ok' && (
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 text-gray-400">
                     {bis.matchedRoutes.join(' · ')} — 지도에서 <b className="text-sky-400">아웃라인 버스</b>가
                     실차 (시뮬레이션과 나란히 표시)
                   </span>
                   <button
                     onClick={stopBis}
-                    className="rounded-md border border-gray-700 px-2.5 py-1 text-[11px] text-gray-400 hover:text-gray-200"
+                    className="shrink-0 whitespace-nowrap rounded-md border border-gray-700 px-2.5 py-1 text-[11px] text-gray-400 hover:text-gray-200"
                   >
                     중지
                   </button>

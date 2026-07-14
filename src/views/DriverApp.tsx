@@ -433,7 +433,7 @@ export default function DriverApp() {
                   <div className="flex items-center gap-2 text-[11px] text-gray-500">
                     다음 정류장
                     {snap.reservation?.vehicleId === v.id && (
-                      <span className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-bold text-sky-300">
+                      <span className="whitespace-nowrap shrink-0 rounded bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-bold text-sky-300">
                         🔔 {snap.reservation.stopName} 하차 예약 1명
                       </span>
                     )}
@@ -855,7 +855,7 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
       </div>
 
       {/* 이번 주 KPI 3종 — 원본 서사값(시뮬레이터는 하루 단위라 "주간" 실측 불가), 오늘 실측 각주 병기 */}
-      <div className="grid grid-cols-3 gap-3 max-[720px]:grid-cols-1">
+      <div className="grid grid-cols-3 gap-3">
         <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
           <div className="text-[12px] font-semibold text-gray-500">이번 주 주행</div>
           <div className="mt-1.5 text-2xl font-bold tabular-nums text-gray-100">
@@ -880,7 +880,7 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
       </div>
 
       {/* 주간 연비 추이 + 내 운행 기록 */}
-      <div className="grid grid-cols-[1.4fr_1fr] gap-3 max-[860px]:grid-cols-1">
+      <div className="grid grid-cols-[1.4fr_1fr] gap-3">
         <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
           <div className="mb-2 text-sm font-bold text-gray-100">주간 연비 추이</div>
           <div className="h-[168px]">
@@ -929,7 +929,7 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
       </div>
 
       {/* 사내 랭킹(엔진 실시간) + 내 배지 */}
-      <div className="grid grid-cols-[1fr_1.4fr] gap-3 max-[860px]:grid-cols-1">
+      <div className="grid grid-cols-[1fr_1.4fr] gap-3">
         <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-sm font-bold text-gray-100">사내 안전운전 랭킹</span>
@@ -978,7 +978,7 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
           <span className="text-sm font-bold text-gray-100">개선 포인트</span>
           <span className="rounded-full bg-sky-500/12 px-2 py-0.5 text-[11px] font-bold text-sky-300">AI 코칭</span>
         </div>
-        <div className="grid grid-cols-3 gap-2.5 max-[720px]:grid-cols-1">
+        <div className="grid grid-cols-3 gap-2.5">
           {COACHING_TIPS.map((t) => (
             <div key={t.title} className="rounded-xl border border-gray-800 px-4 py-3">
               <div className="flex items-center gap-2">

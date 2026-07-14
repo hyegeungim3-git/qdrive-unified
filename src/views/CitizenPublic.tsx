@@ -190,7 +190,7 @@ export default function CitizenPublic() {
       {/* ============ BODY ============ */}
       <div className="mx-auto -mt-12 max-w-[1040px] px-6 pb-10">
         {/* 월별 추이 + 함께한 사람들 */}
-        <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3.5 max-[760px]:grid-cols-1">
+        <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3.5 max-[860px]:grid-cols-1">
           <div className="rounded-2xl border border-gray-800 bg-gray-900 px-6 py-5 shadow-lg">
             <div className="text-[17px] font-bold text-gray-100">매달 조금씩, 꾸준히 줄고 있어요</div>
             <div className="mt-1 text-[13px] font-semibold text-gray-500">월별 CO₂ 감축량 (도입 전 대비 실측)</div>

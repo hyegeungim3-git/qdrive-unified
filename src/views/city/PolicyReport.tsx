@@ -161,8 +161,8 @@ export default function PolicyReport({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[3000] flex items-start justify-center overflow-y-auto bg-black/60 p-6 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-4xl space-y-3" onClick={(e) => e.stopPropagation()}>
         {/* 헤더 */}
-        <div className="flex items-center justify-between rounded-xl border border-gray-700 bg-gray-900 px-5 py-4 shadow-2xl">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-700 bg-gray-900 px-5 py-4 shadow-2xl">
+          <div className="min-w-0">
             <div className="text-[10px] font-semibold tracking-widest text-violet-400">AI POLICY REPORT · 버스운영과 · AUTO-GENERATED</div>
             <h2 className="mt-0.5 text-lg font-bold text-gray-100">대구시 시내버스 AI 정책 보고서 — {asOf} 기준</h2>
             <div className="mt-0.5 text-[11px] text-gray-500">전 차량·전 이해관계자 데이터 총괄 · 열람 시점 기준 자동 갱신</div>
@@ -179,7 +179,7 @@ export default function PolicyReport({ onClose }: { onClose: () => void }) {
                 </option>
               ))}
             </select>
-            <button onClick={copyText} className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100">
+            <button onClick={copyText} className="whitespace-nowrap rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100">
               {copied === true ? '✓ 복사됨' : copied === false ? '복사 실패 — 권한 확인' : '📋 복사'}
             </button>
             <button onClick={onClose} className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100">

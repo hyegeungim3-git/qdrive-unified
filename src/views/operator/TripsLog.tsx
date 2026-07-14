@@ -87,7 +87,7 @@ export default function TripsLog() {
         }
       >
         {/* 합계 요약 */}
-        <div className="mb-3 grid grid-cols-4 gap-2 text-center">
+        <div className="mb-3 grid grid-cols-2 gap-2 text-center min-[560px]:grid-cols-4">
           {[
             ['운행 회차', `${trips.length}회`, 'text-gray-100'],
             ['이동 거리', `${totals.dist.toFixed(1)}km`, 'text-gray-100'],

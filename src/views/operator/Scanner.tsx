@@ -33,7 +33,7 @@ export default function Scanner() {
   return (
     <div className="flex h-full flex-col gap-3">
       {/* 차량 헤더 — 광주 완료보고 '진단 스캐너' 헤더 재현 */}
-      <div className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3">
         <div className="flex items-center gap-4">
           <select
             value={vehicleId}

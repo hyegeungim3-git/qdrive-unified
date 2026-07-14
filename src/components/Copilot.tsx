@@ -331,7 +331,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
 
       {/* 채팅 패널 */}
       {open && (
-        <div className="fixed bottom-20 right-5 z-[2500] flex h-[520px] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-950 shadow-2xl">
+        <div className="fixed bottom-20 right-5 z-[2500] flex h-[520px] max-h-[calc(100dvh-6rem)] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-950 shadow-2xl">
           <div className="flex items-center gap-2 border-b border-gray-800 bg-gray-900 px-4 py-3">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-tr from-violet-500 to-sky-400 text-xs">✨</span>
             <div className="flex-1">

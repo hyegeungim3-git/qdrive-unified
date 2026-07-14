@@ -54,6 +54,73 @@ function FlyTo({ target }: { target: { lat: number; lng: number; label?: string;
 
 const ROUTE_IDX = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points)]))
 
+/** 지도 HUD — LIVE 배지(좌상단) · 줌 컨트롤(우하단 44px) · 히트맵 범례(줌 위). 지도 위 절대배치. */
+function MapHud({ showHeat }: { showHeat: boolean }) {
+  const map = useMap()
+  // 스크롤 휠만 지도로 전파 차단(지도 줌 방지). 클릭 전파는 막지 않는다 —
+  // L.DomEvent.disableClickPropagation은 stopPropagation을 걸어 React 19의
+  // 루트 위임 onClick까지 삼켜버리므로 줌 버튼이 동작하지 않게 된다.
+  const stop = (el: HTMLDivElement | null) => {
+    if (!el) return
+    L.DomEvent.disableScrollPropagation(el)
+  }
+  return (
+    <>
+      {/* LIVE 배지 — 지도가 실제 실시간임을 알리는 정직한 신호 (날씨칩 아래) */}
+      <div
+        ref={stop}
+        className="pointer-events-auto absolute left-3 top-14 z-[1000] flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-gray-900/90 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-lg"
+      >
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+        </span>
+        LIVE
+      </div>
+
+      {/* 히트맵 범례 — 히트맵 ON 시에만, 줌 컨트롤 위 */}
+      {showHeat && (
+        <div
+          ref={stop}
+          className="pointer-events-auto absolute bottom-[104px] right-3 z-[1000] rounded-lg border border-gray-700 bg-gray-900/95 px-2.5 py-2 text-[10px] shadow-xl"
+        >
+          <div className="mb-1 font-bold text-red-300">🔥 위험운전 밀도</div>
+          <div
+            className="h-2 w-28 rounded-full"
+            style={{ background: 'linear-gradient(90deg, rgba(239,68,68,0.14), rgba(239,68,68,0.85))' }}
+          />
+          <div className="mt-0.5 flex w-28 justify-between text-gray-500">
+            <span>적음</span>
+            <span>많음</span>
+          </div>
+        </div>
+      )}
+
+      {/* 줌 컨트롤 — 우하단, 44px 터치 타깃 (기본 zoomControl 대체) */}
+      <div
+        ref={stop}
+        className="pointer-events-auto absolute bottom-3 right-3 z-[1000] flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-900/95 shadow-xl"
+      >
+        <button
+          onClick={() => map.setZoom(Math.min(map.getMaxZoom(), map.getZoom() + 1), { animate: false })}
+          aria-label="지도 확대"
+          className="flex h-11 w-11 items-center justify-center text-xl font-bold leading-none text-gray-200 hover:bg-gray-800"
+        >
+          ＋
+        </button>
+        <div className="h-px bg-gray-700" />
+        <button
+          onClick={() => map.setZoom(Math.max(map.getMinZoom(), map.getZoom() - 1), { animate: false })}
+          aria-label="지도 축소"
+          className="flex h-11 w-11 items-center justify-center text-xl font-bold leading-none text-gray-200 hover:bg-gray-800"
+        >
+          －
+        </button>
+      </div>
+    </>
+  )
+}
+
 /** 측면 버스 SVG — 노선색 차체 + 창문 + 바퀴 */
 function busSvg(fill: string, outline = false): string {
   const stroke = outline ? '#38bdf8' : 'rgba(0,0,0,0.45)'
@@ -196,6 +263,7 @@ export default function MapView({
       ))}
 
       <FlyTo target={focusTarget} />
+      <MapHud showHeat={showHeat} />
 
       {/* 돌발정보 — 영향 반경 서클 + 배지 마커 */}
       {incidents

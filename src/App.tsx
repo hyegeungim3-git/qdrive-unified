@@ -103,7 +103,7 @@ export default function App() {
 
       {/* 본문 */}
       <main className="min-h-0 flex-1 p-4">
-        {tab === 'city' && <CityDashboard />}
+        {tab === 'city' && <CityDashboard onNavigate={(t) => setTab(t as TabId)} />}
         {tab === 'operator' && <OperatorView />}
         {tab === 'driver' && <DriverApp />}
         {tab === 'passenger' && <PassengerApp />}

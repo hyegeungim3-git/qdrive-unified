@@ -78,9 +78,45 @@ export default function OperatorView() {
     )
   }
 
+  const coachTargets = snap.vehicles.filter((v) => v.score < 78).length
+  const glanceCards = [
+    { icon: '⚡', label: '전기 전환', body: '노후 경유 2대 우선', hint: '전환 시 35.7t CO₂/년 · 회수 2.7년', go: 'biz' as const, tone: 'text-sky-300' },
+    { icon: '🔌', label: '충전 최적화', body: '야간 충전 스케줄', hint: '피크시간 회피로 전력비 절감', go: 'depot' as const, tone: 'text-emerald-300' },
+    { icon: '🌱', label: '공회전 코칭', body: `코칭 대상 ${coachTargets}명`, hint: '공회전·급가속 교육으로 연비 개선', go: 'eco' as const, tone: 'text-amber-300' },
+    {
+      icon: '🔧',
+      label: '정비 진단',
+      body: fault?.predicted ? `${fault.vehicleId.slice(-4)}호 ${fault.kind}` : '예지정비 정상',
+      hint: fault?.predicted ? 'AI+ 정비도우미에서 진단 →' : '전 차량 예측 이상 없음',
+      go: 'chat' as const,
+      tone: fault?.predicted ? 'text-red-300' : 'text-gray-300',
+    },
+  ]
+
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
       {subNav}
+
+      {/* 지금 AI가 추천하는 4가지 — 교차도메인 실행 제안 글랜스 (각 카드 해당 서브탭 딥링크) */}
+      <div className="grid grid-cols-4 gap-2 max-[900px]:grid-cols-2">
+        {glanceCards.map((c) => (
+          <button
+            key={c.label}
+            onClick={() => setSub(c.go)}
+            className="flex flex-col rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5 text-left transition-colors hover:border-sky-600/50 hover:bg-gray-800/60"
+            title={c.hint}
+          >
+            <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+              <span className="text-sm">{c.icon}</span>
+              {c.label}
+              <span className="ml-auto text-gray-600">→</span>
+            </span>
+            <span className={`mt-1 text-[13px] font-bold leading-tight ${c.tone}`}>{c.body}</span>
+            <span className="mt-1 text-[9.5px] leading-tight text-gray-600">{c.hint}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Agentic — AI 추천 조치 (승인 기반 실행) */}
       {(snap.recommendations.length > 0 || snap.workOrders.length > 0) && (
         <Panel

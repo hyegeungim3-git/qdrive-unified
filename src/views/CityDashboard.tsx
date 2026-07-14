@@ -15,17 +15,29 @@ import { engine, useSim } from '../sim/store'
 import { DEFAULT_ROUTES, getBisKey, setBisKey, startBis, stopBis, useBis } from '../sim/bis'
 import { ROUTES } from '../sim/routes'
 import { focusMap, useMapFocus } from '../sim/mapFocus'
+import { setOperatorSubtabIntent } from '../sim/navIntent'
 import PolicyReport from './city/PolicyReport'
 import ActionCenterModal from './city/ActionCenterModal'
 import { actionOwnerReadyCount } from '../components/ActionCenter'
 
+/** 노선 계통 가동률 — 도시 전체 스케일 정적 지표(실증 3노선 라이브와 구분).
+ *  9대 엔진을 도시 전체로 합성 스케일링하면 오도되므로 준공영제 계통 통계는 정적 표기. */
+const NETWORK_UTIL = [
+  { name: '급행', run: 92, own: 96, color: '#38bdf8' },
+  { name: '간선', run: 88, own: 94, color: '#34d399' },
+  { name: '지선', run: 84, own: 90, color: '#a78bfa' },
+  { name: '순환', run: 90, own: 93, color: '#fbbf24' },
+] as const
+
 /* ── 위젯 커스터마이즈 (표시 여부 localStorage 유지) ── */
-type WidgetId = 'ops' | 'incidents' | 'riders' | 'alerts' | 'occ' | 'kpi' | 'bis' | 'routes' | 'feed'
+type WidgetId = 'ops' | 'incidents' | 'riders' | 'alerts' | 'triage' | 'network' | 'occ' | 'kpi' | 'bis' | 'routes' | 'feed'
 const WIDGET_DEFS: { id: WidgetId; label: string }[] = [
   { id: 'ops', label: '운행 현황' },
   { id: 'incidents', label: '돌발정보' },
   { id: 'riders', label: '이용객 수' },
   { id: 'alerts', label: '이상 현황' },
+  { id: 'triage', label: '차량 이상 트리아지' },
+  { id: 'network', label: '계통 가동률' },
   { id: 'occ', label: '혼잡 추이' },
   { id: 'kpi', label: '핵심 지표' },
   { id: 'bis', label: 'BIS 실데이터' },
@@ -79,7 +91,7 @@ const prevDayPct = (t: number) =>
 const occLevel = (pct: number) =>
   pct >= 70 ? (['혼잡', 'text-red-400'] as const) : pct >= 40 ? (['보통', 'text-amber-400'] as const) : (['여유', 'text-emerald-400'] as const)
 
-export default function CityDashboard() {
+export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const snap = useSim()
   const [showHeat, setShowHeat] = useState(true)
   const bis = useBis()
@@ -141,10 +153,111 @@ export default function CityDashboard() {
   /* ── 이용객 (엔진 승차 집계) ── */
   const cardShare = Math.round(snap.passengers * 0.85)
 
+  /* ── 차량 이상 트리아지 (개별 차량 × OBD·DTG × 심각도 × 경과) — 엔진 실집계 ── */
+  const lastEventOf = (id: string) => snap.events.find((e) => e.vehicleId === id)
+  const agoText = (t: number) => {
+    const s = Math.max(0, Math.round(snap.simTime - t))
+    return s < 60 ? `${s}초 전` : `${Math.floor(s / 60)}분 전`
+  }
+  type Triage = { id: string; driver: string; sev: '위험' | '주의' | '정보'; src: string; reason: string; ago: string; order: number }
+  const triage: Triage[] = snap.vehicles
+    .map((v): Triage | null => {
+      const last4 = v.id.slice(-4)
+      // 위험 — OBD 고장 예측 발화
+      if (snap.fault?.vehicleId === v.id && snap.fault.predicted) {
+        return { id: last4, driver: v.driverName, sev: '위험', src: 'OBD', reason: `${snap.fault.kind} 예측 (냉각수 ${Math.round(snap.fault.coolantTemp)}°C)`, ago: agoText(snap.fault.startedAt), order: 0 }
+      }
+      // 주의 — 최근 2분 내 위험운전 이벤트
+      const ev = lastEventOf(v.id)
+      if (ev && snap.simTime - ev.simTime < 120 && !ev.justified) {
+        return { id: last4, driver: v.driverName, sev: '주의', src: 'DTG', reason: `${ev.eventType} ${ev.speedKmh}km/h`, ago: agoText(ev.simTime), order: 1 }
+      }
+      // 정보 — 안전점수 저하
+      if (v.score < 72) {
+        return { id: last4, driver: v.driverName, sev: '정보', src: 'DTG', reason: `안전점수 ${Math.round(v.score)}점 — 코칭 대상`, ago: '집계 중', order: 2 }
+      }
+      return null
+    })
+    .filter((x): x is Triage => x !== null)
+    .sort((a, b) => a.order - b.order)
+  const SEV_CLS = {
+    위험: 'bg-red-500/20 text-red-300 border-red-500/40',
+    주의: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+    정보: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+  } as const
+
+  /* ── AI 3카드 (운행·안전·정비 맥락) — 엔진 파생 ── */
+  const worstVeh = [...snap.vehicles].sort((a, b) => a.score - b.score)[0]
+  const aiCards = [
+    {
+      key: 'insight',
+      icon: '📊',
+      label: 'AI 운행 인사이트',
+      tone: 'text-sky-300',
+      body: `연료 절감 ${kpi.fuelSavedPct.toFixed(1)}% · 예비차 ${reserve}대 여유`,
+      hint: `현재 ${running}대 운행 · 결행 0건 — 정상 범위`,
+      go: () => onNavigate?.('carbon'),
+    },
+    {
+      key: 'coach',
+      icon: '🎯',
+      label: 'AI 안전 코치',
+      tone: 'text-amber-300',
+      body: worstVeh ? `${worstVeh.id.slice(-4)}호 ${Math.round(worstVeh.score)}점 우선 코칭` : '전 차량 양호',
+      hint: `평균 안전점수 ${kpi.avgScore.toFixed(1)}점 · 위험운전 ${kpi.totalEvents}건`,
+      go: () => onNavigate?.('driver'),
+    },
+    {
+      key: 'forecast',
+      icon: '🔧',
+      label: 'AI 정비 예측',
+      tone: snap.fault?.predicted ? 'text-red-300' : 'text-emerald-300',
+      body: snap.fault?.predicted ? `${snap.fault.vehicleId.slice(-4)}호 ${snap.fault.kind} 예측` : '예측 이상 없음',
+      hint: snap.fault?.predicted ? '진단 스캐너에서 센서 확인 →' : `정비 입고 ${maint}대 · 예지정비 정상`,
+      go: () => {
+        setOperatorSubtabIntent('scanner')
+        onNavigate?.('operator')
+      },
+    },
+  ]
+
   return (
-    <div className="grid h-full grid-cols-[280px_1fr_360px] gap-3">
+    <div className="flex h-full flex-col gap-3">
       {showPolicyReport && <PolicyReport onClose={() => setShowPolicyReport(false)} />}
       {showActionCenter && <ActionCenterModal onClose={() => setShowActionCenter(false)} />}
+
+      {/* ── 성과 리본 (전폭) — 탄소·연료 라이브 성과 앵커 + 탄소중립 분석 딥링크 ── */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 via-gray-900/40 to-gray-900/40 px-4 py-2.5">
+        <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-300">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </span>
+          오늘의 탄소·연료 성과
+        </span>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+          <span className="text-[12px] text-gray-400">
+            연료 절감 <b className="text-base tabular-nums text-emerald-400">{kpi.fuelSavedPct.toFixed(1)}%</b>
+          </span>
+          <span className="text-[12px] text-gray-400">
+            CO₂ 절감 <b className="text-base tabular-nums text-emerald-400">{kpi.totalCo2SavedKg.toFixed(1)}<span className="text-xs">kg</span></b>
+          </span>
+          <span className="text-[12px] text-gray-400">
+            평균 안전점수 <b className="text-base tabular-nums text-sky-300">{kpi.avgScore.toFixed(1)}<span className="text-xs">점</span></b>
+          </span>
+          <span className="text-[12px] text-gray-400">
+            주행 <b className="text-base tabular-nums text-gray-200">{kpi.totalDistanceKm.toFixed(1)}<span className="text-xs">km</span></b>
+          </span>
+        </div>
+        <button
+          onClick={() => onNavigate?.('carbon')}
+          className="ml-auto whitespace-nowrap rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-[12px] font-bold text-emerald-300 transition-colors hover:bg-emerald-500/25"
+        >
+          🌱 탄소중립 분석에서 성과 증명 →
+        </button>
+      </div>
+
+      <div className="grid min-h-0 flex-1 grid-cols-[280px_1fr_360px] gap-3">
       {/* ── 좌: 운영 통계 (신규) ── */}
       <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
         {/* 조치함 — 구 AI 업무센터의 대구시 업무 (민원소명·시의회답변·탄소보고서) */}
@@ -319,6 +432,65 @@ export default function CityDashboard() {
                 </div>
               ))}
             </div>
+          </Panel>
+        )}
+
+        {/* 차량 이상 트리아지 — 개별 차량 × OBD·DTG × 심각도 × 경과 (엔진 실집계) */}
+        {prefs.triage && (
+          <Panel
+            title="🩺 차량 이상 트리아지"
+            right={
+              <span className="text-[10px] text-gray-500">
+                {triage.length > 0 ? `${triage.length}건 조치 대상` : '전 차량 정상'}
+              </span>
+            }
+          >
+            {triage.length > 0 ? (
+              <div className="space-y-1">
+                {triage.map((t) => (
+                  <div key={t.id} className="flex items-center gap-2 rounded-md bg-gray-800/40 px-2.5 py-1.5 text-[11px]">
+                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-bold ${SEV_CLS[t.sev]}`}>{t.sev}</span>
+                    <span className="shrink-0 font-mono text-gray-300">{t.id}호</span>
+                    <span className="min-w-0 flex-1 truncate text-gray-400" title={`${t.driver} 기사 · ${t.reason}`}>
+                      {t.reason}
+                    </span>
+                    <span className="shrink-0 rounded bg-gray-900/70 px-1 py-0.5 text-[8px] font-bold text-gray-500">{t.src}</span>
+                    <span className="shrink-0 text-[9px] tabular-nums text-gray-600">{t.ago}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-3 text-center text-[10px] text-gray-600">
+                OBD·DTG 실시간 감시 중 — 이상 감지 시 심각도별로 표시돼요
+              </div>
+            )}
+          </Panel>
+        )}
+
+        {/* 계통별 가동률 — 도시 전체 준공영제 스케일 (정적) */}
+        {prefs.network && (
+          <Panel title="🚦 계통별 가동률" right={<span className="text-[10px] text-gray-500">운행/보유 · 도시 전체*</span>}>
+            <div className="space-y-2">
+              {NETWORK_UTIL.map((n) => (
+                <div key={n.name}>
+                  <div className="mb-0.5 flex items-center justify-between text-[11px]">
+                    <span className="flex items-center gap-1.5 text-gray-300">
+                      <span className="h-2 w-2 rounded-sm" style={{ background: n.color }} />
+                      {n.name}
+                    </span>
+                    <span className="tabular-nums text-gray-400">
+                      <b className="text-gray-200">{n.run}</b>
+                      <span className="text-gray-600"> / {n.own}대</span>
+                      <span className="ml-1 text-[10px] text-gray-500">({Math.round((n.run / n.own) * 100)}%)</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-gray-800">
+                    <div className="h-full rounded-full" style={{ width: `${(n.run / n.own) * 100}%`, background: n.color }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-1.5 text-[9px] text-gray-600">* 도시 전체 계통 통계(준공영제) · 3노선 실증은 지도·랭킹에서 라이브</div>
           </Panel>
         )}
 
@@ -517,6 +689,27 @@ export default function CityDashboard() {
               sub="탄소중립 기여"
               accent="text-emerald-400"
             />
+          </div>
+        )}
+
+        {/* AI 3카드 — 운행·안전·정비 맥락 요약 (엔진 파생, 각 카드 해당 화면 딥링크) */}
+        {prefs.kpi && (
+          <div className="grid grid-cols-3 gap-2">
+            {aiCards.map((c) => (
+              <button
+                key={c.key}
+                onClick={c.go}
+                className="flex flex-col rounded-xl border border-gray-800 bg-gray-900/60 px-2.5 py-2 text-left transition-colors hover:border-gray-700 hover:bg-gray-800/60"
+                title={c.hint}
+              >
+                <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400">
+                  <span className="text-xs">{c.icon}</span>
+                  <span className="truncate">{c.label}</span>
+                </span>
+                <span className={`mt-1 text-[11px] font-semibold leading-tight ${c.tone}`}>{c.body}</span>
+                <span className="mt-auto pt-1 text-[9px] leading-tight text-gray-600">{c.hint}</span>
+              </button>
+            ))}
           </div>
         )}
 
@@ -806,6 +999,7 @@ export default function CityDashboard() {
             </div>
           </Panel>
         )}
+      </div>
       </div>
     </div>
   )

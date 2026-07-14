@@ -155,3 +155,13 @@ AI 업무센터·에이전트 플랫폼은 최상위 탭에서 해체돼 각 소
 - **사용자 직접 지적 3계열**(커밋 4b5a2d5): ①BizSummary '우리' 배지 고정폭 w-24 줄바꿈→w-32+nowrap. ②저대비 텍스트 — index.css html.light에 emerald/red/violet-200 오버라이드 **누락**(sky/amber-200만 있었음) → #065f46/#991b1b/#5b21b6 추가(체계적). ③**도넛 공백** — recharts Pie가 엔진 250ms 리렌더에 애니메이션 취소돼 sector path 미렌더. BizSummary·CarbonAnalysis 두 도넛 isAnimationActive={false}(VehicleRegistry 도넛·지도 줌과 동일 계열). **교훈 재확인: 라이브(useSim) 뷰의 모든 recharts에 isAnimationActive={false} 필수.**
 - **전 뷰 반응형 감사**(다중에이전트 69, 62 스캔 → 확정 24, 커밋 f9c2499): 전부 협폭(375/768) 가로 오버플로. 대부분 데스크톱 무영향 브레이크포인트 추가. 핵심: App 헤더탭 flex-wrap / CityDashboard 3분할 grid lg: 분기+지도 max-lg:min-h / OperatorView 로스터 11열 overflow-x-auto 래퍼 / 각 grid-cols-N에 max-[900px]·max-[860px] 분기 / PassengerApp flex-col xl:flex-row / 모달 헤더 min-w-0+닫기 shrink-0 / Copilot max-h-[calc(100dvh-6rem)] / **DriverApp 리포트: 고정 1020px 태블릿 프레임(scale 축소) 내부의 뷰포트 브레이크포인트 5곳 제거**(오작동). 검증: 375px 최상위 7탭·운수사 8서브탭·시민 전부 body 오버플로 **0**(이전 260px+), 768 전 탭 0, 데스크톱 1280 3분할 그리드 유지 회귀 없음.
 - **잔여 오탐 기록**: 감사 [22] DriverApp 운전석 flex는 프레임이 scale로 축소되므로 '모바일 눌림' 전제가 틀림 → 스킵. DriverApp:718 max-[860px]은 리포트 밖 다른 스크린이라 보수적 유지.
+
+## 성과 검증 탭 신규 + 폰트 수정 (2026-07-14)
+사용자 요청: 전략 문서(데이터·AI·온톨로지→서비스화→성과증명)의 결론부를 실동작 화면으로.
+- **폰트 깨짐 수정**: TeaserView(로드맵) 데이터 원천 라벨이 `font-mono`였는데, 영문약어(DTG)+한글(차고지/충전소·정비시스템)이 섞여 한글이 mono 글리프 부재로 폴백돼 깨져 보임 → `font-mono` 제거, Paperlogy 브랜드 폰트로 통일. **교훈: 한글 포함 텍스트에 font-mono 금지**(차량ID 등 숫자 위주 표 정렬용만 유지).
+- **신규 `src/views/PerformanceProof.tsx`** = 최상위 탭 "🔬 성과 검증"(carbon 다음). 전략 §6(유의미한 결과 4단 증명)의 실동작판. 5섹션: ①성과귀속(반사실 비교) ②A/B(페르소나 그룹) ③기준선 ④서비스별 신뢰지표 테이블 ⑤4단 게이트.
+  - **핵심 = 엔진의 `baselineFuelM3`(코칭 미적용 가정 연료 = 반사실/counterfactual)를 활용.** 실측 `fuelM3`과의 차이가 유가·날씨 제거된 **서비스 귀속 순효과**. 라이브 −4.9%.
+  - **A/B 인과 지문**: 페르소나 A(모범)2.86% < B(평균)5.25% < C(개선대상)6.34% — 개선여지 큰 군에서 효과 큼 = 코칭이 실제 원인이라는 증거. 전부 엔진 라이브 파생.
+  - 신뢰지표 테이블(성과/출처/표본/교차검증), 4단 게이트(Baseline✓·Attribution✓·Verification 진행·Honesty✓), "성과 검증 안 되면 과금 안 함" 메시지.
+  - recharts에 isAnimationActive={false}, 테이블 overflow-x 래퍼, grid 반응형 — 기존 교훈 전부 선반영. 검증: 빌드·DOM·라이브 폴링(A<B<C, 순효과 라이브)·콘솔 0.
+- **전략 아티팩트**(별도): https://claude.ai/code/artifact/a0bbc371-17a5-4a5d-be46-9f38123ccb64 (데이터·AI·온톨로지·서비스화·성과증명 7섹션).

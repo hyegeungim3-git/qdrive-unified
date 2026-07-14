@@ -8,6 +8,7 @@ import OperatorView from './views/OperatorView'
 import DriverApp from './views/DriverApp'
 import PassengerApp from './views/PassengerApp'
 import CarbonAnalysis from './views/CarbonAnalysis'
+import PerformanceProof from './views/PerformanceProof'
 import ReportView from './views/ReportView'
 import TeaserView from './views/TeaserView'
 import CitizenPublic from './views/CitizenPublic'
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'driver', label: '기사 앱', sub: '운전자' },
   { id: 'passenger', label: '승객 앱', sub: '시민·승객' },
   { id: 'carbon', label: '🌱 탄소중립 분석', sub: '탄소·연료·안전·전환' },
+  { id: 'proof', label: '🔬 성과 검증', sub: '신뢰도·성과 증명' },
   { id: 'report', label: '실증 리포트', sub: '도입 전 → 후 비교' },
   { id: 'roadmap', label: '로드맵', sub: '플랫폼 확장' },
 ] as const
@@ -108,6 +110,7 @@ export default function App() {
         {tab === 'driver' && <DriverApp />}
         {tab === 'passenger' && <PassengerApp />}
         {tab === 'carbon' && <CarbonAnalysis onNavigate={(t) => setTab(t as TabId)} />}
+        {tab === 'proof' && <PerformanceProof />}
         {tab === 'report' && <ReportView />}
         {tab === 'roadmap' && <TeaserView />}
       </main>

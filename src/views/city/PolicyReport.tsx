@@ -15,6 +15,37 @@ const DAEGU_CNG_FLEET = 1513 // 대구 CNG 시내버스 (사업 분석 기준)
 const CNG_PRICE = 1055 // 원/N㎥ (광주 AI리포트 인용 단가)
 const OPERATING_DAYS = 330
 
+/**
+ * 데이터 기반 정책 제안 — 탄소 플랫폼 노선 관리(dash R)의 policyProps 이식.
+ * 운행 데이터가 도시 교통 정책의 근거가 되고 담당 부서로 연계되는 "데이터→정책" 서사.
+ */
+const POLICY_PROPS = [
+  {
+    tag: '신호',
+    title: '반월당 신호 주기 조정',
+    desc: '직진 현시 12초 연장 시 급감속이 주 142건 → 60건으로 줄 것으로 예측돼요. 연료·사고 위험 동시 감소.',
+    basis: '히트맵 6개월',
+    dept: '교통정책과 연계',
+    cls: 'bg-red-500/12 text-red-400',
+  },
+  {
+    tag: '정류장',
+    title: '만평네거리 정류장 이설',
+    desc: '정류장을 교차로에서 40m 이격하면 출발 직후 급가속이 주 58건 → 22건으로 줄어요.',
+    basis: '정차 후 가속 패턴',
+    dept: '도로관리과 연계',
+    cls: 'bg-amber-500/12 text-amber-400',
+  },
+  {
+    tag: '전용차로',
+    title: '신천대로 전용차로 연장',
+    desc: '2.4km 연장 시 정시율 +4%p, 공회전 -18% 예측 — 정체 구간 통과 속도 데이터 기반이에요.',
+    basis: '구간 속도 12만 건',
+    dept: '대중교통과 연계',
+    cls: 'bg-sky-500/12 text-sky-400',
+  },
+]
+
 function buildPolicyReport(snap: SimSnapshot, period: Period): { paras: Para[]; proposals: string[]; asOf: string } {
   const { kpi } = snap
   const k = period.k
@@ -177,6 +208,32 @@ export default function PolicyReport({ onClose }: { onClose: () => void }) {
               <li key={p}>{p}</li>
             ))}
           </ul>
+        </Panel>
+
+        {/* 데이터 기반 정책 제안 — 노선 운행 데이터 → 도시 교통 정책 → 담당 부서 연계 */}
+        <Panel
+          title="🏙️ 데이터 기반 정책 제안"
+          right={<span className="text-[11px] text-gray-500">운행 데이터 → 도시 교통 정책</span>}
+          className="!bg-gray-900 shadow-xl"
+        >
+          <div className="mb-2 text-[12px] text-gray-500">
+            버스 운행 데이터가 어느 부서의 어떤 정책 결정으로 이어지는지 — 시설·환경 개선으로 개인 코칭을 보완하는 제안이에요.
+          </div>
+          <div className="grid grid-cols-3 gap-2.5 max-[720px]:grid-cols-1">
+            {POLICY_PROPS.map((p) => (
+              <div key={p.title} className="rounded-xl border border-gray-800 bg-gray-950/50 px-3.5 py-3">
+                <div className="flex items-center gap-2">
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${p.cls}`}>{p.tag}</span>
+                  <span className="text-[13px] font-bold text-gray-100">{p.title}</span>
+                </div>
+                <div className="mt-2 text-[11.5px] leading-relaxed text-gray-400">{p.desc}</div>
+                <div className="mt-2.5 flex items-center justify-between border-t border-gray-800 pt-2 text-[10.5px]">
+                  <span className="text-gray-500">근거 · {p.basis}</span>
+                  <span className="font-semibold text-violet-300">📤 {p.dept}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </Panel>
 
         <div className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2.5 text-[10px] leading-relaxed text-gray-500 shadow-xl">

@@ -364,6 +364,44 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
               ))}
             </div>
           </Panel>
+
+          {/* KOC 크레딧 실적명세 — 탄소 성과가 외부사업 크레딧 자산이 되는 구조 (dash T Reports 이식) */}
+          <Panel
+            title="♻️ 온실가스 외부사업(KOC) 크레딧 실적명세"
+            right={<span className="text-[11px] text-gray-500">실측이 자산이 되는 구조 · 검증기관 제출용</span>}
+          >
+            <div className="grid grid-cols-[1.4fr_1fr] gap-4 max-[720px]:grid-cols-1">
+              <table className="w-full text-left text-[12.5px]">
+                <tbody>
+                  {[
+                    ['인증 대상 감축량 (2~6월 확정)', '321.1 tCO₂'],
+                    ['예상 크레딧 수익 (8,900원/t)', '2,858,000원'],
+                    ['증빙 데이터', 'OBD 연료분사량 × DTG 교차 검증'],
+                    ['베이스라인', '도입 전 12개월 노선별 연비 (방법론 요건 부합)'],
+                    ['검증기관 제출', '8월 예정 (한국환경공단 배출권등록부)'],
+                  ].map(([k, v]) => (
+                    <tr key={k} className="border-b border-gray-800/60 last:border-0">
+                      <td className="py-2 pr-3 text-gray-500">{k}</td>
+                      <td className="py-2 text-right font-semibold text-gray-200">{v}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="flex flex-col justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+                <div className="text-[11px] font-semibold text-emerald-400">실시간 누적 감축 → 크레딧 환산</div>
+                <div className="mt-1 text-2xl font-extrabold tabular-nums text-emerald-400">
+                  {Math.round((liveCo2 / 1000) * 8900).toLocaleString()}
+                  <span className="ml-1 text-sm font-semibold text-gray-400">원</span>
+                </div>
+                <div className="mt-1 text-[11px] text-gray-500">
+                  이번 세션 누적 {(liveCo2 / 1000).toFixed(2)}t × 8,900원/t — 시뮬레이션이 쌓는 만큼 크레딧 자산도 늘어요.
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 text-[10.5px] leading-relaxed text-gray-600">
+              베이스라인 산정 방식이 외부사업(KOC) 방법론 요건에 부합해 실측 감축량이 그대로 크레딧 자산이 됩니다. 확정분은 검증기관 인증 후 반영돼요.
+            </div>
+          </Panel>
         </div>
       )}
 

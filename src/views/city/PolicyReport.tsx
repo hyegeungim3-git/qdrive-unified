@@ -105,7 +105,7 @@ function buildPolicyReport(snap: SimSnapshot, period: Period): { paras: Para[]; 
         `코칭 효과로 연료 ${kpi.fuelSavedPct.toFixed(1)}%(${fmtN(savedM3 * k)}m³)를 절감 중입니다. ` +
         `대구 CNG 전 차량(${DAEGU_CNG_FLEET.toLocaleString()}대) 기준 단순 환산 시 연간 약 ${annualEok.toFixed(1)}억원의 재정지원금 절감 여력에 해당합니다. ` +
         `CO₂ 절감 ${kpi.totalCo2SavedKg.toFixed(1)}kg은 시 탄소중립 목표 실적으로 집계 가능합니다.` +
-        (snap.trips.length > 4 ? ' 정산 검증에서 인가노선 이탈 의심 1건이 플래그되어 담당자 검토 대기 중입니다 (BMS×DTG 교차검증).' : ''),
+        (snap.trips.length > 4 ? ' 정산 검증에서 인가노선 이탈 의심 1건이 플래그되어 담당자 검토 대기 중입니다 (DTG 실주행 이력 대조 · 배차기록 실연동은 3차).' : ''),
       evidence: [
         `절감 ${kpi.fuelSavedPct.toFixed(1)}% · ${savedM3.toFixed(1)}m³ (기준선 대비)`,
         `연간 환산 ${annualEok.toFixed(1)}억원 (${DAEGU_CNG_FLEET}대 × ${OPERATING_DAYS}일 × ${CNG_PRICE}원/N㎥, 단순 선형)`,

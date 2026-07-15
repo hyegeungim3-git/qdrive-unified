@@ -919,7 +919,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
 
         {/* 노선 평가 (준공영제 과학행정) */}
         {prefs.routes && (
-          <Panel title="노선 평가 · 준공영제 정산 검증" right={<span className="text-[11px] text-gray-500">BMS×DTG 교차검증</span>}>
+          <Panel title="노선 평가 · 준공영제 정산 검증" right={<span className="text-[11px] text-gray-500">DTG 실주행 검증 · BMS는 3차 고도화</span>}>
             <table className="w-full text-left text-[11px]">
               <thead>
                 <tr className="text-[10px] text-gray-500">
@@ -952,10 +952,14 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
             </table>
             {snap.trips.length > 4 && (
               <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-[10px] leading-relaxed text-amber-300/80">
-                ⚠ 정산 검증 에이전트: 5563호 3회차 — BMS상 정상운행, DTG 위치이력상 인가노선{' '}
+                ⚠ 정산 검증 에이전트: 5563호 3회차 — 배차기록상 정상운행, DTG 위치이력상 인가노선{' '}
                 <b>87% 운행</b>. 검토 필요 (최종 판단: 담당자)
               </div>
             )}
+            <div className="mt-1.5 text-[9px] leading-relaxed text-gray-600">
+              정산검증은 <b className="text-gray-500">DTG 실주행 이력(1차 · 오큐브 자산)</b>만으로 인가노선 준수를 증명해요 —
+              배차기록(BMS) 실연동은 3차(대구시 소관)에서 고도화. 현재는 로직 시연.
+            </div>
           </Panel>
         )}
 

@@ -16,6 +16,7 @@ import EcoFuel from './operator/EcoFuel'
 import BizSummary from './operator/BizSummary'
 import VehicleRegistry from './operator/VehicleRegistry'
 import DriverRegistry from './operator/DriverRegistry'
+import RouteRegistry from './operator/RouteRegistry'
 
 const SUB_TABS = [
   { id: 'ops', label: '관제 현황' },
@@ -28,6 +29,7 @@ const SUB_TABS = [
   { id: 'depot', label: '차고지·충전' },
   { id: 'vehicles', label: '🚌 차량 관리' },
   { id: 'drivers', label: '👥 기사 관리' },
+  { id: 'routes', label: '🛣️ 노선 관리' },
 ] as const
 
 type SubTab = (typeof SUB_TABS)[number]['id']
@@ -91,6 +93,7 @@ export default function OperatorView() {
           {sub === 'depot' && <Depot />}
           {sub === 'vehicles' && <VehicleRegistry onSub={setSub} />}
           {sub === 'drivers' && <DriverRegistry onSub={setSub} />}
+          {sub === 'routes' && <RouteRegistry />}
         </div>
       </div>
     )

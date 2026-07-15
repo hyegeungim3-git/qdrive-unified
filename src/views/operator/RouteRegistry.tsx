@@ -50,6 +50,15 @@ const GRADE_CLS: Record<RouteRow['grade'], string> = {
 /** 실증 3노선 정시율(정적) — CityDashboard '노선 평가·정산' 패널과 동일 값으로 정합(단일 소스 재사용) */
 const LIVE_ON_TIME = [96.2, 93.8, 95.1]
 
+/** 계통별 월간 수송 인원(정적, 만명) — 원본 그대로. 엔진은 급행·순환만 존재하고 간선·지선이 없어
+ *  4계통 전체를 라이브로 못 만듦(스케일 불일치) — VehicleRegistry/DriverRegistry와 동일 원칙으로 정적 유지 */
+const RIDERSHIP = [
+  { name: '급행', v: 128.4, color: '#38bdf8' },
+  { name: '간선', v: 214.6, color: '#38bdf8' },
+  { name: '지선', v: 96.2, color: '#38bdf8' },
+  { name: '순환', v: 42.8, color: '#38bdf8' },
+]
+
 function StaticChip() {
   return <span className="shrink-0 rounded bg-gray-700/60 px-1.5 py-0.5 text-[9px] font-bold text-gray-400">대구시 노선망 · 예시 데이터</span>
 }
@@ -138,9 +147,9 @@ export default function RouteRegistry() {
         <div className="mt-1.5 text-[10px] text-gray-600">정시율은 노선 평가·정산 패널과 동일 기준값 · 연비 효율 = 누적 주행거리 ÷ 누적 연료(CNG m³), 배속을 올리면 집계가 쌓여요</div>
       </Panel>
 
-      {/* C. 노선 효율 차트(라이브) + 노선별 통계 예시 대장(정적) */}
-      <div className="grid grid-cols-[1fr_1.3fr] gap-3 max-[900px]:grid-cols-1">
-        <Panel title="노선 효율 비교" right={<LiveChip />}>
+      {/* C. 노선 효율(라이브) + 계통별 수송 인원(정적) — 원본 dash R의 2-차트 나란히 */}
+      <div className="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1">
+        <Panel title="노선 효율 (연비)" right={<LiveChip />}>
           <div className="h-52">
             <ResponsiveContainer>
               <BarChart data={effChartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
@@ -158,9 +167,30 @@ export default function RouteRegistry() {
           </div>
         </Panel>
 
-        <Panel title="노선별 통계" right={<StaticChip />}>
-          <div className="overflow-x-auto -mx-1 px-1">
-            <table className="w-full min-w-[480px] text-left text-xs">
+        <Panel title="계통별 수송 인원 (월)" right={<StaticChip />}>
+          <div className="h-52">
+            <ResponsiveContainer>
+              <BarChart data={RIDERSHIP} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                <CartesianGrid stroke={chartTheme.grid} strokeOpacity={0.2} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={chartTheme.tick} axisLine={false} tickLine={false} />
+                <YAxis tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}만`} />
+                <Tooltip {...chartTheme.tooltip} formatter={(v) => [`${v}만명`, '월 수송']} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                <Bar dataKey="v" radius={[7, 7, 0, 0]} barSize={40} isAnimationActive={false}>
+                  {RIDERSHIP.map((d) => (
+                    <Cell key={d.name} fill={d.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-1 text-[10px] text-gray-600">대구시 4계통 월간 수송 인원(예시) · 엔진 실증은 급행·순환 2계통만 운행</div>
+        </Panel>
+      </div>
+
+      {/* D. 노선별 통계 예시 대장(정적, 전폭) */}
+      <Panel title="노선별 통계" right={<StaticChip />}>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <table className="w-full min-w-[480px] text-left text-xs">
               <thead>
                 <tr className="border-b border-gray-800 text-[11px] text-gray-500">
                   <th className="pb-2 pr-3 font-medium">노선</th>
@@ -189,7 +219,6 @@ export default function RouteRegistry() {
           </div>
           <div className="mt-1.5 text-[10px] text-gray-600">대구시 노선망 예시 데이터 · 실증 3개 노선은 위 라이브 표에서</div>
         </Panel>
-      </div>
     </div>
   )
 }

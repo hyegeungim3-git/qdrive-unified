@@ -96,12 +96,17 @@ export default function ReportView() {
         <Panel title="주간 연비 추이 (km/m³)">
           <div className="h-64">
             <ResponsiveContainer>
-              <LineChart data={WEEKLY} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+              <LineChart data={WEEKLY} margin={{ top: 22, right: 8, left: -18, bottom: 0 }}>
                 <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="week" tick={chartTheme.tick} axisLine={false} tickLine={false} />
                 <YAxis domain={[1.6, 2.0]} tick={chartTheme.tick} axisLine={false} tickLine={false} />
                 <Tooltip {...chartTheme.tooltip} />
-                <ReferenceLine x="W+1" stroke="#38bdf8" strokeDasharray="4 3" label={{ value: '도입', fill: '#38bdf8', fontSize: 11, position: 'top' }} />
+                <ReferenceLine
+                  x="W+1"
+                  stroke="#38bdf8"
+                  strokeDasharray="4 3"
+                  label={{ value: '도입', fill: '#38bdf8', fontSize: 11, fontWeight: 700, position: 'insideTopLeft', offset: 6 }}
+                />
                 <ReferenceLine y={avgBefore} stroke="#4b5563" strokeDasharray="4 3" />
                 <Line type="monotone" dataKey="kmPerM3" name="연비" stroke="#34d399" strokeWidth={2.5} dot={{ r: 3.5 }} />
               </LineChart>

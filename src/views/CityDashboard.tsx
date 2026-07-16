@@ -35,14 +35,14 @@ const WIDGET_DEFS: { id: WidgetId; label: string }[] = [
   { id: 'ops', label: '운행 현황' },
   { id: 'incidents', label: '돌발정보' },
   { id: 'riders', label: '이용객 수' },
-  { id: 'alerts', label: '이상 현황' },
+  { id: 'alerts', label: '위험운전 집계' },
   { id: 'triage', label: '이상 차량 선별' },
   { id: 'network', label: '계통 가동률' },
   { id: 'occ', label: '혼잡 추이' },
-  { id: 'kpi', label: '핵심 지표' },
+  { id: 'kpi', label: '핵심 지표 + AI 카드' },
   { id: 'bis', label: 'BIS 실데이터' },
   { id: 'routes', label: '노선 평가·정산' },
-  { id: 'feed', label: '이벤트 피드' },
+  { id: 'feed', label: '위험운전 실시간 피드' },
 ]
 const PREFS_KEY = 'qdrive-widgets-v1'
 const DEFAULT_PREFS = Object.fromEntries(WIDGET_DEFS.map((w) => [w.id, true])) as Record<WidgetId, boolean>
@@ -265,7 +265,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
           onClick={() => setShowActionCenter(true)}
           className="flex w-full items-center justify-between rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-left text-[11px] font-bold text-violet-300 hover:bg-violet-500/20"
         >
-          <span>📋 업무함</span>
+          <span>📋 업무함 — AI 문서 초안</span>
           {actionOwnerReadyCount('대구시', snap) > 0 && (
             <span className="rounded-full bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-bold text-violet-200">
               {actionOwnerReadyCount('대구시', snap)}건 승인 대기
@@ -301,7 +301,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
         </div>
 
         {prefs.ops && (
-          <Panel title="🚌 운행 현황" right={<span className="text-[10px] text-gray-500">계획 {PLANNED}대</span>}>
+          <Panel title="🚌 운행 현황" right={<span className="text-[10px] text-gray-500">계획 {PLANNED}대 (예시)</span>}>
             <div className="flex items-center gap-3">
               <MiniDonut pct={opRate} />
               <div className="grid flex-1 grid-cols-2 gap-1 text-center text-[11px]">
@@ -399,7 +399,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                 {snap.passengers.toLocaleString()}
                 <span className="ml-1 text-sm font-medium text-gray-500">명</span>
               </span>
-              <span className="pb-1 text-[10px] font-semibold text-emerald-400">▲ 10.5% 전일比*</span>
+              <span className="pb-1 text-[10px] font-semibold text-emerald-400">▲ 10.5% 전일 대비*</span>
             </div>
             <div className="mt-2 grid grid-cols-2 gap-1 text-center text-[11px]">
               <div className="rounded-md bg-gray-800/50 py-1.5">
@@ -411,12 +411,12 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                 <div className="text-[9px] text-gray-500">현금·기타</div>
               </div>
             </div>
-            <div className="mt-1.5 text-[9px] text-gray-600">* 전일 대비는 데모 추정치 · 실증 시 AFC 연동</div>
+            <div className="mt-1.5 text-[9px] text-gray-600">* 전일 대비는 데모 추정치 · 실증 시 교통카드 정산(AFC) 연동</div>
           </Panel>
         )}
 
         {prefs.alerts && (
-          <Panel title="⚠️ 이상 현황" right={<span className="text-[10px] text-gray-500">최근 5분 / 누적</span>}>
+          <Panel title="⚠️ 위험운전 집계" right={<span className="text-[10px] text-gray-500">최근 5분 / 누적</span>}>
             <div className="space-y-1">
               {alertRows.map((r) => (
                 <div key={r.label} className="flex items-center justify-between rounded-md bg-gray-800/40 px-2.5 py-1.5 text-[11px]">
@@ -447,6 +447,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
           >
             {triage.length > 0 ? (
               <div className="space-y-1">
+                <div className="text-[10px] text-gray-600">위험=고장예측 · 주의=최근 위험운전 · 정보=코칭 대상</div>
                 {triage.map((t) => (
                   <div key={t.id} className="flex items-center gap-2 rounded-md bg-gray-800/40 px-2.5 py-1.5 text-[11px]">
                     <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-bold ${SEV_CLS[t.sev]}`}>{t.sev}</span>
@@ -602,6 +603,9 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                     <b className={levelCls}>{levelLabel}</b>
                   </span>
                 </div>
+                {showPrevDay && (
+                  <div className="mt-1 text-[9px] text-gray-600">* 전일 곡선은 데모 예시 · 실증 시 전일 실측</div>
+                )}
               </Panel>
             )
           })()}
@@ -839,7 +843,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
             {snap.weather.condition === '폭우' && (
               <div className="mt-2 rounded-md border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-[10px] leading-relaxed text-red-300/80">
                 ⚠ 사고위험 예측: 18~20시 급행1 반월당~범어 구간 — 사유: 강우 + 정체 + 과거 급감속 빈도.
-                해당 구간 기사 태블릿에 감속 지침 자동 표출 · 차고지 예비차 선배정 권고
+                해당 구간 기사 태블릿에 감속 지침 자동 표출 · 차고지 예비차 선배정 권고 (예측 예시)
               </div>
             )}
           </Panel>
@@ -919,12 +923,13 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
 
         {/* 노선 평가 (준공영제 과학행정) */}
         {prefs.routes && (
-          <Panel title="노선 평가 · 준공영제 정산 검증" right={<span className="text-[11px] text-gray-500">DTG 실주행 검증 · BMS는 3차 고도화</span>}>
+          <Panel title="노선 평가 · 준공영제 정산 검증" right={<span className="text-[11px] text-gray-500">DTG 실주행 검증 · 배차시스템(BMS) 연동은 3단계 계획</span>}>
+            <div className="mb-1.5 text-[11px] text-gray-500">노선 성과를 평가하고, DTG 실주행으로 정산 근거를 검증합니다</div>
             <table className="w-full text-left text-[11px]">
               <thead>
                 <tr className="text-[10px] text-gray-500">
                   <th className="pb-1.5 font-medium">노선</th>
-                  <th className="pb-1.5 font-medium">정시율</th>
+                  <th className="pb-1.5 font-medium">정시율 (예시)</th>
                   <th className="pb-1.5 font-medium">평균 안전점수</th>
                   <th className="pb-1.5 font-medium">위험운전</th>
                 </tr>
@@ -967,7 +972,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
         {prefs.feed && (
           <Panel
             title="위험운전 실시간 피드"
-            right={<span className="text-[11px] text-gray-500">공단 409 패킷 · 총 {kpi.totalEvents}건</span>}
+            right={<span className="text-[11px] text-gray-500">공단 표준 위험운전 기록(409) · 총 {kpi.totalEvents}건</span>}
             className="min-h-0 flex-1"
           >
             {/* 하단 pb-10: 우하단 AI Q 플로팅 버튼에 마지막 행이 가리지 않도록 여백 확보 */}

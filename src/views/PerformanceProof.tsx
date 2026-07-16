@@ -85,7 +85,7 @@ export default function PerformanceProof() {
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-          엔진 실시간 집계
+          핵심 지표 엔진 실시간 · 확정치 병기
         </span>
       </div>
 
@@ -177,7 +177,7 @@ export default function PerformanceProof() {
               </div>
             </div>
             <div className="text-[10px] leading-relaxed text-gray-600">
-              베이스라인 산정이 외부사업(KOC) 방법론 요건에 부합 — 그래서 이 개선분이 곧 크레딧 자산이 됩니다.
+              기준선(도입 전 12개월) 산정이 외부사업(KOC) 방법론 요건에 부합 — 그래서 이 개선분이 곧 크레딧 자산이 됩니다.
             </div>
           </div>
         </Panel>

@@ -117,7 +117,10 @@ export default function BizSummary() {
       <div className="text-[11px] font-semibold tracking-widest text-gray-500">이번 달 손익</div>
       <div className="rounded-2xl border border-gray-700 bg-gray-950 px-6 py-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[15px] font-bold text-gray-100">안전운전이 만든 손익 효과</span>
+          <span className="flex items-center gap-2 text-[15px] font-bold text-gray-100">
+            안전운전이 만든 손익 효과
+            <span className="rounded bg-gray-700/60 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">시나리오 예시</span>
+          </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
             실시간 감축 {(liveCo2 / 1000).toFixed(2)}t · 연료 −{liveFuelPct.toFixed(1)}% (시뮬레이션)
@@ -181,7 +184,15 @@ export default function BizSummary() {
         </Panel>
       </div>
 
-      <Panel title="5개사 절감률 벤치마크" right={<span className="text-[11px] text-gray-500">베이스라인 대비 · 7월</span>}>
+      <Panel
+        title="5개사 절감률 벤치마크"
+        right={
+          <span className="flex items-center gap-1.5">
+            <span className="rounded bg-gray-700/60 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">시나리오 예시</span>
+            <span className="text-[11px] text-gray-500">기준선 대비 · 7월</span>
+          </span>
+        }
+      >
         <div className="flex flex-col gap-2.5">
           {BENCH.map((b) => (
             <div key={b.name} className="flex items-center gap-2.5">
@@ -237,7 +248,7 @@ export default function BizSummary() {
           <KpiCard label="연료비 절감" value={plan.fuelEok.toFixed(1)} unit="억원" accent="text-sky-400" />
           <KpiCard label="실투자 (보조금 후)" value={plan.investEok.toFixed(1)} unit="억원" accent="text-gray-100" />
           <KpiCard label="투자 회수" value={plan.roi.toFixed(1)} unit="년" accent="text-amber-400" />
-          <KpiCard label="KOC 크레딧" value={Math.round((plan.co2 * 8900) / 10000).toLocaleString()} unit="만원" accent="text-emerald-400" />
+          <KpiCard label="탄소 크레딧(KOC)" value={Math.round((plan.co2 * 8900) / 10000).toLocaleString()} unit="만원" accent="text-emerald-400" />
         </div>
         <div className="mt-3 h-52">
           <ResponsiveContainer>
@@ -293,7 +304,7 @@ export default function BizSummary() {
         </div>
       </Panel>
 
-      <Panel title="AI 선정 전환 대상 TOP5" right={<span className="text-[11px] text-gray-500">차령·연비·일주행 기반</span>}>
+      <Panel title="AI 선정 전기버스 전환 대상 TOP5" right={<span className="text-[11px] text-gray-500">차령·연비·일주행 기반</span>}>
         <div className="flex flex-col gap-2">
           {PLAN_TARGETS.map((t) => (
             <div key={t.rank} className="flex items-center gap-3 rounded-lg bg-gray-900/40 px-3 py-2">
@@ -320,7 +331,7 @@ export default function BizSummary() {
 
       {/* footer */}
       <div className="pb-1 text-[11.5px] font-medium text-gray-600">
-        산정 기준 — 경유 1,550원/L · 절감량은 도입 전 12개월 베이스라인 대비 실측 (OBD·DTG 교차 검증) · 상단 실시간 감축은 시뮬레이터 9대 엔진 집계 · 전환·V2G는 What-if 계산
+        산정 기준 — 경유 1,550원/L · 절감량 산정은 도입 전 12개월 기준선 대비 — 실측 방식(OBD·DTG 교차 검증)은 실증 시 적용 · 상단 실시간 감축은 시뮬레이터 9대 엔진 집계 · 전환·V2G는 가정 시뮬레이션
       </div>
     </div>
   )

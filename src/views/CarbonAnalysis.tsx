@@ -34,21 +34,21 @@ const PERIODS = {
   일간: {
     title: '오늘, 안전운전이 만든 절감', asOf: '금일 운행분 · 실시간 집계',
     km: '129,200', kmSub: '금일 운행 누적', eff: '+4.3%', effSub: '2.42 → 2.52 km/L (경유)',
-    fuel: '784', fuelSub: '베이스라인 대비 -4.1%', co2: '2.1', co2Pct: '-4.3%',
+    fuel: '784', fuelSub: '기준선 대비 -4.1%', co2: '2.1', co2Pct: '-4.3%',
     fuelUnit: 'L', labels: ['7/5', '7/6', '7/7', '7/8', '7/9', '7/10', '7/11'],
     trendFuel: [740, 790, 720, 830, 810, 620, 784], trendCo2: [1.98, 2.12, 1.93, 2.22, 2.17, 1.66, 2.1],
   },
   월간: {
     title: '7월, 안전운전이 만든 절감', asOf: '7월 11일 기준 · 412대',
     km: '2,843,000', kmSub: '운행 22일 누적', eff: '+4.5%', effSub: '2.42 → 2.53 km/L (경유)',
-    fuel: '27,100', fuelSub: '베이스라인 대비 -4.3%', co2: '72.6', co2Pct: '-4.7%',
+    fuel: '27,100', fuelSub: '기준선 대비 -4.3%', co2: '72.6', co2Pct: '-4.7%',
     fuelUnit: '천L', labels: ['2월', '3월', '4월', '5월', '6월', '7월'],
     trendFuel: [21.4, 22.8, 24.1, 25.2, 26.3, 27.1], trendCo2: [57.4, 61.1, 64.6, 67.5, 70.5, 72.6],
   },
   연간: {
     title: '2026년, 안전운전이 만든 절감', asOf: '2~7월 누적 · 412대',
     km: '16,240,000', kmSub: '도입 후 6개월 누적', eff: '+4.1%', effSub: '2.43 → 2.53 km/L (기간 평균)',
-    fuel: '146,900', fuelSub: '베이스라인 대비 -4.2%', co2: '393.7', co2Pct: '-4.5%',
+    fuel: '146,900', fuelSub: '기준선 대비 -4.2%', co2: '393.7', co2Pct: '-4.5%',
     fuelUnit: '천L', labels: ['2월', '3월', '4월', '5월', '6월', '7월'],
     trendFuel: [21.4, 44.2, 68.3, 93.5, 119.8, 146.9], trendCo2: [57.4, 118.5, 183.1, 250.6, 321.1, 393.7],
   },
@@ -92,9 +92,9 @@ const FUEL_MIX = [
 
 // 위험구간 (안전 대시보드)
 const ZONES = [
-  { name: '반월당 네거리', type: '급감속 다발', count: '주 96건', tag: 'AI 탐지' },
-  { name: '동대구역 앞', type: '급가속·과속', count: '주 71건', tag: 'AI 탐지' },
-  { name: '만평네거리', type: '급출발', count: '주 58건', tag: 'AI 탐지' },
+  { name: '반월당 네거리', type: '급감속 다발', count: '주 96건', tag: 'AI 탐지 · 예시' },
+  { name: '동대구역 앞', type: '급가속·과속', count: '주 71건', tag: 'AI 탐지 · 예시' },
+  { name: '만평네거리', type: '급출발', count: '주 58건', tag: 'AI 탐지 · 예시' },
 ]
 
 // 축·격자는 CSS 변수로 — 라이트/다크 자동 적응(하드코딩 #8899a6는 라이트에서 대비 미달)
@@ -172,7 +172,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
           <div className="text-[11px] font-semibold tracking-widest text-emerald-400">CARBON NEUTRALITY ANALYTICS</div>
           <h2 className="mt-0.5 text-xl font-bold text-gray-100">🌱 탄소중립 분석</h2>
           <div className="mt-0.5 text-xs text-gray-500">
-            안전운전 → 연비 → 연료 → CO₂ 연결 고리를 실측·엔진 집계로 증명하고, 전기전환·V2G를 시뮬레이션해요
+            안전운전 → 연비 → 연료 → CO₂ 연결 고리를 실측·엔진 집계로 증명해요 (전환·V2G 투자는 경영·투자 탭)
           </div>
         </div>
         <nav className="flex gap-1 rounded-lg bg-gray-900/60 p-1">
@@ -196,7 +196,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
         onClick={goInvest}
         className="flex items-center justify-between rounded-lg border border-violet-500/25 bg-violet-500/5 px-3.5 py-2 text-left text-[12px] text-violet-300 hover:bg-violet-500/10"
       >
-        <span>💰 전기전환·V2G 투자 시뮬레이션은 운수사 관제의 <b>경영·투자</b>에서 손익과 함께 볼 수 있어요</span>
+        <span>💰 전기전환·V2G(전기버스→전력망 판매) 투자 시뮬레이션은 운수사 관제의 <b>경영·투자</b>에서 손익과 함께 볼 수 있어요</span>
         <span className="shrink-0 font-bold">바로가기 →</span>
       </button>
 
@@ -227,7 +227,14 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
           </div>
 
           {/* 성과 흐름 카드 — 일간은 엔진 라이브 */}
-          <Panel title={`${P.title} · ${P.asOf}`}>
+          <Panel
+            title={`${P.title} · ${P.asOf}`}
+            right={
+              !isLive ? (
+                <span className="rounded bg-gray-700/60 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">확대 시나리오 예시 (412대 가정)</span>
+              ) : undefined
+            }
+          >
             <div className="grid grid-cols-4 gap-3 max-[720px]:grid-cols-2">
               <FlowCard label="DTG 주행거리" value={isLive ? Math.round(liveKm).toLocaleString() : P.km} unit="km" sub={isLive ? '시뮬레이션 누적' : P.kmSub} />
               <FlowCard label="연비 개선" value={isLive ? `+${liveFuelPct.toFixed(1)}` : P.eff} unit={isLive ? '%' : ''} sub={P.effSub} accent="text-emerald-400" arrow />
@@ -240,7 +247,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                   <b className="text-emerald-400">일간 = 엔진 실시간 집계</b> — 시뮬레이터 9대의 실제 코칭 적용/미적용(baseline) 연료 차이로 산출. 배속을 올리면 값이 빠르게 쌓여요.
                 </>
               ) : (
-                <>산정 기준 — 경유 배출계수 2.68 kgCO₂/L, 도입 전 12개월 노선별 연비 베이스라인 대비 실측 (OBD·DTG 교차 검증)</>
+                <>산정 기준 — 경유 배출계수 2.68 kgCO₂/L · 도입 전 12개월 노선별 연비 기준선 대비, 실측 방식(OBD·DTG 교차 검증)은 실증 시 적용</>
               )}
             </div>
           </Panel>
@@ -262,7 +269,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                 </ResponsiveContainer>
               </div>
             </Panel>
-            <Panel title="안전운전 점수 ↔ 연비 상관" right={<span className="rounded-md bg-emerald-500/12 px-2 py-0.5 text-[11px] font-bold text-emerald-400">r = 0.81</span>}>
+            <Panel title="안전운전 점수 ↔ 연비 상관" right={<span className="rounded-md bg-emerald-500/12 px-2 py-0.5 text-[11px] font-bold text-emerald-400">상관계수 0.81</span>}>
               <div className="h-56">
                 <ResponsiveContainer>
                   <ScatterChart margin={{ top: 8, right: 8, left: -14, bottom: 4 }}>
@@ -276,7 +283,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
-              <div className="mt-1 text-[11px] text-gray-500">안전점수가 높은 차량일수록 연비가 좋아요 — 코칭이 절감으로 이어지는 구조를 데이터로 증명.</div>
+              <div className="mt-1 text-[11px] text-gray-500">안전점수가 높은 차량일수록 연비가 좋아요 — 코칭이 절감으로 이어지는 구조를 데이터로 증명 (산점도는 예시 분포 · 0.81은 선행 분석값).</div>
             </Panel>
           </div>
 
@@ -348,7 +355,10 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
           </div>
 
           {/* 운수회사별 절감 랭킹 */}
-          <Panel title="운수회사별 절감 성과 (절감률 순)">
+          <Panel
+            title="운수회사별 절감 성과 (절감률 순)"
+            right={<span className="rounded bg-gray-700/60 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">예시</span>}
+          >
             <div className="flex flex-col gap-2">
               {CO_RANKS.map((c) => (
                 <div key={c.rank} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -377,7 +387,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                     ['인증 대상 감축량 (2~6월 확정)', '321.1 tCO₂'],
                     ['예상 크레딧 수익 (8,900원/t)', '2,858,000원'],
                     ['증빙 데이터', 'OBD 연료분사량 × DTG 교차 검증'],
-                    ['베이스라인', '도입 전 12개월 노선별 연비 (방법론 요건 부합)'],
+                    ['기준선(도입 전)', '도입 전 12개월 노선별 연비 (방법론 요건 부합)'],
                     ['검증기관 제출', '8월 예정 (한국환경공단 배출권등록부)'],
                   ].map(([k, v]) => (
                     <tr key={k} className="border-b border-gray-800/60 last:border-0">
@@ -399,7 +409,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
               </div>
             </div>
             <div className="mt-2 text-[10.5px] leading-relaxed text-gray-600">
-              베이스라인 산정 방식이 외부사업(KOC) 방법론 요건에 부합해 실측 감축량이 그대로 크레딧 자산이 됩니다. 확정분은 검증기관 인증 후 반영돼요.
+              기준선(도입 전 12개월) 산정 방식이 외부사업(KOC) 방법론 요건에 부합해 실측 감축량이 그대로 크레딧 자산이 됩니다. 확정분은 검증기관 인증 후 반영돼요.
             </div>
           </Panel>
         </div>
@@ -430,7 +440,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                 </ResponsiveContainer>
               </div>
               <div className="mt-1 text-[11px] text-gray-500">
-                누적 {totalEvents}건 — 정당판정(맥락융합)된 이벤트는 감점·집계에서 자동 면제돼요.
+                누적 {totalEvents}건 — 상황(회피·정류장 접근·폭우)을 고려해 정당 판정된 이벤트는 감점·집계에서 자동 면제돼요.
               </div>
             </Panel>
           </div>

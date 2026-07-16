@@ -76,7 +76,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
     if (bunched.length > 0) {
       const b = bunched[0]
       return {
-        text: `${b.id.slice(-4)}호가 앞차와 ${fmt1(b.headway!.frontGapMin)}분 간격(이상 ${fmt1(b.headway!.idealMin)}분)으로 몰림 상태입니다. 배차 조정을 권고할까요?`,
+        text: `${b.id.slice(-4)}호가 앞차와 ${fmt1(b.headway!.frontGapMin)}분 간격(적정 ${fmt1(b.headway!.idealMin)}분)으로 몰림 상태입니다. 배차 조정을 권고할까요?`,
         evidence: [`몰림 ${bunched.length}대`, `앞차 간격 ${fmt1(b.headway!.frontGapMin)}분`],
         action: {
           label: '배차 권고 생성',
@@ -191,7 +191,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
   // 탄소중립 / 전환 / V2G — 대통합 탄소중립 분석 탭 연동
   if (has('탄소', '전환', '전기버스', 'v2g', 'V2G', 'koc', 'KOC', '크레딧')) {
     return {
-      text: `누적 CO₂ 절감 ${fmt1(snap.kpi.totalCo2SavedKg)}kg(코칭 적용/미적용 연료 차)입니다. 전기전환은 효과순 선정 시 6대=연 214t·ROI 2.7년, V2G는 40대 참여 시 월 576만원이 예상됩니다. 탄소중립 분석 탭의 시뮬레이터에서 대수를 조절해 비교할 수 있어요.`,
+      text: `누적 CO₂ 절감 ${fmt1(snap.kpi.totalCo2SavedKg)}kg(코칭 적용/미적용 연료 차)입니다. 전기전환은 효과순 선정 시 6대=연 214t·투자 회수 2.7년, V2G는 40대 참여 시 월 576만원이 예상됩니다. 탄소중립 분석 탭의 시뮬레이터에서 대수를 조절해 비교할 수 있어요.`,
       evidence: [`CO₂ 절감 ${fmt1(snap.kpi.totalCo2SavedKg)}kg`, `절감률 ${fmt1(snap.kpi.fuelSavedPct)}%`],
       nav: { tab: 'carbon', label: '탄소중립 분석' },
     }
@@ -471,7 +471,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
             <button onClick={send} className="rounded-xl bg-sky-600 px-3 py-2 text-xs font-bold text-white hover:bg-sky-500">→</button>
           </div>
           <div className="px-3 pb-2 text-center text-[9px] text-gray-600">
-            추천 질문: 규칙 기반 실데이터 조회 · 자유 입력: {hasKey ? '실제 Claude(라이브)' : 'LLM 연결 시 실제 답변'}
+            추천 질문: 즉시 데이터 조회 · 자유 입력: {hasKey ? '실제 Claude(라이브)' : 'LLM 연결 시 실제 답변'}
           </div>
         </div>
       )}

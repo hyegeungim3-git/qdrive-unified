@@ -89,9 +89,9 @@ function buildReport(snap: SimSnapshot, period: Period): { paras: Para[]; asOf: 
       `평균 연비는 ${eff.toFixed(2)}km/m³로 미코칭 기준선 대비 ${kpi.fuelSavedPct.toFixed(1)}% 절감 중이며, ` +
       `CO₂ 절감량은 ${fmtN(kpi.totalCo2SavedKg * k)}kg입니다. 탑승객은 ${fmtN(snap.passengers * k)}명으로 집계되었습니다.`,
     evidence: [
-      `주행거리 ∑ ${fmtN(kpi.totalDistanceKm * k)}km (DTG 521)`,
-      `연료 ∑ ${fmtN(kpi.totalFuelM3 * k)}m³ (CAN)`,
-      `승차 집계 ${fmtN(snap.passengers * k)}명 (APC 상당)`,
+      `주행거리 ∑ ${fmtN(kpi.totalDistanceKm * k)}km (운행기록 521)`,
+      `연료 ∑ ${fmtN(kpi.totalFuelM3 * k)}m³ (차량 센서 CAN)`,
+      `승차 집계 ${fmtN(snap.passengers * k)}명 (승객계수 APC 상당)`,
     ],
   })
 
@@ -105,7 +105,7 @@ function buildReport(snap: SimSnapshot, period: Period): { paras: Para[]; asOf: 
           (zones[0] ? `${zones[0].name} 인근(${fmtN(zones[0].count * k)}건)에 집중되어 해당 구간 서행 안내를 권장합니다.` : '특정 구간 집중은 관찰되지 않았습니다.')
         : '감점 대상 이벤트가 없어 전반적으로 안정적인 운행입니다.'),
     evidence: [
-      `409 패킷 ${fmtN(snap.events.length * k)}건`,
+      `위험운전 기록(409) ${fmtN(snap.events.length * k)}건`,
       `정당 판정 ${fmtN(justified * k)}건 (감점 제외)`,
       ...(zones[0] ? [`다발 구간: ${zones.map((z) => `${z.name} ${fmtN(z.count * k)}건`).join(' · ')}`] : []),
     ],

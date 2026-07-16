@@ -403,7 +403,7 @@ export default function DriverApp() {
                       </div>
                     </div>
                     <div className="flex flex-col items-center justify-center px-1">
-                      <span className="text-[9px] text-gray-500">이상</span>
+                      <span className="text-[9px] text-gray-500">적정</span>
                       <span className="text-xs font-bold tabular-nums text-gray-400">{hw.idealMin.toFixed(1)}분</span>
                     </div>
                     <div
@@ -653,8 +653,8 @@ export default function DriverApp() {
           화면을 전환합니다. 위험운전 경고는 어느 화면에서든 전체로 (운전석에서 즉시 인지)
         </span>
         <span>
-          운행 화면은 점수·다음 정류장·날씨 지침까지 <b className="text-gray-300">주행 중 조작 없는 글랜스
-          UI</b>, 리포트 화면은 배지·인사이트·내 에이전트. ⚡ 급감속 / 🌧 날씨 / 🔧 고장 버튼으로 시연하세요
+          운행 화면은 점수·다음 정류장·날씨 지침까지 <b className="text-gray-300">주행 중 조작 없는 한눈
+          UI</b>, 리포트 화면은 배지·인사이트·내 에이전트
         </span>
       </div>
     </div>
@@ -843,7 +843,12 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
     <div className="flex flex-col gap-3">
       {/* 라이브 요약 스트립 */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-3">
-        <div className="text-sm font-bold text-gray-100">📋 {driverName} 기사님 오늘의 리포트</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="text-sm font-bold text-gray-100">📋 {driverName} 기사님 오늘의 리포트</div>
+          <span className="rounded bg-gray-700/50 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">
+            주간·이력 수치는 예시 · 오늘 실측은 각 카드에 병기
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-4 text-[13px]">
           <span className="text-gray-400">오늘 점수 <b className="tabular-nums text-gray-100">{Math.round(score)}</b></span>
           <span className="text-gray-400">사내 순위 <b className="tabular-nums text-sky-300">{rank}위</b></span>

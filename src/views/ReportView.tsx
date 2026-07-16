@@ -54,6 +54,9 @@ export default function ReportView() {
             </div>
             <h2 className="mt-1 text-xl font-bold text-gray-100">
               Qdrive 실증 효과 리포트 — 도입 전후 연비 실측 비교
+              <span className="ml-2 inline-block rounded bg-gray-700/60 px-1.5 py-0.5 align-middle text-[10px] font-bold text-gray-400">
+                리포트 형식 예시 · 실증 시 실측 대체
+              </span>
             </h2>
             <div className="mt-1 text-xs text-gray-500">
               대상: 급행1 노선 3대 (CNG) · 기간: 도입 전 4주 / 후 4주 · 측정: 주유량 대사 + DTG 주행거리
@@ -155,7 +158,7 @@ export default function ReportView() {
           ))}
         </div>
         <div className="mt-3 text-[11px] leading-relaxed text-gray-600">
-          * 배출권 수익은 전기버스 전환분 한정·방법론 검토단계로 보수적으로 표기 (KAU 시세 2026.6 기준
+          * 배출권 수익은 전기버스 전환분 한정·방법론 검토단계로 보수적으로 표기 (탄소배출권(KAU) 시세 2026.6 기준
           약 2만원/톤). 본 수치는 데모용 목업이며, 실증 단계에서 실측 데이터로 대체됩니다.
         </div>
       </Panel>

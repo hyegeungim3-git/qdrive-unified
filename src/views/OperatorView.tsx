@@ -448,7 +448,7 @@ export default function OperatorView() {
                               ? 'text-sky-400'
                               : 'text-gray-400'
                         }`}
-                        title={`앞차 ${v.headway.frontId ? `${v.headway.frontGapMin.toFixed(1)}분` : '없음(선두)'} / 뒤차 ${v.headway.rearId ? `${v.headway.rearGapMin.toFixed(1)}분` : '없음'} · 이상 ${v.headway.idealMin.toFixed(1)}분`}
+                        title={`앞차 ${v.headway.frontId ? `${v.headway.frontGapMin.toFixed(1)}분` : '없음(선두)'} / 뒤차 ${v.headway.rearId ? `${v.headway.rearGapMin.toFixed(1)}분` : '없음'} · 적정 ${v.headway.idealMin.toFixed(1)}분`}
                       >
                         {!v.headway.frontId
                           ? '선두'
@@ -495,7 +495,15 @@ export default function OperatorView() {
 
       <div className="grid grid-cols-2 gap-4 max-[860px]:grid-cols-1">
         {/* 정비비 예측 */}
-        <Panel title="🔧 정비비 예측 (월간)" right={<span className="text-[11px] text-gray-500">OBD/CAN + 정비이력</span>}>
+        <Panel
+          title="🔧 정비비 예측 (월간)"
+          right={
+            <span className="flex items-center gap-1.5 text-[11px] text-gray-500">
+              <span>OBD/CAN + 정비이력</span>
+              <span className="rounded bg-gray-800/60 px-1.5 py-0.5 text-[10px] text-gray-500">예시 데이터 · OBD/CAN 축적 시 실측</span>
+            </span>
+          }
+        >
           <div className="space-y-2.5 text-xs">
             {[
               ['브레이크 패드', '3742 · 5563', '잔여수명 2주', 'text-red-400'],
@@ -518,7 +526,7 @@ export default function OperatorView() {
         {/* eTAS 제출 현황 = 운행기록 (521) */}
         <Panel
           title="eTAS 운행기록 자동제출"
-          right={<span className="text-[11px] text-gray-500">공단 521 패킷 · 법정 의무 자동화</span>}
+          right={<span className="text-[11px] text-gray-500">공단 운행기록 표준(521) · 법정 의무 자동화</span>}
         >
           <div className="flex max-h-52 flex-col gap-1.5 overflow-y-auto text-[11px]">
             {snap.trips.slice(0, 12).map((t, i) => (

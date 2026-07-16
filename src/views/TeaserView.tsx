@@ -154,6 +154,39 @@ export default function TeaserView() {
         })}
       </div>
 
+      {/* 다음 버전 서비스 — 제안서 '확장 비전' 장과 동일 카탈로그 */}
+      <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-5 py-4">
+        <div className="text-sm font-bold text-sky-300">🚀 다음 버전 서비스 — 데이터가 쌓이면 열리는 것들</div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {[
+            ['노선 디지털 트윈', '개편안을 시행 전에 시뮬레이션', '2차'],
+            ['DRT 전환 후보 발굴', '저효율 노선의 수요응답형 전환 분석', '2차'],
+            ['탄소 크레딧 대행', '5개사 묶음 발행·수수료', '2차'],
+            ['기사 안전 이력 증명', '이동 가능한 경력 포트폴리오', '2차'],
+            ['ESG·의회 보고 구독', '공시·의회 대응 리포트 자동화', '2차'],
+            ['정책 시뮬레이터', '배차·요금 변경 영향을 시행 전에 계산', '3차'],
+            ['온톨로지 API 개방', '연구·스타트업 생태계', '3차'],
+            ['광역 확산 패키지', '경산·영천 → 대구경북 → 타 시도', '3차'],
+          ].map(([name, desc, stage]) => (
+            <span
+              key={name}
+              title={desc}
+              className={`rounded-md border px-2 py-1 text-[10px] font-semibold ${
+                stage === '2차'
+                  ? 'border-sky-500/30 bg-sky-500/10 text-sky-300'
+                  : 'border-violet-500/30 bg-violet-500/10 text-violet-300'
+              }`}
+            >
+              {name} <span className="opacity-60">· {stage}</span>
+            </span>
+          ))}
+        </div>
+        <div className="mt-2 text-[11px] leading-relaxed text-gray-500">
+          전부 같은 운행 단위(Trip) 중심축 위에서 열립니다 — 수익 구조는 ① 구독 ② 검증된 절감액의 성과
+          쉐어 ③ 데이터 서비스(크레딧 대행·리포트·API) 3층.
+        </div>
+      </div>
+
       <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-5 py-4">
         <div className="text-sm font-bold text-violet-300">💡 선순환 구조 (도입 전 → 후)</div>
         <div className="mt-1.5 text-xs leading-relaxed text-gray-400">

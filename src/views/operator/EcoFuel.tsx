@@ -53,7 +53,7 @@ export default function EcoFuel() {
         <div className="text-[10px] font-semibold tracking-widest text-emerald-400">ECO-DRIVING AI · 예방형 연료절감</div>
         <div className="mt-1 flex items-end justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-100">연료·에코 분석</h2>
+            <h2 className="text-lg font-bold text-gray-100">연료 절감 AI</h2>
             <div className="mt-0.5 text-[11px] text-gray-500">
               낭비가 일어난 뒤 벌점을 매기는 사후 집계가 아니라, 앞 상황을 예측해 관성주행을 실시간으로
               안내해 낭비를 발생 전에 억제합니다.

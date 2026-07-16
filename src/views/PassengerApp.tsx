@@ -247,7 +247,7 @@ export default function PassengerApp() {
                     disabled={!destSel}
                     className="rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500 disabled:opacity-40"
                   >
-                    {autoSel ? '예약' : '시작'}
+                    {autoSel ? '예약' : '알림 시작'}
                   </button>
                   <button
                     onClick={() => setPickRoute(null)}
@@ -425,7 +425,7 @@ export default function PassengerApp() {
         <ul className="space-y-3 text-sm leading-relaxed text-gray-400">
           <li>
             <b className="text-gray-200">도착예측 + 신뢰도 표시</b> — "3분 후"가 얼마나 믿을 만한지까지
-            보여줌. 차량속도·운행상태 기반 (GTFS Realtime 표준 지향)
+            보여줌. 차량속도·운행상태 기반 (국제 대중교통 데이터 표준 GTFS 지향)
           </li>
           <li>
             <b className="text-gray-200">실시간 혼잡도 (여유/보통/혼잡)</b> — 재차율 기반. 휠체어·유모차

@@ -67,7 +67,7 @@ export default function TripsLog() {
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
       <Panel
-        title="🗂️ 운행 이력 — 차량 데이터를 한눈에, 실시간으로"
+        title="🗂️ 운행 이력 — 운행 1회 단위 시작·종료·거리·연비·CO₂ 자동 기록"
         right={
           <select
             value={vehicleFilter}
@@ -274,6 +274,11 @@ export default function TripsLog() {
           </div>
         </Panel>
       )}
+
+      <div className="rounded-lg border border-sky-500/15 bg-sky-500/5 px-4 py-2 text-[11px] leading-relaxed text-gray-400">
+        🛡️ 이 1초 단위 운행 기록은 <b className="text-sky-300">사고·분쟁 시 리플레이 증빙</b>이 됩니다 —
+        시각·위치·속도·조작이 그대로 남아, 과실 다툼에서 기사와 회사를 지키는 자료가 돼요.
+      </div>
 
       <div className="rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2 text-[10px] leading-relaxed text-gray-500">
         💡 qdrive.co.kr 클라우드 관리 기능 매핑: 차량관리·운전 성과 및 안전(관제 현황) · 운행 데이터

@@ -348,7 +348,7 @@ export default function CitizenPublic() {
         {/* footer */}
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <span className="text-[11.5px] font-medium leading-relaxed text-gray-600">
-            산정 기준 — 도입 전 12개월 연비 베이스라인 대비 실측 (OBD·DTG 교차 검증) · 배출계수 환경부 고시 · 소나무 환산 6.6kgCO₂/그루·년
+            산정 기준 — 도입 전 12개월 연비 기준선 대비 실측 (OBD·DTG 교차 검증) · 배출계수 환경부 고시 · 소나무 환산 6.6kgCO₂/그루·년 · 본 페이지는 실증 데모 — 월별 수치 일부는 시나리오 예시
           </span>
           <a
             href="#"

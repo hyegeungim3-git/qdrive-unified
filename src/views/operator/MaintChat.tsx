@@ -60,7 +60,7 @@ export default function MaintChat() {
         <div className="flex flex-1 flex-col items-center justify-center gap-4">
           <div className="text-2xl">
             <span className="mr-2 inline-block h-6 w-6 animate-pulse rounded-full bg-gradient-to-tr from-violet-500 to-sky-400 align-middle" />
-            <span className="align-middle font-bold text-gray-200">AI 정비 도우미</span>
+            <span className="align-middle font-bold text-gray-200">AI+ 정비도우미</span>
           </div>
           <div className="text-xs text-gray-500">차량번호를 입력하면 최근 진단 결과와 권장 점검을 요약해 드립니다</div>
         </div>

@@ -46,7 +46,15 @@ export default function Depot() {
 
       <div className="grid flex-1 grid-cols-1 gap-3 min-[900px]:grid-cols-2">
         {/* 충전 스케줄 */}
-        <Panel title="⛽ CNG 충전 스케줄 (심야 자동 편성)" right={<span className="text-[11px] text-gray-500">단가 유리 시간대 우선</span>}>
+        <Panel
+          title="⛽ CNG 충전 스케줄 (심야 자동 편성)"
+          right={
+            <span className="flex items-center gap-1.5">
+              <span className="rounded bg-gray-700/50 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">예약·슬롯은 예시</span>
+              <span className="text-[11px] text-gray-500">단가 유리 시간대 우선</span>
+            </span>
+          }
+        >
           <table className="w-full text-left text-[11px]">
             <thead>
               <tr className="text-[10px] text-gray-500">
@@ -80,7 +88,7 @@ export default function Depot() {
             </tbody>
           </table>
           <div className="mt-2 text-[10px] leading-relaxed text-gray-600">
-            ※ 전기버스 전환 시 SOC·배터리 열화(SOH)·동절기 성능저하를 반영한 충전계획으로 확장 예정 (2차 로드맵)
+            ※ 전기버스 전환 시 배터리 잔량(SOC)·배터리 열화(SOH)·동절기 성능저하를 반영한 충전계획으로 확장 예정 (2차 로드맵)
           </div>
         </Panel>
 

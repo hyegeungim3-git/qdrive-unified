@@ -64,8 +64,11 @@ export default function Scanner() {
                   : 'border-red-500/40 bg-red-500/15 text-red-400'
             }`}
           >
-            ● AI 안전점수 {aiScore}점{aiScore < 80 ? ' — 정비 필요' : ''}
+            ● 차량 상태점수 {aiScore}점{aiScore < 80 ? ' — 정비 필요' : ''}
           </span>
+        </div>
+        <div className="w-full text-xs text-gray-500">
+          차량 센서를 1초 단위로 살펴, 고장 전조를 운행 중단 전에 잡아냅니다
         </div>
       </div>
 

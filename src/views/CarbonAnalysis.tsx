@@ -342,10 +342,13 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                     <Tooltip {...chartTheme.tooltip} formatter={(v, n) => [`${v}%`, n]} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="flex flex-col gap-1.5 pr-2">
+                <div className="flex shrink-0 flex-col gap-1.5 pr-2">
                   {FUEL_MIX.map((f) => (
-                    <div key={f.name} className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                      <span className="h-2 w-2 rounded-sm" style={{ background: f.color }} />
+                    <div
+                      key={f.name}
+                      className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-gray-400"
+                    >
+                      <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: f.color }} />
                       {f.name} <b className="text-gray-200 tabular-nums">{f.v}%</b>
                     </div>
                   ))}

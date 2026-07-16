@@ -155,6 +155,57 @@ export default function Depot() {
           })}
         </div>
       </Panel>
+
+      {/* 단말·장비 상태 모니터링 — 차량 고장 예측 프레임을 인프라(장비)로 확장 */}
+      <Panel
+        title="📡 단말·장비 상태 모니터링"
+        right={<span className="text-[11px] text-gray-500">교체 예산의 근거를 감이 아니라 데이터로</span>}
+      >
+        <div className="grid grid-cols-1 gap-3 min-[860px]:grid-cols-2">
+          <div>
+            <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
+              실증 9대 단말 · 실시간
+            </span>
+            <div className="mt-2 space-y-1.5">
+              {snap.vehicles.slice(0, 4).map((v) => (
+                <div
+                  key={v.id}
+                  className="flex items-center justify-between rounded-lg bg-gray-800/40 px-3 py-1.5 text-[11px]"
+                >
+                  <span className="font-mono text-gray-300">{v.id.slice(-4)}호</span>
+                  <span className="text-gray-500">DTG·OBD·RTK 단말</span>
+                  <span className="font-semibold text-emerald-400">● 정상 · 1초 수신</span>
+                </div>
+              ))}
+              <div className="text-[10px] text-gray-600">
+                …외 {snap.vehicles.length - 4}대 전체 정상 — 수신 끊김·전압 이상 시 즉시 알림
+              </div>
+            </div>
+          </div>
+          <div>
+            <span className="rounded bg-gray-700/50 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">
+              시 현장장비 현황 · 2026 공고 기준
+            </span>
+            <div className="mt-2 space-y-1.5 text-[11px]">
+              {[
+                ['버스정보안내기(BIT)', '1,607대', "'07~'08 설치분 교체 예정"],
+                ['행선지안내기', '3,261대', '전면·측면·후면'],
+                ['승객용안내기', '1,667대', '4개국어 안내'],
+              ].map(([n, c, d]) => (
+                <div key={n} className="flex items-center justify-between rounded-lg bg-gray-800/40 px-3 py-1.5">
+                  <span className="text-gray-300">{n}</span>
+                  <span className="font-bold tabular-nums text-gray-200">{c}</span>
+                  <span className="text-[10px] text-gray-500">{d}</span>
+                </div>
+              ))}
+              <div className="rounded-md border border-sky-500/15 bg-sky-500/5 px-3 py-2 text-[10px] leading-relaxed text-gray-400">
+                시는 매년 노후 장비를 골라 교체합니다 — 단말처럼 장비도 상태 데이터가 쌓이면{' '}
+                <b className="text-sky-300">"어느 장비부터"를 데이터로</b> 정할 수 있어요 (확장 제안)
+              </div>
+            </div>
+          </div>
+        </div>
+      </Panel>
     </div>
   )
 }

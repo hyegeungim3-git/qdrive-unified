@@ -117,8 +117,8 @@ export default function TeaserView() {
           <div>
             모든 권고는 <b className="text-gray-200">근거 데이터 링크와 함께 제시</b>(설명가능성). 데모의
             배차 권고·작업지시·민원 증빙이 이 원칙의 실제 구현 — 기준키는{' '}
-            <b className="text-gray-200">날짜+노선+방향+회차+차량+기사+정류장+시간</b> (회차 단위 데이터
-            모델).
+            <b className="text-gray-200">날짜+노선+방향+운행 순번+차량+기사+정류장+시간</b> (운행 단위
+            데이터 모델).
           </div>
         </div>
       </div>
@@ -157,7 +157,7 @@ export default function TeaserView() {
       <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-5 py-4">
         <div className="text-sm font-bold text-violet-300">💡 선순환 구조 (도입 전 → 후)</div>
         <div className="mt-1.5 text-xs leading-relaxed text-gray-400">
-          현황: 차량(DTG·OBD)과 운행(BIS·BMS·ITS) 데이터가 분산 — 민원은 감으로 처리, 정책은 데이터 없이 수립.
+          현황: 차량(DTG·OBD)과 운행(BIS·BMS·ITS) 데이터가 서로 연결되지 않음 — 민원은 감으로 처리, 정책은 데이터 없이 수립.
           <br />
           통합 시: <b className="text-gray-200">민원 → 당장 해결 or 정책을 위한 데이터</b>. 운행할수록 데이터가
           쌓이고, 데이터가 쌓일수록 예측이 정확해지고, 예측이 정확할수록 시민 체감·비용 절감이 커지는 구조.

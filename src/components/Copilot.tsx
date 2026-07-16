@@ -220,7 +220,7 @@ function buildLiveSystem(snap: SimSnapshot): string {
     `[실시간] ${simClock(snap.simTime)} · 운행 ${snap.vehicles.length}대 · 총주행 ${fmt1(snap.kpi.totalDistanceKm)}km · 평균안전점수 ${fmt1(snap.kpi.avgScore)} · 연료절감률 ${fmt1(snap.kpi.fuelSavedPct)}% · CO₂절감 ${fmt1(snap.kpi.totalCo2SavedKg)}kg · 위험운전 ${snap.kpi.totalEvents}건 · 탑승 ${snap.passengers}명\n` +
     `[차량별 점수] ${snap.vehicles.map((v) => `${v.id.slice(-4)}호(${v.driverName}) ${Math.round(v.score)}`).join(', ')}\n` +
     `[최저점수] ${worst.id.slice(-4)}호 ${Math.round(worst.score)}점 · [날씨] ${snap.weather.condition} ${snap.weather.tempC}°C · [고장예측] ${snap.fault?.predicted ? `${snap.fault.vehicleId.slice(-4)}호 ${snap.fault.kind}` : '없음'} · [민원] ${snap.complaints.length}건 · [돌발진행] ${snap.incidents.filter((i) => i.status !== '완료').length}건\n` +
-    '[배경 정합] 실증 목표 연 393.7t 감축, 안전점수↔연비 r=0.81, 전기전환 6대=연 214t·ROI 2.7년, KOC 8,900원/t, 세운버스 월 순효과 +1,175만원.'
+    '[배경 정합] 실증 목표 연 393.7t 감축, 안전점수↔연비 r=0.81, 전기전환 6대=연 214t·ROI 2.7년, KOC 8,900원/t, 세운버스 월 순이익 +1,175만원.'
   )
 }
 

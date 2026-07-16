@@ -339,7 +339,7 @@ export default function AiReport() {
 
       <div className="rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2.5 text-[10px] leading-relaxed text-gray-600">
         ⚠ 신뢰성 원칙: 본 리포트의 수치는 전부 DTG/CAN/APC 집계에서 산출되며, 문장 생성부는 데모에서는
-        규칙 기반(결정적), 실증 단계에서는 LLM + 수치 검증 파이프라인으로 교체됩니다. AI가 생성한
+        규칙 기반(결정적), 실증 단계에서는 LLM + 수치 검증 과정으로 교체됩니다. AI가 생성한
         제안은 참고용이며 인사·평가 등 불이익 결정에 단독 사용할 수 없습니다.
         {period.k > 1 && (
           <>

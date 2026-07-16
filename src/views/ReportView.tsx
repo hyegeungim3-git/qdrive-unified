@@ -50,7 +50,7 @@ export default function ReportView() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[11px] font-semibold tracking-widest text-sky-400">
-              MRV MEASUREMENT · REPORTING · VERIFICATION
+              측정 · 보고 · 검증 (MEASUREMENT · REPORTING · VERIFICATION)
             </div>
             <h2 className="mt-1 text-xl font-bold text-gray-100">
               Qdrive 실증 효과 리포트 — 도입 전후 연비 실측 비교
@@ -170,7 +170,7 @@ export default function ReportView() {
         <div className="grid grid-cols-4 gap-2">
           {[
             ['1. 감축 활동', '에코드라이빙 코칭으로 연료 절감 (본 플랫폼)', 'text-sky-400'],
-            ['2. MRV 실측', '측정·보고·검증 — 실증 리포트 포맷 그대로', 'text-sky-400'],
+            ['2. 측정·보고·검증', '실측 데이터로 검증 — 실증 리포트 포맷 그대로', 'text-sky-400'],
             ['3. 인증', '외부사업 방법론 승인·감축량 인증 (6~12개월)', 'text-amber-400'],
             ['4. 거래·리워드', '배출권 판매 수익 → 운수사·기사 리워드 환원', 'text-emerald-400'],
           ].map(([step, desc, cls]) => (

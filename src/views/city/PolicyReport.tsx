@@ -238,7 +238,7 @@ export default function PolicyReport({ onClose }: { onClose: () => void }) {
 
         <div className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2.5 text-[10px] leading-relaxed text-gray-500 shadow-xl">
           ⚠ 신뢰성 원칙: 수치는 전부 실시간 집계에서 산출(연간 환산은 단순 선형 가정 명시). 문장 생성부는
-          데모 규칙 기반 → 실증 시 LLM + 수치 검증 파이프라인. 정책 결정의 참고자료이며 단독 근거로
+          데모 규칙 기반 → 실증 시 LLM + 수치 검증 과정. 정책 결정의 참고자료이며 단독 근거로
           사용할 수 없습니다.
           {period.k > 1 && (
             <>

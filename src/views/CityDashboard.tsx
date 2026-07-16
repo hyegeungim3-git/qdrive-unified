@@ -36,7 +36,7 @@ const WIDGET_DEFS: { id: WidgetId; label: string }[] = [
   { id: 'incidents', label: '돌발정보' },
   { id: 'riders', label: '이용객 수' },
   { id: 'alerts', label: '이상 현황' },
-  { id: 'triage', label: '차량 이상 트리아지' },
+  { id: 'triage', label: '이상 차량 선별' },
   { id: 'network', label: '계통 가동률' },
   { id: 'occ', label: '혼잡 추이' },
   { id: 'kpi', label: '핵심 지표' },
@@ -438,7 +438,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
         {/* 차량 이상 트리아지 — 개별 차량 × OBD·DTG × 심각도 × 경과 (엔진 실집계) */}
         {prefs.triage && (
           <Panel
-            title="🩺 차량 이상 트리아지"
+            title="🩺 이상 차량 선별"
             right={
               <span className="text-[10px] text-gray-500">
                 {triage.length > 0 ? `${triage.length}건 조치 대상` : '전 차량 정상'}

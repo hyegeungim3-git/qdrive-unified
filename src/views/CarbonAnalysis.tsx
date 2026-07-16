@@ -109,7 +109,7 @@ const chartTheme = {
 }
 
 const SUBTABS = [
-  { id: 'fuel', label: '탄소·연료', sub: '연비 → CO₂ 인과' },
+  { id: 'fuel', label: '탄소·연료', sub: '연비 → CO₂ 연결' },
   { id: 'safety', label: '안전운행', sub: '위험운전 진단' },
 ] as const
 type SubId = (typeof SUBTABS)[number]['id']
@@ -172,7 +172,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
           <div className="text-[11px] font-semibold tracking-widest text-emerald-400">CARBON NEUTRALITY ANALYTICS</div>
           <h2 className="mt-0.5 text-xl font-bold text-gray-100">🌱 탄소중립 분석</h2>
           <div className="mt-0.5 text-xs text-gray-500">
-            안전운전 → 연비 → 연료 → CO₂ 인과사슬을 실측·엔진 집계로 증명하고, 전기전환·V2G를 시뮬레이션해요
+            안전운전 → 연비 → 연료 → CO₂ 연결 고리를 실측·엔진 집계로 증명하고, 전기전환·V2G를 시뮬레이션해요
           </div>
         </div>
         <nav className="flex gap-1 rounded-lg bg-gray-900/60 p-1">

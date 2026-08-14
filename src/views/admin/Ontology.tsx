@@ -3,6 +3,7 @@ import { Panel } from '../../components/ui'
 import type { SimSnapshot } from '../../sim/types'
 import { ONTO, ONTO_QUERIES, fmt } from './catalog'
 import { EDGES, NODES, trim } from './graph'
+import Explorer from './Explorer'
 import { Drawer, RecordTable, Sec } from './ui'
 
 export default function Ontology({ snap }: { snap: SimSnapshot }) {
@@ -10,7 +11,6 @@ export default function Ontology({ snap }: { snap: SimSnapshot }) {
   const [hover, setHover] = useState<string | null>(null)
   const open = ONTO.find((c) => c.key === openKey) ?? null
 
-  const spokes = ONTO.slice(1)
   const max = Math.max(1, ...ONTO.map((c) => c.count(snap)))
   /** 로그 스케일 — 3개와 24,000개를 한 화면에서 함께 읽히게 */
   const barPct = (n: number) => (n <= 0 ? 2 : Math.max(4, (Math.log10(n + 1) / Math.log10(max + 1)) * 100))
@@ -19,6 +19,8 @@ export default function Ontology({ snap }: { snap: SimSnapshot }) {
   const cls = (k: string) => ONTO.find((c) => c.key === k)!
   /** 강조 — 노드에 올리면 그 노드에 걸린 관계만 살아난다 */
   const lit = (e: { from: string; to: string }) => !hover || e.from === hover || e.to === hover
+  /** 관계 인스턴스 수 — 두 클래스 중 실제로 연결이 성립하는 건수 */
+  const relCount = (e: { from: string; to: string }) => Math.min(cls(e.from).count(snap), cls(e.to).count(snap))
   const litNode = (k: string) => !hover || k === hover || EDGES.some((e) => (e.from === hover && e.to === k) || (e.to === hover && e.from === k))
 
   return (
@@ -26,7 +28,7 @@ export default function Ontology({ snap }: { snap: SimSnapshot }) {
       <div className="grid grid-cols-[1.15fr_1fr] gap-3 max-[1000px]:grid-cols-1">
         <Panel
           title="운행 단위(Trip) 중심 온톨로지"
-          right={<span className="text-[11px] font-semibold text-gray-500">클래스 {ONTO.length} · 관계 {spokes.length} · 노드 클릭</span>}
+          right={<span className="text-[11px] font-semibold text-gray-500">클래스 {ONTO.length} · 관계 {EDGES.length} · 노드 클릭</span>}
         >
           <svg viewBox="0 0 760 360" className="w-full" role="img" aria-label="운행 단위 중심 온톨로지 그래프">
             {/* ① 엣지 — 노드보다 먼저 그려 선이 원 위로 올라오지 않게 한다 */}
@@ -164,16 +166,21 @@ export default function Ontology({ snap }: { snap: SimSnapshot }) {
             })}
           </div>
           <div className="mt-3 space-y-1">
-            {spokes.map((c) => (
-              <div key={c.key} className="flex items-center gap-2 text-[11px]">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: c.color }} />
-                <span className="text-gray-500">{c.rel}</span>
-                <span className="font-semibold text-gray-400">{c.label}</span>
+            <div className="mb-1 text-[11px] font-bold text-sky-300">관계 {EDGES.length}종 — 실제 연결 건수</div>
+            {EDGES.map((e) => (
+              <div key={`${e.from}-${e.to}`} className="flex items-center gap-2 text-[11px]">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: cls(e.to).color }} />
+                <span className="shrink-0 text-gray-500">{cls(e.from).en}</span>
+                <span className="shrink-0 rounded bg-gray-800 px-1.5 py-0.5 text-[10px] font-semibold text-gray-300">{e.label}</span>
+                <span className="shrink-0 text-gray-500">{cls(e.to).en}</span>
+                <span className="ml-auto shrink-0 font-bold tabular-nums text-gray-400">{fmt(relCount(e))}건</span>
               </div>
             ))}
           </div>
         </Panel>
       </div>
+
+      <Explorer snap={snap} />
 
       <Panel title="온톨로지 질의 — 표만 있을 때는 답할 수 없던 것" right={<span className="text-[11px] text-gray-500">답은 지금 데이터로 계산</span>}>
         <div className="space-y-2">

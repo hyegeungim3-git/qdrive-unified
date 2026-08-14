@@ -855,26 +855,26 @@ export default function PolicyAgent() {
           className="border-violet-500/30"
         >
           {view === 'doc' ? (
-            <div className="max-h-[32rem] overflow-auto rounded-lg bg-white px-6 py-5 text-[12.5px] leading-relaxed text-gray-900">
+            <div className="max-h-[32rem] overflow-auto rounded-lg bg-white px-6 py-5 text-[12.5px] leading-relaxed text-[#111827]">
               <h3 className="mb-3 text-center text-[17px] font-bold">{doc.kind}</h3>
               <table className="mb-3 w-full border-collapse text-[11.5px]">
                 <tbody>
                   <tr>
-                    <td className="w-20 border border-gray-300 bg-gray-100 px-2 py-1 font-semibold">수신</td>
-                    <td className="border border-gray-300 px-2 py-1">{doc.to}</td>
-                    <td className="w-20 border border-gray-300 bg-gray-100 px-2 py-1 font-semibold">문서번호</td>
-                    <td className="border border-gray-300 px-2 py-1 tabular-nums">{doc.docNo}</td>
+                    <td className="w-20 border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">수신</td>
+                    <td className="border border-[#c7ccd4] px-2 py-1">{doc.to}</td>
+                    <td className="w-20 border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">문서번호</td>
+                    <td className="border border-[#c7ccd4] px-2 py-1 tabular-nums">{doc.docNo}</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-300 bg-gray-100 px-2 py-1 font-semibold">담당 부서</td>
-                    <td className="border border-gray-300 px-2 py-1">{doc.dept}</td>
-                    <td className="border border-gray-300 bg-gray-100 px-2 py-1 font-semibold">보고 기간</td>
-                    <td className="border border-gray-300 px-2 py-1">{doc.period}</td>
+                    <td className="border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">담당 부서</td>
+                    <td className="border border-[#c7ccd4] px-2 py-1">{doc.dept}</td>
+                    <td className="border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">보고 기간</td>
+                    <td className="border border-[#c7ccd4] px-2 py-1">{doc.period}</td>
                   </tr>
                   {doc.cc && (
                     <tr>
-                      <td className="border border-gray-300 bg-gray-100 px-2 py-1 font-semibold">참조</td>
-                      <td className="border border-gray-300 px-2 py-1" colSpan={3}>
+                      <td className="border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">참조</td>
+                      <td className="border border-[#c7ccd4] px-2 py-1" colSpan={3}>
                         {doc.cc}
                       </td>
                     </tr>
@@ -887,13 +887,13 @@ export default function PolicyAgent() {
                   <div className="mb-1 text-[11.5px] font-bold">▪ 주요 지표 — 목표 대비</div>
                   <div className="mb-3 grid grid-cols-4 gap-2 max-[720px]:grid-cols-2">
                     {doc.metrics.map((m) => (
-                      <div key={m.label} className="border border-gray-300 px-2 py-2 text-center">
-                        <div className="text-[10.5px] text-gray-600">{m.label}</div>
-                        <div className={`text-[17px] font-bold ${m.pct >= 100 ? 'text-emerald-700' : 'text-gray-900'}`}>{m.pct}%</div>
-                        <div className="text-[10px] text-gray-600">
+                      <div key={m.label} className="border border-[#c7ccd4] px-2 py-2 text-center">
+                        <div className="text-[10.5px] text-[#5b6270]">{m.label}</div>
+                        <div className={`text-[17px] font-bold ${m.pct >= 100 ? 'text-[#047857]' : 'text-[#111827]'}`}>{m.pct}%</div>
+                        <div className="text-[10px] text-[#5b6270]">
                           {m.value} / 목표 {m.target}
                         </div>
-                        {m.delta && <div className="text-[9.5px] text-gray-500">{m.delta}</div>}
+                        {m.delta && <div className="text-[9.5px] text-[#6b7280]">{m.delta}</div>}
                       </div>
                     ))}
                   </div>
@@ -912,12 +912,12 @@ export default function PolicyAgent() {
                   ))}
                   {s.table && (
                     <div className="ml-3 mt-2">
-                      <div className="mb-1 text-[10.5px] text-gray-600">[{s.table.caption}]</div>
+                      <div className="mb-1 text-[10.5px] text-[#5b6270]">[{s.table.caption}]</div>
                       <table className="w-full border-collapse text-[10.5px]">
                         <thead>
                           <tr>
                             {s.table.head.map((h) => (
-                              <th key={h} className="border border-gray-400 bg-gray-100 px-1.5 py-1 font-semibold">
+                              <th key={h} className="border border-[#aeb4bd] bg-[#f1f3f5] px-1.5 py-1 font-semibold">
                                 {h}
                               </th>
                             ))}
@@ -927,7 +927,7 @@ export default function PolicyAgent() {
                           {s.table.rows.map((r) => (
                             <tr key={r.join()}>
                               {r.map((c) => (
-                                <td key={c} className="border border-gray-400 px-1.5 py-1 text-center tabular-nums">
+                                <td key={c} className="border border-[#aeb4bd] px-1.5 py-1 text-center tabular-nums">
                                   {c}
                                 </td>
                               ))}
@@ -937,7 +937,7 @@ export default function PolicyAgent() {
                       </table>
                     </div>
                   )}
-                  {s.evidence?.length ? <div className="ml-7 mt-1 text-[10.5px] text-gray-600">※ 근거: {s.evidence.join(' / ')}</div> : null}
+                  {s.evidence?.length ? <div className="ml-7 mt-1 text-[10.5px] text-[#5b6270]">※ 근거: {s.evidence.join(' / ')}</div> : null}
                 </div>
               ))}
 
@@ -952,26 +952,26 @@ export default function PolicyAgent() {
                 </div>
               )}
 
-              {doc.closing && <div className="mt-2 text-[11.5px] text-gray-700">{doc.closing}</div>}
+              {doc.closing && <div className="mt-2 text-[11.5px] text-[#41474f]">{doc.closing}</div>}
 
               <table className="ml-auto mt-5 w-56 border-collapse text-center text-[10.5px]">
                 <tbody>
                   <tr>
                     {['작성자', '검토자', '승인자'].map((r) => (
-                      <td key={r} className="border border-gray-300 bg-gray-100 px-1 py-0.5">
+                      <td key={r} className="border border-[#c7ccd4] bg-[#f1f3f5] px-1 py-0.5">
                         {r}
                       </td>
                     ))}
                   </tr>
                   <tr>
-                    <td className="h-10 border border-gray-300">{doc.writer}</td>
-                    <td className="border border-gray-300" />
-                    <td className="border border-gray-300" />
+                    <td className="h-10 border border-[#c7ccd4]">{doc.writer}</td>
+                    <td className="border border-[#c7ccd4]" />
+                    <td className="border border-[#c7ccd4]" />
                   </tr>
                 </tbody>
               </table>
 
-              <div className="mt-4 text-[10.5px] text-gray-600">
+              <div className="mt-4 text-[10.5px] text-[#5b6270]">
                 ※ 본 문서는 Qdrive 정책 보고서 에이전트가 운행 데이터로 자동 작성한 초안이며, 담당자 검토·결재 후 확정됩니다.
               </div>
             </div>

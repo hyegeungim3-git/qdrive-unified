@@ -498,6 +498,43 @@ export const ONTO: OntoClass[] = [
       })),
   },
   {
+    key: 'work', label: '정비 작업지시', en: 'WorkOrder', color: '#fb923c', rel: 'Vehicle ─ 정비이력 →',
+    props: [
+      { name: 'workOrderId', type: 'uri' },
+      { name: 'targetVehicle → Vehicle', type: 'rel' },
+      { name: 'kind / items[]', type: 'mixed', note: '표준 항목 사전으로 정규화' },
+      { name: 'labelsTrip → Trip[]', type: 'rel', note: '직전 회차에 고장 라벨 부착' },
+      { name: 'status', type: 'enum', note: '초안 / 발행됨 — 승인 후 실행' },
+    ],
+    count: (s) => s.workOrders.length,
+    sample: (s) =>
+      s.workOrders.slice(0, 5).map((w) => ({
+        차량: shortId(w.vehicleId),
+        항목: w.kind,
+        '예상(h)': w.estHours,
+        상태: w.status,
+      })),
+  },
+  {
+    key: 'plea', label: '상황 설명', en: 'Plea', color: '#2dd4bf', rel: 'RiskEvent ─ 상황 설명 →',
+    props: [
+      { name: 'pleaId', type: 'uri' },
+      { name: 'explains → RiskEvent', type: 'rel' },
+      { name: 'byDriver → Driver', type: 'rel' },
+      { name: 'method', type: 'enum', note: '음성 / 버튼' },
+      { name: 'status', type: 'enum', note: '접수 / 인정 — 인정 시 감점 복원, 곧 학습 라벨' },
+    ],
+    count: (s) => s.pleas.length,
+    sample: (s) =>
+      s.pleas.slice(0, 5).map((p) => ({
+        시각: clock(p.simTime),
+        기사: p.driverName,
+        유형: p.eventType,
+        방식: p.method,
+        상태: p.status,
+      })),
+  },
+  {
     key: 'ctx', label: '맥락 (날씨·돌발)', en: 'Context', color: '#94a3b8', rel: 'Trip ─ 운행맥락 →',
     props: [
       { name: 'appliesTo → Trip[]', type: 'rel' },
@@ -701,7 +738,7 @@ export const DATASETS: Dataset[] = [
 
 /* ═══════════ 계보 ═══════════ */
 export const LINEAGE: { src: string[]; ds: string; svc: { name: string; tab: string }[]; stage: Stage }[] = [
-  { src: ['DTG 409'], ds: '안전운전 이벤트 피처', stage: '1차',
+  { src: ['DTG 409', '날씨·돌발'], ds: '안전운전 이벤트 피처', stage: '1차',
     svc: [{ name: '기사 앱 코칭', tab: 'driver' }, { name: '운수사 승인 루프', tab: 'operator' }, { name: '시티 히트맵', tab: 'city' }] },
   { src: ['DTG 521', 'OBD/CAN'], ds: '회차 연비·탄소 피처', stage: '1차',
     svc: [{ name: '탄소중립 분석', tab: 'carbon' }, { name: '성과 검증', tab: 'proof' }, { name: '경영·투자', tab: 'operator' }] },
@@ -715,7 +752,7 @@ export const LINEAGE: { src: string[]; ds: string; svc: { name: string; tab: str
     svc: [{ name: '민원 증빙 자동매칭', tab: 'city' }, { name: '승객 앱 민원 추적', tab: 'passenger' }] },
   { src: ['AFC', 'APC'], ds: '수요·혼잡 피처 (예정)', stage: '2차',
     svc: [{ name: '배차 최적화', tab: 'operator' }, { name: '혼잡 안내', tab: 'passenger' }] },
-  { src: ['BMS 배차원장', 'ITS'], ds: '계획-실적 대조셋 (예정)', stage: '3차',
+  { src: ['BMS 배차원장', 'ITS', 'DVR'], ds: '계획-실적 대조셋 (예정)', stage: '3차',
     svc: [{ name: '정산 고도화', tab: 'city' }, { name: '신호 예측 에코코칭', tab: 'driver' }] },
 ]
 

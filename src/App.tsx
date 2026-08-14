@@ -10,6 +10,7 @@ import PassengerApp from './views/PassengerApp'
 import CarbonAnalysis from './views/CarbonAnalysis'
 import PerformanceProof from './views/PerformanceProof'
 import PolicyAgent from './views/PolicyAgent'
+import AdminConsole from './views/AdminConsole'
 import ReportView from './views/ReportView'
 import TeaserView from './views/TeaserView'
 import CitizenPublic from './views/CitizenPublic'
@@ -23,6 +24,7 @@ const TABS = [
   { id: 'carbon', label: '🌱 탄소중립 분석', sub: '탄소·연료·안전·전환' },
   { id: 'proof', label: '🔬 성과 검증', sub: '신뢰도·성과 증명' },
   { id: 'report', label: '실증 리포트', sub: '도입 전 → 후 비교' },
+  { id: 'admin', label: '🔗 데이터 관리자', sub: 'AX 데이터 체계' },
   { id: 'roadmap', label: '로드맵', sub: '플랫폼 확장' },
 ] as const
 
@@ -115,6 +117,7 @@ export default function App() {
         {tab === 'carbon' && <CarbonAnalysis onNavigate={(t) => setTab(t as TabId)} />}
         {tab === 'proof' && <PerformanceProof />}
         {tab === 'report' && <ReportView />}
+        {tab === 'admin' && <AdminConsole />}
         {tab === 'roadmap' && <TeaserView />}
       </main>
 

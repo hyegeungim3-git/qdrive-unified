@@ -9,12 +9,14 @@ import DriverApp from './views/DriverApp'
 import PassengerApp from './views/PassengerApp'
 import CarbonAnalysis from './views/CarbonAnalysis'
 import PerformanceProof from './views/PerformanceProof'
+import PolicyAgent from './views/PolicyAgent'
 import ReportView from './views/ReportView'
 import TeaserView from './views/TeaserView'
 import CitizenPublic from './views/CitizenPublic'
 
 const TABS = [
   { id: 'city', label: '시티 대시보드', sub: '대구시 (지자체)' },
+  { id: 'policy', label: '📑 정책 보고서 에이전트', sub: '대구시 · 보고서·부서 연계' },
   { id: 'operator', label: '운수사 관제', sub: '버스회사' },
   { id: 'driver', label: '기사 앱', sub: '운전자' },
   { id: 'passenger', label: '승객 앱', sub: '시민·승객' },
@@ -106,6 +108,7 @@ export default function App() {
       {/* 본문 */}
       <main className="min-h-0 flex-1 p-4">
         {tab === 'city' && <CityDashboard onNavigate={(t) => setTab(t as TabId)} />}
+        {tab === 'policy' && <PolicyAgent />}
         {tab === 'operator' && <OperatorView />}
         {tab === 'driver' && <DriverApp />}
         {tab === 'passenger' && <PassengerApp />}

@@ -1,0 +1,384 @@
+import { useState } from 'react'
+import { copyToClipboard, Panel, simClock } from '../components/ui'
+import { useSim } from '../sim/store'
+import { fmtN, PERIODS, topZones, type Para, type Period } from './operator/AiReport'
+import { type SimSnapshot } from '../sim/types'
+
+/**
+ * 📑 정책 보고서 에이전트 — 대구시 버스운영과 담당자를 대신해 "데이터 → 보고서 → 부서 연계"를 수행하는 에이전트.
+ * 구 시티 대시보드 모달(PolicyReport)을 최상위 탭으로 승격하고, 에이전트 운영 레이어를 추가:
+ *   ① 작업 큐(무엇을 준비해 뒀는지) → ② 보고서 본문(라이브 자동 생성) → ③ 부서 발송 승인 → ④ 처리 이력
+ * 원칙 동일: 모든 문장은 라이브 집계에서 생성, 문단마다 근거 병기, 발송(불이익·대외 문서)은 사람 승인 필수.
+ */
+
+const PLANNED = 12 // 계획 대수 (데모)
+const DAEGU_CNG_FLEET = 1513 // 대구 CNG 시내버스 (사업 분석 기준)
+const CNG_PRICE = 1055 // 원/N㎥
+const OPERATING_DAYS = 330
+
+/** 데이터 기반 정책 제안 — 운행 데이터가 어느 부서의 어떤 결정으로 이어지는지 */
+const POLICY_PROPS = [
+  {
+    id: 'signal',
+    tag: '신호',
+    title: '반월당 신호 주기 조정',
+    desc: '직진 현시 12초 연장 시 급감속이 주 142건 → 60건으로 줄 것으로 예측돼요. 연료·사고 위험 동시 감소.',
+    basis: '히트맵 6개월',
+    dept: '교통정책과',
+    cls: 'bg-red-500/12 text-red-400',
+  },
+  {
+    id: 'stop',
+    tag: '정류장',
+    title: '만평네거리 정류장 이설',
+    desc: '정류장을 교차로에서 40m 이격하면 출발 직후 급가속이 주 58건 → 22건으로 줄어요.',
+    basis: '정차 후 가속 패턴',
+    dept: '도로관리과',
+    cls: 'bg-amber-500/12 text-amber-400',
+  },
+  {
+    id: 'buslane',
+    tag: '전용차로',
+    title: '신천대로 전용차로 연장',
+    desc: '2.4km 연장 시 정시율 +4%p, 공회전 -18% 예측 — 정체 구간 통과 속도 데이터 기반이에요.',
+    basis: '구간 속도 12만 건',
+    dept: '대중교통과',
+    cls: 'bg-sky-500/12 text-sky-400',
+  },
+]
+
+function buildPolicyReport(snap: SimSnapshot, period: Period): { paras: Para[]; proposals: string[]; asOf: string } {
+  const { kpi } = snap
+  const k = period.k
+  const prefix = k === 1 ? `${simClock(snap.simTime)} 기준` : `${period.label} 기준(금일 실측 비율 확장)`
+  const running = snap.vehicles.length
+  const opRate = (running / PLANNED) * 100
+  const occNow = snap.occHistory.length ? snap.occHistory[snap.occHistory.length - 1].pct : 0
+  const occMax = snap.occHistory.reduce((m, d) => Math.max(m, d.pct), 0)
+
+  const justified = snap.events.filter((e) => e.justified).length
+  const zones = topZones(snap, 3)
+  const activeIncidents = snap.incidents.filter((i) => i.status !== '완료')
+
+  // 재정 환산: 금일 절감 연료 → 전 CNG 차량 연간 (단순 선형)
+  const savedM3 = kpi.totalCo2SavedKg / 2.2
+  const perVehicleSaved = running > 0 ? savedM3 / running : 0
+  const annualWon = perVehicleSaved * DAEGU_CNG_FLEET * OPERATING_DAYS * CNG_PRICE
+  const annualEok = annualWon / 100_000_000
+
+  const complaints = snap.complaints
+  const resolved = complaints.filter((c) => c.status === '해결').length
+  const evidenced = complaints.filter((c) => c.evidence).length
+
+  const paras: Para[] = [
+    {
+      icon: '🚌',
+      title: '운행·수요 총괄',
+      text:
+        `${prefix} 계획 ${PLANNED}대 중 ${running}대 운행(운행률 ${opRate.toFixed(0)}%, 결행 0건)으로 ` +
+        `총 ${fmtN(kpi.totalDistanceKm * k)}km를 운행했습니다. 탑승객은 ${fmtN(snap.passengers * k)}명, ` +
+        `평균 재차율은 현재 ${occNow}%(금일 최고 ${occMax}%)로 ${occMax >= 70 ? '첨두 혼잡 구간이 관찰되어 증차 검토가 필요합니다' : '공급이 수요를 안정적으로 수용하고 있습니다'}.`,
+      evidence: [
+        `운행률 ${running}/${PLANNED}대`,
+        `탑승 ${fmtN(snap.passengers * k)}명 (승객계수 APC 상당)`,
+        `재차율 현재 ${occNow}% · 최고 ${occMax}%`,
+      ],
+    },
+    {
+      icon: '🛡️',
+      title: '안전 정책 진단',
+      text:
+        `위험운전 ${fmtN(snap.events.length * k)}건 중 ${fmtN(justified * k)}건(${snap.events.length > 0 ? Math.round((justified / snap.events.length) * 100) : 0}%)은 방어적 조작으로 판정되어 기사 감점에서 제외되었습니다. ` +
+        (zones[0]
+          ? `감점 대상 이벤트는 ${zones.map((z) => `${z.name}(${fmtN(z.count * k)}건)`).join(' · ')} 구간에 집중되어, 개인 습관보다 도로 환경 요인 가능성이 높습니다. 해당 구간의 시야·신호·정류장 위치 점검을 권고합니다.`
+          : '특정 구간 집중은 관찰되지 않았습니다.') +
+        (activeIncidents.length > 0 ? ` 현재 진행 중 돌발상황 ${activeIncidents.length}건은 관제·시민안내가 자동 연동되어 대응 중입니다.` : ''),
+      evidence: [
+        `위험운전 기록(409) ${snap.events.length}건 · 정당 판정 ${justified}건`,
+        ...(zones[0] ? [`다발 구간: ${zones.map((z) => `${z.name} ${z.count}`).join(' · ')}`] : []),
+        `돌발 진행 ${activeIncidents.length}건`,
+      ],
+    },
+    {
+      icon: '💰',
+      title: '재정·준공영제',
+      text:
+        `코칭 효과로 연료 ${kpi.fuelSavedPct.toFixed(1)}%(${fmtN(savedM3 * k)}m³)를 절감 중입니다. ` +
+        `대구 CNG 전 차량(${DAEGU_CNG_FLEET.toLocaleString()}대) 기준 단순 환산 시 연간 약 ${annualEok.toFixed(1)}억원의 재정지원금 절감 여력에 해당합니다. ` +
+        `CO₂ 절감 ${kpi.totalCo2SavedKg.toFixed(1)}kg은 시 탄소중립 목표 실적으로 집계 가능합니다.` +
+        (snap.trips.length > 4 ? ' 정산 검증에서 인가노선 이탈 의심 1건이 플래그되어 담당자 검토 대기 중입니다 (DTG 실주행 이력 대조 · 배차기록 실연동은 3차).' : ''),
+      evidence: [
+        `절감 ${kpi.fuelSavedPct.toFixed(1)}% · ${savedM3.toFixed(1)}m³ (기준선 대비)`,
+        `연간 환산 ${annualEok.toFixed(1)}억원 (${DAEGU_CNG_FLEET}대 × ${OPERATING_DAYS}일 × ${CNG_PRICE}원/N㎥, 단순 선형)`,
+        `정산 플래그 ${snap.trips.length > 4 ? 1 : 0}건`,
+      ],
+    },
+    {
+      icon: '🧑‍🤝‍🧑',
+      title: '시민 체감·민원',
+      text:
+        complaints.length > 0
+          ? `민원 ${complaints.length}건 중 ${evidenced}건이 증빙 자동매칭(GPS·DTG·문개폐·DVR)으로 처리되었고 ${resolved}건이 해결 완료되었습니다. 민원이 감이 아닌 데이터로 처리되어 회신 근거가 표준화되고 있습니다.`
+          : `금일 접수 민원은 없습니다. 시민안내 에이전트가 정비·기상·돌발 상황을 시민 언어로 자동 공지하여 사전 민원을 억제하고 있습니다.`,
+      evidence: [
+        `민원 ${complaints.length}건 (자동매칭 ${evidenced} · 해결 ${resolved})`,
+        `하차 예약 ${snap.reservation ? '진행 1건' : '대기'} · 상황 설명 ${snap.pleas.length}건`,
+      ],
+    },
+  ]
+
+  // 정책 제언 — 조건 분기 자동 생성
+  const proposals: string[] = []
+  if (zones[0]) proposals.push(`① ${zones[0].name} 인근 도로환경 개선 검토 — 위험운전 ${zones[0].count}건 집중, 개인 코칭보다 시설 대응이 유효한 구간`)
+  if (kpi.fuelSavedPct > 3)
+    proposals.push(`② 에코드라이빙 코칭의 전 차량 확대 — 실증 절감률 ${kpi.fuelSavedPct.toFixed(1)}% 기준 연간 약 ${annualEok.toFixed(1)}억원 재정 효과 (증액 없는 절감 사업)`)
+  if (snap.weather.condition !== '맑음')
+    proposals.push(`③ 기상 대응 표준화 — ${snap.weather.condition} 시 예비차 선배정·감속 지침·시민 공지가 자동 연동됨을 확인, 매뉴얼 반영 권고`)
+  proposals.push(`${proposals.length === 0 ? '①' : ['①', '②', '③', '④'][proposals.length]} 방어운전 정당 판정·상황 설명 체계의 지속 운영 — 감점 제외 ${justified}건은 코칭 중심 운영의 현장 수용성을 뒷받침하는 실적`)
+  if (occMax >= 70) proposals.push(`⑤ 첨두 재차율 ${occMax}% 구간 배차 간격 조정 검토`)
+
+  return { paras, proposals, asOf: simClock(snap.simTime) }
+}
+
+/** 에이전트 작업 큐 — 담당자가 "지금 뭘 해주면 되는지" 한눈에 */
+type QueueState = '준비됨' | '대기'
+
+/** 발송 이력은 탭을 옮겨도 유지 (데모 시연 중 언마운트로 사라지지 않도록 모듈 레벨 보관) */
+const sentStore: Record<string, string> = {}
+
+export default function PolicyAgent() {
+  const snap = useSim()
+  const [copied, setCopied] = useState<null | boolean>(null)
+  const [periodId, setPeriodId] = useState<Period['id']>('today')
+  const [sent, setSent] = useState<Record<string, string>>({ ...sentStore })
+  const period = PERIODS.find((p) => p.id === periodId)!
+  const { paras, proposals, asOf } = buildPolicyReport(snap, period)
+
+  const zones = topZones(snap, 1)
+  const queue: { id: string; icon: string; title: string; detail: string; state: QueueState; auto: string }[] = [
+    {
+      id: 'report',
+      icon: '📑',
+      title: '정책 보고서 초안',
+      detail: `운행·안전·재정·민원 4개 영역을 ${asOf} 기준으로 집계해 문단·근거까지 작성 완료`,
+      state: '준비됨',
+      auto: '자동 생성',
+    },
+    {
+      id: 'proposal',
+      icon: '📌',
+      title: `정책 제언 ${proposals.length}건`,
+      detail: '위험구간·확대 효과·기상 대응 등 조건이 충족된 항목만 제언으로 승격',
+      state: '준비됨',
+      auto: '자동 생성',
+    },
+    {
+      id: 'dept',
+      icon: '📤',
+      title: '부서 연계 제안 3건',
+      detail: '교통정책과·도로관리과·대중교통과로 보낼 시설 개선 제안 — 발송은 담당자 승인 후',
+      state: '준비됨',
+      auto: '승인 후 발송',
+    },
+    {
+      id: 'zone',
+      icon: '📍',
+      title: '위험구간 정밀 분석',
+      detail: zones[0]
+        ? `${zones[0].name} 인근 ${zones[0].count}건 집중 — 도로환경 요인 분석 대상으로 자동 선별`
+        : '위험운전 집중 구간이 관찰되면 자동으로 분석 대상에 올립니다',
+      state: zones[0] ? '준비됨' : '대기',
+      auto: '자동 감시',
+    },
+  ]
+  const readyCount = queue.filter((q) => q.state === '준비됨').length
+
+  const copyText = () => {
+    const text =
+      `[Qdrive 정책 보고서 — 대구시 버스운영과] ${asOf} 기준 (에이전트 자동 생성)\n\n` +
+      paras.map((p) => `■ ${p.title}\n${p.text}\n근거: ${p.evidence.join(' / ')}`).join('\n\n') +
+      `\n\n■ 정책 제언\n${proposals.join('\n')}`
+    copyToClipboard(text).then((ok) => {
+      setCopied(ok)
+      setTimeout(() => setCopied(null), 2000)
+    })
+  }
+
+  return (
+    <div className="mx-auto flex h-full max-w-6xl flex-col gap-3 overflow-y-auto pr-1">
+      {/* 헤더 */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold tracking-widest text-violet-400">POLICY REPORT AGENT</div>
+          <h2 className="mt-0.5 text-xl font-bold text-gray-100">📑 정책 보고서 에이전트</h2>
+          <div className="mt-0.5 text-xs text-gray-500">
+            운행 데이터를 모아 <b className="text-gray-300">보고서 초안과 부서 연계 제안까지 준비</b>해 두는
+            담당자 보조 에이전트 — 발송·확정은 사람이 합니다.
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/12 px-2.5 py-1 text-[11px] font-bold text-violet-300">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-violet-400" />
+            {readyCount}건 준비됨
+          </span>
+          <select
+            value={periodId}
+            onChange={(e) => setPeriodId(e.target.value as Period['id'])}
+            className="rounded-md border border-gray-700 bg-gray-800 px-2 py-1.5 text-[11px] font-semibold text-gray-200"
+          >
+            {PERIODS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={copyText}
+            className="whitespace-nowrap rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100"
+          >
+            {copied === true ? '✓ 복사됨' : copied === false ? '복사 실패 — 권한 확인' : '📋 보고서 복사'}
+          </button>
+        </div>
+      </div>
+
+      {/* ① 에이전트 작업 큐 */}
+      <Panel
+        title="🤖 에이전트가 준비해 둔 것"
+        right={<span className="text-[11px] text-gray-500">담당자는 검토·승인만 하면 됩니다</span>}
+      >
+        <div className="grid grid-cols-4 gap-2.5 max-[900px]:grid-cols-2 max-[560px]:grid-cols-1">
+          {queue.map((q) => (
+            <div
+              key={q.id}
+              className={`rounded-xl border px-3.5 py-3 ${
+                q.state === '준비됨' ? 'border-violet-500/25 bg-violet-500/5' : 'border-gray-800 bg-gray-900/40'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-lg">{q.icon}</span>
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                    q.state === '준비됨' ? 'bg-violet-500/20 text-violet-300' : 'bg-gray-700/50 text-gray-500'
+                  }`}
+                >
+                  {q.state}
+                </span>
+              </div>
+              <div className="mt-1.5 text-[13px] font-bold text-gray-100">{q.title}</div>
+              <div className="mt-1 text-[11px] leading-relaxed text-gray-500">{q.detail}</div>
+              <div className="mt-2 border-t border-gray-800 pt-1.5 text-[10px] font-semibold text-gray-600">
+                {q.auto}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      {/* ② 보고서 본문 */}
+      <div className="rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2 text-[11px] text-gray-500">
+        아래는 <b className="text-gray-300">{asOf} 기준</b>으로 자동 작성된 보고서 본문입니다 — 열람 시점마다
+        최신 데이터로 다시 씁니다.
+      </div>
+
+      {paras.map((p) => (
+        <Panel key={p.title} title={`${p.icon} ${p.title}`}>
+          <p className="text-[13px] leading-relaxed text-gray-300">{p.text}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {p.evidence.map((e) => (
+              <span
+                key={e}
+                className="rounded border border-gray-700/60 bg-gray-800/50 px-1.5 py-0.5 text-[10px] tabular-nums text-gray-500"
+              >
+                근거 · {e}
+              </span>
+            ))}
+          </div>
+        </Panel>
+      ))}
+
+      {/* 정책 제언 */}
+      <Panel title="📌 정책 제언 (자동 생성)" className="border-violet-500/30">
+        <ul className="space-y-1.5 text-[13px] leading-relaxed text-gray-300">
+          {proposals.map((p) => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
+      </Panel>
+
+      {/* ③ 부서 연계 — 승인 후 발송 */}
+      <Panel
+        title="🏙️ 부서 연계 제안 — 승인 후 발송"
+        right={<span className="text-[11px] text-gray-500">운행 데이터 → 도시 교통 정책</span>}
+      >
+        <div className="mb-2 text-[12px] text-gray-500">
+          버스 운행 데이터가 어느 부서의 어떤 정책 결정으로 이어지는지 — 시설·환경 개선으로 개인 코칭을
+          보완하는 제안이에요. <b className="text-gray-300">발송은 담당자 승인 후에만</b> 이뤄집니다.
+        </div>
+        <div className="grid grid-cols-3 gap-2.5 max-[720px]:grid-cols-1">
+          {POLICY_PROPS.map((p) => (
+            <div key={p.id} className="flex flex-col rounded-xl border border-gray-800 bg-gray-900/50 px-3.5 py-3">
+              <div className="flex items-center gap-2">
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${p.cls}`}>{p.tag}</span>
+                <span className="text-[13px] font-bold text-gray-100">{p.title}</span>
+              </div>
+              <div className="mt-2 flex-1 text-[11.5px] leading-relaxed text-gray-400">{p.desc}</div>
+              <div className="mt-2.5 flex items-center justify-between border-t border-gray-800 pt-2 text-[10.5px]">
+                <span className="text-gray-500">근거 · {p.basis}</span>
+                <span className="font-semibold text-violet-300">📤 {p.dept}</span>
+              </div>
+              <button
+                onClick={() => {
+                  sentStore[p.id] = simClock(snap.simTime)
+                  setSent({ ...sentStore })
+                }}
+                disabled={!!sent[p.id]}
+                className={`mt-2 w-full rounded-md px-2 py-1.5 text-[11px] font-bold transition-colors ${
+                  sent[p.id]
+                    ? 'cursor-default bg-emerald-500/15 text-emerald-400'
+                    : 'bg-violet-600/80 text-white hover:bg-violet-600'
+                }`}
+              >
+                {sent[p.id] ? `✓ ${p.dept} 발송 완료` : `${p.dept}로 발송 승인`}
+              </button>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      {/* ④ 처리 이력 */}
+      <Panel title="🗂️ 처리 이력" right={<span className="text-[11px] text-gray-500">승인한 건만 기록됩니다</span>}>
+        {Object.keys(sent).length === 0 ? (
+          <div className="py-3 text-center text-[12px] text-gray-600">
+            아직 발송한 제안이 없습니다 — 위에서 승인하면 이력에 남습니다.
+          </div>
+        ) : (
+          <ul className="space-y-1.5">
+            {POLICY_PROPS.filter((p) => sent[p.id]).map((p) => (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-800/40 px-3 py-2 text-[11.5px]"
+              >
+                <span className="text-gray-300">
+                  <b className="text-gray-100">{p.title}</b> — {p.dept} 발송
+                </span>
+                <span className="tabular-nums text-gray-500">{sent[p.id]} · 담당자 승인</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <div className="rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2.5 text-[10px] leading-relaxed text-gray-500">
+        ⚠ 신뢰성 원칙: 수치는 전부 실시간 집계에서 산출(연간 환산은 단순 선형 가정 명시). 문장 생성부는
+        데모 규칙 기반 → 실증 시 LLM + 수치 검증 과정. 정책 결정의 참고자료이며 단독 근거로 사용할 수
+        없습니다. 부서 발송은 데모에서 이력만 남습니다.
+        {period.k > 1 && (
+          <>
+            <br />⚠ 기간 확장(×{period.k}일): 금일 실측 비율 기반 모의 추정 — 실증 축적 시 실측 집계로
+            대체. 재정 연간 환산은 일 실측 기준으로 별도 산출.
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

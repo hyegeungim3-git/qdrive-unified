@@ -16,7 +16,6 @@ import { DEFAULT_ROUTES, getBisKey, setBisKey, startBis, stopBis, useBis } from 
 import { ROUTES } from '../sim/routes'
 import { focusMap, useMapFocus } from '../sim/mapFocus'
 import { setOperatorSubtabIntent } from '../sim/navIntent'
-import PolicyReport from './city/PolicyReport'
 import ActionCenterModal from './city/ActionCenterModal'
 import { actionOwnerReadyCount } from '../components/ActionCenter'
 
@@ -102,7 +101,6 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
   const [routeFilter, setRouteFilter] = useState<Set<string>>(new Set(DEFAULT_ROUTES))
   const [showPrevDay, setShowPrevDay] = useState(true)
   const focusTarget = useMapFocus() // 탭 간 공유 (운행 이력 등에서 설정 가능)
-  const [showPolicyReport, setShowPolicyReport] = useState(false)
   const [showActionCenter, setShowActionCenter] = useState(false)
 
   const togglePref = (id: WidgetId) =>
@@ -223,7 +221,6 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
 
   return (
     <div className="flex h-full flex-col gap-3">
-      {showPolicyReport && <PolicyReport onClose={() => setShowPolicyReport(false)} />}
       {showActionCenter && <ActionCenterModal onClose={() => setShowActionCenter(false)} />}
 
       {/* ── 성과 리본 (전폭) — 탄소·연료 라이브 성과 앵커 + 탄소중립 분석 딥링크 ── */}
@@ -272,12 +269,12 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
             </span>
           )}
         </button>
-        {/* AI 정책 보고서 */}
+        {/* 정책 보고서 에이전트 — 최상위 탭으로 승격, 여기서는 진입만 */}
         <button
-          onClick={() => setShowPolicyReport(true)}
+          onClick={() => onNavigate?.('policy')}
           className="w-full rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-left text-[11px] font-bold text-violet-300 hover:bg-violet-500/20"
         >
-          📑 AI 정책 보고서 <span className="float-right font-normal text-violet-400/60">전 데이터 총괄 · 자동 생성</span>
+          📑 정책 보고서 에이전트 <span className="float-right font-normal text-violet-400/60">보고서·부서 연계 →</span>
         </button>
         {/* 위젯 구성 */}
         <div className="relative">

@@ -142,7 +142,9 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
   const P = PERIODS[period]
   const isLive = period === '일간'
 
-  // 안전점수 ↔ 연비 상관 (r=0.81) — 90개 점 1회 생성
+  // 안전점수 ↔ 연비 상관 — 90개 점 1회 생성
+  // 상관계수 수치는 화면에 쓰지 않는다. 표본·기간·출처를 함께 댈 수 없는 통계값이라
+  // 제안 자리에서 질문받으면 방어할 수 없다(제안서 69차 판단을 데모에도 적용).
   const corrPts = useMemo(
     () =>
       Array.from({ length: 90 }, () => {
@@ -269,7 +271,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                 </ResponsiveContainer>
               </div>
             </Panel>
-            <Panel title="안전운전 점수 ↔ 연비 상관" right={<span className="rounded-md bg-emerald-500/12 px-2 py-0.5 text-[11px] font-bold text-emerald-400">상관계수 0.81</span>}>
+            <Panel title="안전운전 점수 ↔ 연비 상관" right={<span className="rounded-md bg-emerald-500/12 px-2 py-0.5 text-[11px] font-bold text-emerald-400">양(+)의 상관</span>}>
               <div className="h-56">
                 <ResponsiveContainer>
                   <ScatterChart margin={{ top: 8, right: 8, left: -14, bottom: 4 }}>
@@ -283,7 +285,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
-              <div className="mt-1 text-[11px] text-gray-500">안전점수가 높은 차량일수록 연비가 좋아요 — 코칭이 절감으로 이어지는 구조를 데이터로 증명 (산점도는 예시 분포 · 0.81은 선행 분석값).</div>
+              <div className="mt-1 text-[11px] text-gray-500">안전점수가 높은 차량일수록 연비가 좋아요 — 코칭이 절감으로 이어지는 구조를 데이터로 증명 (산점도는 예시 분포 · 상관의 크기는 실증에서 실측으로 산출).</div>
             </Panel>
           </div>
 
@@ -407,7 +409,10 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                   <span className="ml-1 text-sm font-semibold text-gray-400">원</span>
                 </div>
                 <div className="mt-1 text-[11px] text-gray-500">
-                  이번 세션 누적 {(liveCo2 / 1000).toFixed(2)}t × 8,900원/t — 시뮬레이션이 쌓는 만큼 크레딧 자산도 늘어요.
+                  {/* 소수 2자리로 반올림하면 표시값과 결과가 안 맞는다 — 0.01t × 8,900 = 89원인데
+                      실제로는 66원(≈0.0074t)이 찍혔다. 이 화면은 제안서 34장 「계산 과정까지 공개」에
+                      그대로 실려 검토자가 손계산하는 자리라, kg 단위로 올려 눈으로 검산되게 한다. */}
+                  이번 세션 누적 {liveCo2.toFixed(1)}kg × 8.9원/kg — 시뮬레이션이 쌓는 만큼 크레딧 자산도 늘어요.
                 </div>
               </div>
             </div>

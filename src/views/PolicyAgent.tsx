@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { copyToClipboard, Panel, simClock } from '../components/ui'
 import { useSim } from '../sim/store'
 import { fmtN, PERIODS, topZones, type Period } from './operator/AiReport'
-import { type SimSnapshot } from '../sim/types'
 
 /**
  * 📑 정책 보고서 에이전트 — 대구시 버스운영과 담당자가 실행해 "공문서 서식 그대로" 받아 쓰는 도구.

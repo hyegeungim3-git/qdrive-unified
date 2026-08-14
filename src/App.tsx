@@ -11,7 +11,6 @@ import CarbonAnalysis from './views/CarbonAnalysis'
 import PerformanceProof from './views/PerformanceProof'
 import PolicyAgent from './views/PolicyAgent'
 import AdminConsole from './views/AdminConsole'
-import OntologyStudio from './views/OntologyStudio'
 import ReportView from './views/ReportView'
 import TeaserView from './views/TeaserView'
 import CitizenPublic from './views/CitizenPublic'
@@ -26,7 +25,6 @@ const TABS = [
   { id: 'proof', label: '🔬 성과 검증', sub: '신뢰도·성과 증명' },
   { id: 'report', label: '실증 리포트', sub: '도입 전 → 후 비교' },
   { id: 'admin', label: '🔗 데이터 관리자', sub: 'AX 데이터 체계' },
-  { id: 'onto', label: '🧭 온톨로지 스튜디오', sub: '스페이스·문법·조치 시뮬' },
   { id: 'roadmap', label: '로드맵', sub: '플랫폼 확장' },
 ] as const
 
@@ -120,7 +118,6 @@ export default function App() {
         {tab === 'proof' && <PerformanceProof />}
         {tab === 'report' && <ReportView />}
         {tab === 'admin' && <AdminConsole onNavigate={(t) => setTab(t as TabId)} />}
-        {tab === 'onto' && <OntologyStudio />}
         {tab === 'roadmap' && <TeaserView />}
       </main>
 

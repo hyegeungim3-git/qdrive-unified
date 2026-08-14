@@ -52,10 +52,64 @@ const POLICY_PROPS = [
   },
 ]
 
+/* ── 대구시 공문서 팔레트 (테마 무관 고정색) ── */
+const DG = {
+  blue: '#0B4DA2',
+  blueMid: '#1B75BC',
+  blueBg: '#EAF2FB',
+  gold: '#F2B705',
+  ink: '#111827',
+  sub: '#5B6270',
+  line: '#C7CCD4',
+  zebra: '#F7FAFD',
+  good: '#1E7E34',
+  goodBg: '#EAF7EE',
+  amber: '#B45309',
+  amberBg: '#FEF6E7',
+  warn: '#C0392B',
+  warnBg: '#FDECEA',
+} as const
+const M_HEAD = { background: DG.blueBg, borderColor: DG.line, color: DG.blue } as const
+const M_CELL = { borderColor: DG.line } as const
+/** 문서용 막대 그래프 — 인쇄 가능하도록 순수 div/CSS (차트 라이브러리 미사용) */
+const CHART_COLORS = [DG.blue, DG.blueMid, '#4A9BD8', '#7FBCE6', '#A9D3F0', '#CFE6F7']
+function ChartBlock({ chart }: { chart: DocChart }) {
+  const max = Math.max(1, ...chart.data.map((d) => d.v))
+  return (
+    <div className="mt-2.5 rounded-[3px] px-3 py-2.5" style={{ border: `1px solid ${DG.line}`, background: '#fff' }}>
+      <div className="mb-2 text-[10.5px] font-semibold" style={{ color: DG.blueMid }}>
+        [그림] {chart.caption}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {chart.data.map((d, i) => (
+          <div key={d.label} className="flex items-center gap-2">
+            <div className="w-20 shrink-0 text-right text-[10px]" style={{ color: DG.ink }}>
+              {d.label}
+            </div>
+            <div className="h-[14px] flex-1 overflow-hidden rounded-[2px]" style={{ background: '#F0F3F7' }}>
+              <div
+                className="h-full rounded-[2px]"
+                style={{ width: `${Math.max(3, (d.v / max) * 100)}%`, background: CHART_COLORS[i % CHART_COLORS.length] }}
+              />
+            </div>
+            <div className="w-16 shrink-0 text-[10px] tabular-nums" style={{ color: DG.sub }}>
+              {d.text}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 text-[9.5px]" style={{ color: DG.sub }}>
+        ※ {chart.unit}
+      </div>
+    </div>
+  )
+}
+
 /* ── 공문서 모델 ── */
 type Line = { lv: 1 | 2; t: string }
 type DocTable = { caption: string; head: string[]; rows: string[][] }
-type DocSection = { title: string; lines: Line[]; table?: DocTable; evidence?: string[] }
+type DocChart = { caption: string; unit: string; data: { label: string; v: number; text: string }[] }
+type DocSection = { title: string; lines: Line[]; table?: DocTable; chart?: DocChart; evidence?: string[] }
 type Metric = { label: string; value: string; target: string; pct: number; delta?: string }
 type GovDoc = {
   kind: string
@@ -199,50 +253,103 @@ function docToText(d: GovDoc): string {
 
 function docToHtml(d: GovDoc): string {
   const tbl = (t: DocTable) =>
-    `<div style="margin:8px 0 4px 16px;font-size:11px;color:#444">[${t.caption}]</div>
+    `<div style="margin:8px 0 4px 16px;font-size:11px;font-weight:600;color:${DG.blueMid}">[${t.caption}]</div>
      <table style="width:calc(100% - 16px);margin-left:16px;border-collapse:collapse;font-size:11px">
-       <thead><tr>${t.head.map((h) => `<th style="border:1px solid #bbb;background:#f0f0f0;padding:4px 6px">${h}</th>`).join('')}</tr></thead>
-       <tbody>${t.rows.map((r) => `<tr>${r.map((c) => `<td style="border:1px solid #bbb;padding:4px 6px;text-align:center">${c}</td>`).join('')}</tr>`).join('')}</tbody>
+       <thead><tr>${t.head.map((h) => `<th style="border:1px solid ${DG.blue};background:${DG.blue};color:#fff;padding:4px 6px">${h}</th>`).join('')}</tr></thead>
+       <tbody>${t.rows
+         .map(
+           (r, ri) =>
+             `<tr>${r
+               .map((c, ci) => `<td style="border:1px solid ${DG.line};padding:4px 6px;text-align:center;background:${ri % 2 ? DG.zebra : '#fff'};color:${ci === 0 ? DG.ink : DG.sub};font-weight:${ci === 0 ? 700 : 400}">${c}</td>`)
+               .join('')}</tr>`,
+         )
+         .join('')}</tbody>
      </table>`
+  const chart = (c: DocChart) => {
+    const max = Math.max(1, ...c.data.map((x) => x.v))
+    return `<div style="margin:10px 0 4px 16px;border:1px solid ${DG.line};padding:8px 10px">
+      <div style="font-size:11px;font-weight:600;color:${DG.blueMid};margin-bottom:6px">[그림] ${c.caption}</div>
+      ${c.data
+        .map(
+          (x, i) =>
+            `<div style="display:flex;align-items:center;gap:8px;margin:3px 0">
+               <div style="width:80px;text-align:right;font-size:10px">${x.label}</div>
+               <div style="flex:1;height:13px;background:#F0F3F7"><div style="width:${Math.max(3, (x.v / max) * 100)}%;height:13px;background:${CHART_COLORS[i % CHART_COLORS.length]}"></div></div>
+               <div style="width:64px;font-size:10px;color:${DG.sub}">${x.text}</div>
+             </div>`,
+        )
+        .join('')}
+      <div style="font-size:9.5px;color:${DG.sub};margin-top:6px">※ ${c.unit}</div>
+    </div>`
+  }
   const secs = d.sections
     .map((s, i) => {
       const lines = s.lines
-        .map((l) => `<div style="margin:2px 0 2px ${l.lv === 1 ? 16 : 34}px">${l.lv === 1 ? '○' : '-'} ${l.t}</div>`)
+        .map((l) => `<div style="margin:2px 0 2px ${l.lv === 1 ? 16 : 34}px;${l.lv === 2 ? `color:${DG.sub}` : ''}">${l.lv === 1 ? '○' : '-'} ${l.t}</div>`)
         .join('')
-      const ev = s.evidence?.length ? `<div style="margin:4px 0 0 34px;color:#666;font-size:11px">※ 근거: ${s.evidence.join(' / ')}</div>` : ''
-      return `<div style="margin:14px 0"><div style="font-weight:700">□ ${i + 1}. ${s.title}</div>${lines}${s.table ? tbl(s.table) : ''}${ev}</div>`
+      const ev = s.evidence?.length
+        ? `<div style="margin:6px 0 0 34px;padding:4px 8px;background:#F7F8FA;border-left:2px solid ${DG.line};color:${DG.sub};font-size:11px">※ 근거: ${s.evidence.join(' / ')}</div>`
+        : ''
+      return `<div style="margin:16px 0">
+        <div style="background:${DG.blueBg};border-left:3px solid ${DG.blue};color:${DG.blue};font-weight:700;padding:4px 8px">${i + 1}. ${s.title}</div>
+        ${lines}${s.table ? tbl(s.table) : ''}${s.chart ? chart(s.chart) : ''}${ev}</div>`
     })
     .join('')
   const metrics = d.metrics.length
-    ? `<table style="width:100%;border-collapse:collapse;margin:10px 0"><tbody><tr>${d.metrics
-        .map(
-          (m) =>
-            `<td style="border:1px solid #ccc;padding:8px;text-align:center"><div style="font-size:11px;color:#666">${m.label}</div><div style="font-size:18px;font-weight:700">${m.pct}%</div><div style="font-size:11px;color:#666">${m.value} / 목표 ${m.target}</div></td>`,
-        )
-        .join('')}</tr></tbody></table>`
+    ? `<div style="font-weight:700;color:${DG.blue};margin:6px 0 4px">▪ 주요 지표 — 목표 대비</div>
+       <table style="width:100%;border-collapse:separate;border-spacing:6px 0;margin-bottom:10px"><tbody><tr>${d.metrics
+         .map((m) => {
+           const c = m.pct >= 100 ? DG.good : m.pct >= 80 ? DG.amber : DG.warn
+           const bg = m.pct >= 100 ? DG.goodBg : m.pct >= 80 ? DG.amberBg : DG.warnBg
+           return `<td style="border:1px solid ${c}55;background:${bg};padding:8px;text-align:center;width:25%">
+             <div style="font-size:11px;color:${DG.sub}">${m.label}</div>
+             <div style="font-size:19px;font-weight:800;color:${c}">${m.pct}%</div>
+             <div style="height:5px;background:#00000014;margin:4px 0"><div style="width:${Math.min(100, m.pct)}%;height:5px;background:${c}"></div></div>
+             <div style="font-size:10px;color:${DG.sub}">${m.value} / 목표 ${m.target}</div>
+             ${m.delta ? `<div style="font-size:9.5px;color:${c}">${m.delta}</div>` : ''}</td>`
+         })
+         .join('')}</tr></tbody></table>`
     : ''
   const att = d.attachments.length
-    ? `<div style="margin-top:16px"><b>붙임</b><ol style="margin:4px 0 0 20px;padding:0">${d.attachments.map((a) => `<li>${a}</li>`).join('')}</ol></div>`
+    ? `<div style="margin-top:16px;background:${DG.blueBg};border:1px solid ${DG.blue}22;padding:8px 12px">
+         <div style="font-weight:700;color:${DG.blue}">붙임</div>
+         <ol style="margin:4px 0 0 20px;padding:0;color:${DG.sub}">${d.attachments.map((a) => `<li>${a}</li>`).join('')}</ol></div>`
     : ''
-  return `<div style="font-family:'맑은 고딕',Malgun Gothic,sans-serif;max-width:760px;margin:0 auto;color:#111;font-size:13px;line-height:1.7">
-    <h1 style="text-align:center;font-size:20px;margin:0 0 14px">${d.kind}</h1>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+  const seal = d.kind.includes('협조 요청')
+    ? `<div style="text-align:center;margin-top:26px"><span style="font-size:17px;font-weight:800;letter-spacing:0.2em">대 구 광 역 시 장</span>
+       <span style="display:inline-block;width:46px;height:46px;line-height:46px;border:1.5px dashed ${DG.warn};border-radius:50%;color:${DG.warn};font-size:9px;margin-left:10px">직인생략</span></div>`
+    : ''
+  return `<div style="font-family:'맑은 고딕',Malgun Gothic,sans-serif;max-width:760px;margin:0 auto;color:${DG.ink};font-size:13px;line-height:1.7">
+    <div style="display:flex;justify-content:space-between;align-items:center;background:${DG.blue};color:#fff;padding:10px 18px">
+      <div><div style="font-size:15px;font-weight:800;letter-spacing:0.28em">대구광역시</div>
+      <div style="font-size:8.5px;letter-spacing:0.14em;opacity:.8">DAEGU METROPOLITAN CITY</div></div>
+      <div style="text-align:right"><div style="font-size:11px;font-weight:700">${d.dept}</div><div style="font-size:9.5px;opacity:.8">${d.docNo}</div></div>
+    </div>
+    <div style="height:3px;background:${DG.gold};margin-bottom:16px"></div>
+    <h1 style="text-align:center;font-size:20px;letter-spacing:0.14em;margin:0 0 6px;color:${DG.blue}">${d.kind}</h1>
+    <div style="width:96px;height:2px;background:${DG.blue};margin:0 auto 14px"></div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11.5px">
       <tbody>
-        <tr><td style="border:1px solid #ccc;padding:6px;background:#f4f4f4;width:90px">수신</td><td style="border:1px solid #ccc;padding:6px">${d.to}</td>
-            <td style="border:1px solid #ccc;padding:6px;background:#f4f4f4;width:90px">문서번호</td><td style="border:1px solid #ccc;padding:6px">${d.docNo}</td></tr>
-        <tr><td style="border:1px solid #ccc;padding:6px;background:#f4f4f4">담당 부서</td><td style="border:1px solid #ccc;padding:6px">${d.dept}</td>
-            <td style="border:1px solid #ccc;padding:6px;background:#f4f4f4">보고 기간</td><td style="border:1px solid #ccc;padding:6px">${d.period}</td></tr>
+        <tr><td style="border:1px solid ${DG.line};padding:6px;background:${DG.blueBg};color:${DG.blue};font-weight:700;width:90px">수신</td><td style="border:1px solid ${DG.line};padding:6px">${d.to}</td>
+            <td style="border:1px solid ${DG.line};padding:6px;background:${DG.blueBg};color:${DG.blue};font-weight:700;width:90px">문서번호</td><td style="border:1px solid ${DG.line};padding:6px">${d.docNo}</td></tr>
+        <tr><td style="border:1px solid ${DG.line};padding:6px;background:${DG.blueBg};color:${DG.blue};font-weight:700">담당 부서</td><td style="border:1px solid ${DG.line};padding:6px">${d.dept}</td>
+            <td style="border:1px solid ${DG.line};padding:6px;background:${DG.blueBg};color:${DG.blue};font-weight:700">보고 기간</td><td style="border:1px solid ${DG.line};padding:6px">${d.period}</td></tr>
+        ${d.cc ? `<tr><td style="border:1px solid ${DG.line};padding:6px;background:${DG.blueBg};color:${DG.blue};font-weight:700">참조</td><td style="border:1px solid ${DG.line};padding:6px" colspan="3">${d.cc}</td></tr>` : ''}
       </tbody>
     </table>
     ${metrics}${secs}${att}
-    ${d.closing ? `<div style="margin-top:12px">${d.closing}</div>` : ''}
-    <table style="width:260px;border-collapse:collapse;margin:22px 0 0 auto;text-align:center">
+    ${d.closing ? `<div style="margin-top:12px;color:${DG.sub}">${d.closing}</div>` : ''}
+    ${seal}
+    <table style="width:270px;border-collapse:collapse;margin:22px 0 0 auto;text-align:center">
       <tbody>
-        <tr><td style="border:1px solid #ccc;padding:4px;font-size:11px;background:#f4f4f4">작성자</td><td style="border:1px solid #ccc;padding:4px;font-size:11px;background:#f4f4f4">검토자</td><td style="border:1px solid #ccc;padding:4px;font-size:11px;background:#f4f4f4">승인자</td></tr>
-        <tr><td style="border:1px solid #ccc;height:46px;font-size:11px">${d.writer}</td><td style="border:1px solid #ccc"></td><td style="border:1px solid #ccc"></td></tr>
+        <tr>${['작성자', '검토자', '승인자'].map((r) => `<td style="border:1px solid ${DG.line};background:${DG.blueBg};color:${DG.blue};padding:4px;font-size:11px;font-weight:700">${r}</td>`).join('')}</tr>
+        <tr><td style="border:1px solid ${DG.line};height:46px;font-size:11px">${d.writer}</td><td style="border:1px solid ${DG.line}"></td><td style="border:1px solid ${DG.line}"></td></tr>
       </tbody>
     </table>
-    <div style="margin-top:18px;font-size:11px;color:#666">※ 본 문서는 Qdrive 정책 보고서 에이전트가 운행 데이터로 자동 작성한 초안이며, 담당자 검토·결재 후 확정됩니다.</div>
+    <div style="margin-top:18px;font-size:11px;color:${DG.sub}">※ 본 문서는 Qdrive 정책 보고서 에이전트가 운행 데이터로 자동 작성한 초안이며, 담당자 검토·결재 후 확정됩니다.</div>
+    <div style="display:flex;justify-content:space-between;background:${DG.blue};color:#fff;font-size:9.5px;padding:6px 18px;margin-top:16px">
+      <span>대구광역시 ${d.dept} · 대구광역시 중구 공평로 88</span><span style="opacity:.85">작성 ${d.createdAt} · ${d.docNo}</span>
+    </div>
   </div>`
 }
 
@@ -332,6 +439,41 @@ export default function PolicyAgent() {
     caption: '위험운전 다발 구간 현황',
     head: ['구간', '발생', '주요 유형', '대응 방향'],
     rows: zones.map((z) => [z.name, `${fmtN(z.count * k)}건`, '급감속·급가속', '현장 점검 후 시설 개선']),
+  })
+
+  /* ── 문서용 그래프 ── */
+  const routeChart = (): DocChart => ({
+    caption: '노선별 주행거리 비교',
+    unit: '단위: km (운행기록 DTG 실측)',
+    data: ROUTES.map((r) => {
+      const dist = snap.vehicles.filter((v) => v.routeId === r.id).reduce((s, v) => s + v.distanceKm, 0) * k
+      return { label: r.name, v: dist, text: `${fmtN(dist)}km` }
+    }),
+  })
+  const eventChart = (): DocChart => {
+    const counts = RISK_EVENT_TYPES.map((t) => ({
+      t,
+      c: snap.vehicles.reduce((s, v) => s + v.eventCounts[t], 0) * k,
+    }))
+      .filter((x) => x.c > 0)
+      .sort((a, b) => b.c - a.c)
+      .slice(0, 5)
+    return {
+      caption: '위험운전 유형별 발생 분포',
+      unit: '단위: 건 (위험운전 기록 409)',
+      data: counts.length
+        ? counts.map((x) => ({ label: x.t, v: x.c, text: `${fmtN(x.c)}건` }))
+        : [{ label: '발생 없음', v: 0, text: '0건' }],
+    }
+  }
+  const scoreChart = (): DocChart => ({
+    caption: '노선별 평균 안전점수',
+    unit: '단위: 점 (100점 만점, 목표 85점)',
+    data: ROUTES.map((r) => {
+      const vs = snap.vehicles.filter((v) => v.routeId === r.id)
+      const sc = vs.length ? vs.reduce((s, v) => s + v.score, 0) / vs.length : 0
+      return { label: r.name, v: sc, text: `${sc.toFixed(1)}점` }
+    }),
   })
 
   /* ── 담을 항목 ── */
@@ -483,6 +625,7 @@ export default function PolicyAgent() {
                   { lv: 2, t: '개인 운전습관 대비 특정 구간 집중도가 높아 도로 환경 요인으로 판단됨' },
                 ],
                 table: zoneTable(),
+                chart: eventChart(),
                 evidence: ev(['이벤트 위치 군집 분석', `위험운전 기록(409) ${snap.events.length}건`]),
               },
               ...picked.map((z) => ({
@@ -511,6 +654,7 @@ export default function PolicyAgent() {
             : []),
         ],
         table: tone === 'brief' ? undefined : routeTable(),
+        chart: tone === 'brief' ? undefined : routeChart(),
         evidence: ev([`운행률 ${runCnt}/${PLANNED}대`, `수송 ${fmtN(snap.passengers * k)}명(APC 상당)`]),
       },
       's-safety': {
@@ -521,6 +665,7 @@ export default function PolicyAgent() {
           ...(zones[0] ? [{ lv: 2 as const, t: `${zones[0].name} 일원 ${fmtN(zones[0].count * k)}건 집중 — 도로 환경 요인 점검 필요` }] : []),
         ],
         table: tone === 'brief' ? undefined : eventTable(),
+        chart: tone === 'brief' ? undefined : eventChart(),
         evidence: ev([`위험운전 기록(409) ${snap.events.length}건`, `정당 판정 ${justified}건`]),
       },
       's-finance': {
@@ -531,6 +676,7 @@ export default function PolicyAgent() {
           ...(snap.trips.length > 4 ? [{ lv: 2 as const, t: '정산 검증에서 인가노선 이탈 의심 1건 플래그, 담당자 검토 대기' }] : []),
         ],
         table: tone === 'brief' ? undefined : financeTable(),
+        chart: tone === 'detail' ? scoreChart() : undefined,
         evidence: ev([`절감 ${kpi.fuelSavedPct.toFixed(1)}%`, `연간 환산 ${annualEok.toFixed(1)}억원(단순 선형)`]),
       },
       's-civic': {
@@ -855,124 +1001,203 @@ export default function PolicyAgent() {
           className="border-violet-500/30"
         >
           {view === 'doc' ? (
-            <div className="max-h-[32rem] overflow-auto rounded-lg bg-white px-6 py-5 text-[12.5px] leading-relaxed text-[#111827]">
-              <h3 className="mb-3 text-center text-[17px] font-bold">{doc.kind}</h3>
-              <table className="mb-3 w-full border-collapse text-[11.5px]">
-                <tbody>
-                  <tr>
-                    <td className="w-20 border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">수신</td>
-                    <td className="border border-[#c7ccd4] px-2 py-1">{doc.to}</td>
-                    <td className="w-20 border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">문서번호</td>
-                    <td className="border border-[#c7ccd4] px-2 py-1 tabular-nums">{doc.docNo}</td>
-                  </tr>
-                  <tr>
-                    <td className="border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">담당 부서</td>
-                    <td className="border border-[#c7ccd4] px-2 py-1">{doc.dept}</td>
-                    <td className="border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">보고 기간</td>
-                    <td className="border border-[#c7ccd4] px-2 py-1">{doc.period}</td>
-                  </tr>
-                  {doc.cc && (
-                    <tr>
-                      <td className="border border-[#c7ccd4] bg-[#f1f3f5] px-2 py-1 font-semibold">참조</td>
-                      <td className="border border-[#c7ccd4] px-2 py-1" colSpan={3}>
-                        {doc.cc}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="max-h-[34rem] overflow-auto rounded-lg bg-white text-[12.5px] leading-relaxed text-[#111827]">
+              {/* 기관 헤더 밴드 */}
+              <div className="flex items-center justify-between px-6 py-3" style={{ background: DG.blue }}>
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[15px] font-black text-white"
+                    style={{ background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.6)' }}
+                  >
+                    大
+                  </div>
+                  <div className="leading-tight text-white">
+                    <div className="text-[14px] font-extrabold tracking-[0.28em]">대구광역시</div>
+                    <div className="text-[8.5px] tracking-[0.14em] opacity-80">DAEGU METROPOLITAN CITY</div>
+                  </div>
+                </div>
+                <div className="text-right leading-tight text-white">
+                  <div className="text-[11px] font-bold">{doc.dept}</div>
+                  <div className="text-[9.5px] opacity-80">{doc.docNo}</div>
+                </div>
+              </div>
+              <div style={{ height: 3, background: DG.gold }} />
 
-              {doc.metrics.length > 0 && (
-                <>
-                  <div className="mb-1 text-[11.5px] font-bold">▪ 주요 지표 — 목표 대비</div>
-                  <div className="mb-3 grid grid-cols-4 gap-2 max-[720px]:grid-cols-2">
-                    {doc.metrics.map((m) => (
-                      <div key={m.label} className="border border-[#c7ccd4] px-2 py-2 text-center">
-                        <div className="text-[10.5px] text-[#5b6270]">{m.label}</div>
-                        <div className={`text-[17px] font-bold ${m.pct >= 100 ? 'text-[#047857]' : 'text-[#111827]'}`}>{m.pct}%</div>
-                        <div className="text-[10px] text-[#5b6270]">
-                          {m.value} / 목표 {m.target}
-                        </div>
-                        {m.delta && <div className="text-[9.5px] text-[#6b7280]">{m.delta}</div>}
+              <div className="px-6 py-5">
+                <h3 className="text-center text-[19px] font-extrabold tracking-[0.14em]" style={{ color: DG.blue }}>
+                  {doc.kind}
+                </h3>
+                <div className="mx-auto mt-2 mb-4" style={{ width: 96, height: 2, background: DG.blue }} />
+
+                <table className="mb-4 w-full border-collapse text-[11.5px]">
+                  <tbody>
+                    <tr>
+                      <td className="w-20 border px-2 py-1 font-bold" style={M_HEAD}>수신</td>
+                      <td className="border px-2 py-1" style={M_CELL}>{doc.to}</td>
+                      <td className="w-20 border px-2 py-1 font-bold" style={M_HEAD}>문서번호</td>
+                      <td className="border px-2 py-1 tabular-nums" style={M_CELL}>{doc.docNo}</td>
+                    </tr>
+                    <tr>
+                      <td className="border px-2 py-1 font-bold" style={M_HEAD}>담당 부서</td>
+                      <td className="border px-2 py-1" style={M_CELL}>{doc.dept}</td>
+                      <td className="border px-2 py-1 font-bold" style={M_HEAD}>보고 기간</td>
+                      <td className="border px-2 py-1" style={M_CELL}>{doc.period}</td>
+                    </tr>
+                    {doc.cc && (
+                      <tr>
+                        <td className="border px-2 py-1 font-bold" style={M_HEAD}>참조</td>
+                        <td className="border px-2 py-1" style={M_CELL} colSpan={3}>{doc.cc}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+
+                {doc.metrics.length > 0 && (
+                  <>
+                    <div className="mb-1.5 flex items-center gap-1.5 text-[11.5px] font-bold" style={{ color: DG.blue }}>
+                      <span style={{ width: 3, height: 12, background: DG.blue, display: 'inline-block' }} />
+                      주요 지표 — 목표 대비
+                    </div>
+                    <div className="mb-4 grid grid-cols-4 gap-2 max-[720px]:grid-cols-2">
+                      {doc.metrics.map((m) => {
+                        const c = m.pct >= 100 ? DG.good : m.pct >= 80 ? DG.amber : DG.warn
+                        const bg = m.pct >= 100 ? DG.goodBg : m.pct >= 80 ? DG.amberBg : DG.warnBg
+                        return (
+                          <div key={m.label} className="rounded-[3px] px-2 py-2 text-center" style={{ background: bg, border: '1px solid ' + c + '33' }}>
+                            <div className="text-[10.5px]" style={{ color: DG.sub }}>{m.label}</div>
+                            <div className="text-[19px] font-extrabold tabular-nums" style={{ color: c }}>{m.pct}%</div>
+                            <div className="mx-auto mt-1 h-1.5 w-full overflow-hidden rounded-full" style={{ background: '#00000014' }}>
+                              <div style={{ width: Math.min(100, m.pct) + '%', height: '100%', background: c }} />
+                            </div>
+                            <div className="mt-1 text-[10px]" style={{ color: DG.sub }}>
+                              {m.value} / 목표 {m.target}
+                            </div>
+                            {m.delta && <div className="text-[9.5px]" style={{ color: c }}>{m.delta}</div>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {doc.sections.map((s, i) => (
+                  <div key={s.title} className="mb-4">
+                    <div
+                      className="mb-1.5 px-2 py-1 text-[12.5px] font-bold"
+                      style={{ background: DG.blueBg, borderLeft: '3px solid ' + DG.blue, color: DG.blue }}
+                    >
+                      {i + 1}. {s.title}
+                    </div>
+                    {s.lines.map((l) => (
+                      <div key={l.t} className={l.lv === 1 ? 'ml-3' : 'ml-7'} style={l.lv === 2 ? { color: DG.sub } : undefined}>
+                        {l.lv === 1 ? '○' : '-'} {l.t}
                       </div>
                     ))}
-                  </div>
-                </>
-              )}
 
-              {doc.sections.map((s, i) => (
-                <div key={s.title} className="mb-3.5">
-                  <div className="font-bold">
-                    □ {i + 1}. {s.title}
-                  </div>
-                  {s.lines.map((l) => (
-                    <div key={l.t} className={l.lv === 1 ? 'ml-3' : 'ml-7'}>
-                      {l.lv === 1 ? '○' : '-'} {l.t}
-                    </div>
-                  ))}
-                  {s.table && (
-                    <div className="ml-3 mt-2">
-                      <div className="mb-1 text-[10.5px] text-[#5b6270]">[{s.table.caption}]</div>
-                      <table className="w-full border-collapse text-[10.5px]">
-                        <thead>
-                          <tr>
-                            {s.table.head.map((h) => (
-                              <th key={h} className="border border-[#aeb4bd] bg-[#f1f3f5] px-1.5 py-1 font-semibold">
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {s.table.rows.map((r) => (
-                            <tr key={r.join()}>
-                              {r.map((c) => (
-                                <td key={c} className="border border-[#aeb4bd] px-1.5 py-1 text-center tabular-nums">
-                                  {c}
-                                </td>
+                    {s.table && (
+                      <div className="ml-3 mt-2">
+                        <div className="mb-1 text-[10.5px] font-semibold" style={{ color: DG.blueMid }}>[{s.table.caption}]</div>
+                        <table className="w-full border-collapse text-[10.5px]">
+                          <thead>
+                            <tr>
+                              {s.table.head.map((h) => (
+                                <th key={h} className="border px-1.5 py-1 font-bold text-white" style={{ background: DG.blue, borderColor: DG.blue }}>
+                                  {h}
+                                </th>
                               ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {s.table.rows.map((r, ri) => (
+                              <tr key={r.join()}>
+                                {r.map((c, ci) => (
+                                  <td
+                                    key={c + ci}
+                                    className="border px-1.5 py-1 text-center tabular-nums"
+                                    style={{
+                                      borderColor: DG.line,
+                                      background: ri % 2 ? DG.zebra : '#fff',
+                                      color: ci === 0 ? DG.ink : DG.sub,
+                                      fontWeight: ci === 0 ? 700 : 400,
+                                    }}
+                                  >
+                                    {c}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {s.chart && <ChartBlock chart={s.chart} />}
+                      </div>
+                    )}
+
+                    {s.evidence?.length ? (
+                      <div
+                        className="ml-7 mt-1.5 rounded-[3px] px-2 py-1 text-[10.5px]"
+                        style={{ background: '#F7F8FA', color: DG.sub, borderLeft: '2px solid ' + DG.line }}
+                      >
+                        ※ 근거: {s.evidence.join(' / ')}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+
+                {doc.attachments.length > 0 && (
+                  <div className="mt-4 rounded-[3px] px-3 py-2" style={{ background: DG.blueBg, border: '1px solid ' + DG.blue + '22' }}>
+                    <div className="text-[11.5px] font-bold" style={{ color: DG.blue }}>붙임</div>
+                    <ol className="ml-5 list-decimal text-[11.5px]" style={{ color: DG.sub }}>
+                      {doc.attachments.map((a) => (
+                        <li key={a}>{a}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {doc.closing && <div className="mt-2 text-[11.5px]" style={{ color: DG.sub }}>{doc.closing}</div>}
+
+                {doc.kind.includes('협조 요청') && (
+                  <div className="mt-6 flex items-center justify-center gap-3">
+                    <div className="text-[17px] font-extrabold tracking-[0.2em]" style={{ color: DG.ink }}>대 구 광 역 시 장</div>
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-full text-[8.5px] font-bold"
+                      style={{ border: '1.5px dashed ' + DG.warn, color: DG.warn }}
+                    >
+                      직인생략
                     </div>
-                  )}
-                  {s.evidence?.length ? <div className="ml-7 mt-1 text-[10.5px] text-[#5b6270]">※ 근거: {s.evidence.join(' / ')}</div> : null}
+                  </div>
+                )}
+
+                <table className="ml-auto mt-5 w-60 border-collapse text-center text-[10.5px]">
+                  <tbody>
+                    <tr>
+                      {['작성자', '검토자', '승인자'].map((r) => (
+                        <td key={r} className="border px-1 py-0.5 font-bold" style={{ background: DG.blueBg, borderColor: DG.line, color: DG.blue }}>
+                          {r}
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="h-11 border" style={{ borderColor: DG.line }}>{doc.writer}</td>
+                      <td className="border" style={{ borderColor: DG.line }} />
+                      <td className="border" style={{ borderColor: DG.line }} />
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div className="mt-4 text-[10.5px]" style={{ color: DG.sub }}>
+                  ※ 본 문서는 Qdrive 정책 보고서 에이전트가 운행 데이터로 자동 작성한 초안이며, 담당자 검토·결재 후 확정됩니다.
                 </div>
-              ))}
+              </div>
 
-              {doc.attachments.length > 0 && (
-                <div className="mt-4">
-                  <div className="font-bold">붙임</div>
-                  <ol className="ml-5 list-decimal">
-                    {doc.attachments.map((a) => (
-                      <li key={a}>{a}</li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-
-              {doc.closing && <div className="mt-2 text-[11.5px] text-[#41474f]">{doc.closing}</div>}
-
-              <table className="ml-auto mt-5 w-56 border-collapse text-center text-[10.5px]">
-                <tbody>
-                  <tr>
-                    {['작성자', '검토자', '승인자'].map((r) => (
-                      <td key={r} className="border border-[#c7ccd4] bg-[#f1f3f5] px-1 py-0.5">
-                        {r}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="h-10 border border-[#c7ccd4]">{doc.writer}</td>
-                    <td className="border border-[#c7ccd4]" />
-                    <td className="border border-[#c7ccd4]" />
-                  </tr>
-                </tbody>
-              </table>
-
-              <div className="mt-4 text-[10.5px] text-[#5b6270]">
-                ※ 본 문서는 Qdrive 정책 보고서 에이전트가 운행 데이터로 자동 작성한 초안이며, 담당자 검토·결재 후 확정됩니다.
+              <div
+                className="flex flex-wrap items-center justify-between gap-1 px-6 py-2 text-[9.5px] text-white"
+                style={{ background: DG.blue }}
+              >
+                <span>대구광역시 {doc.dept} · 대구광역시 중구 공평로 88</span>
+                <span className="opacity-85">
+                  작성 {doc.createdAt} · {doc.docNo}
+                </span>
               </div>
             </div>
           ) : (

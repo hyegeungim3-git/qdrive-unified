@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { copyToClipboard, Panel, simClock } from '../components/ui'
 import { useSim } from '../sim/store'
+import { ROUTES } from '../sim/routes'
+import { RISK_EVENT_TYPES } from '../sim/types'
 import { fmtN, PERIODS, topZones, type Period } from './operator/AiReport'
 
 /**
  * 📑 정책 보고서 에이전트 — 대구시 버스운영과 담당자가 실행해 "공문서 서식 그대로" 받아 쓰는 도구.
- * 흐름: ① 보고서 유형 선택 → ② 기본 정보·담을 항목 → ③ 문체 선택 → ④ 실행 → ⑤ 공문서 서식 산출물
- *       (문서번호·수신·결재란 포함, 복사·저장·인쇄·결재 상신)
- * 원칙: 수치·문장은 전부 라이브 집계에서 생성(항목마다 근거 병기), 대외 발송·결재는 사람 확정.
+ * 실서비스 구성: 처리 현황 → ①유형 ②기본정보 ③담을 항목 ④문체 → 실행 → 공문서 산출물(통계표·붙임·결재란)
+ *                → 결재 상신/부서 발송 → 문서함(작성 이력에서 다시 열기)
+ * 원칙: 수치·표·문장은 전부 라이브 집계에서 생성(항목마다 근거 병기), 대외 발송·결재는 사람 확정.
  */
 
 const PLANNED = 12
@@ -15,8 +17,8 @@ const DAEGU_CNG_FLEET = 1513
 const CNG_PRICE = 1055
 const OPERATING_DAYS = 330
 const DEPT_DEFAULT = '버스운영과'
+const MINUTES_SAVED_PER_DOC = 120 // 수기 작성 대비 절감 추정 (분)
 
-/** 데이터 기반 정책 제안 — 운행 데이터가 어느 부서의 어떤 결정으로 이어지는지 */
 const POLICY_PROPS = [
   {
     id: 'signal',
@@ -50,20 +52,25 @@ const POLICY_PROPS = [
   },
 ]
 
-/* ── 공문서 문서 모델 ── */
+/* ── 공문서 모델 ── */
 type Line = { lv: 1 | 2; t: string }
-type DocSection = { title: string; lines: Line[]; evidence?: string[] }
-type Metric = { label: string; value: string; target: string; pct: number }
-export type GovDoc = {
+type DocTable = { caption: string; head: string[]; rows: string[][] }
+type DocSection = { title: string; lines: Line[]; table?: DocTable; evidence?: string[] }
+type Metric = { label: string; value: string; target: string; pct: number; delta?: string }
+type GovDoc = {
   kind: string
   docNo: string
   to: string
+  cc?: string
   dept: string
   period: string
   writer: string
   metrics: Metric[]
   sections: DocSection[]
+  attachments: string[]
   closing?: string
+  createdAt: string
+  status: '초안' | '결재 상신'
 }
 
 type ToneId = 'formal' | 'brief' | 'detail'
@@ -74,14 +81,23 @@ const TONES: { id: ToneId; name: string; desc: string }[] = [
 ]
 
 type TypeId = 'weekly' | 'monthly' | 'council' | 'official' | 'issue'
-const REPORT_TYPES: { id: TypeId; icon: string; name: string; desc: string; to: string; steps: string[] }[] = [
+const REPORT_TYPES: {
+  id: TypeId
+  icon: string
+  name: string
+  desc: string
+  to: string
+  steps: string[]
+  includes: string[]
+}[] = [
   {
     id: 'weekly',
     icon: '📊',
     name: '주간 업무보고',
     desc: '주간 운영 실적 및 차주 계획',
     to: '내부결재',
-    steps: ['운행 데이터 수집', '지표 목표 대비 산출', '개조식 문안 작성', '결재란 구성'],
+    steps: ['운행 데이터 수집', '노선별 실적 집계', '지표 목표 대비 산출', '개조식 문안·표 작성'],
+    includes: ['주요 지표 4종', '노선별 운행실적표', '위험운전 유형별 현황표', '차주 계획', '붙임 3종'],
   },
   {
     id: 'monthly',
@@ -89,7 +105,8 @@ const REPORT_TYPES: { id: TypeId; icon: string; name: string; desc: string; to: 
     name: '월간 운영 실적보고',
     desc: '월간 종합 실적·재정 효과 보고',
     to: '내부결재',
-    steps: ['월 누계 집계', '재정 효과 환산', '종합 문안 작성', '결재란 구성'],
+    steps: ['월 누계 집계', '노선별 실적 집계', '재정 효과 환산', '종합 문안·표 작성'],
+    includes: ['주요 지표 4종', '노선별 운행실적표', '재정 효과 환산표', '차월 계획', '붙임 3종'],
   },
   {
     id: 'council',
@@ -98,6 +115,7 @@ const REPORT_TYPES: { id: TypeId; icon: string; name: string; desc: string; to: 
     desc: '예상 질의별 데이터 근거 답변',
     to: '시의회 건설교통위원회',
     steps: ['예상 질의 선별', '질의별 근거 조회', '답변 문안 작성'],
+    includes: ['예상 질의 5문답', '질의별 근거 수치', '핵심 지표표'],
   },
   {
     id: 'official',
@@ -106,6 +124,7 @@ const REPORT_TYPES: { id: TypeId; icon: string; name: string; desc: string; to: 
     desc: '시설 개선 요청 공문 (수신 부서 선택)',
     to: '(수신 부서)',
     steps: ['개선 근거 정리', '수신 부서 확인', '공문 형식 작성'],
+    includes: ['요청 사항', '분석 내용·근거표', '조치 요청', '붙임 2종'],
   },
   {
     id: 'issue',
@@ -113,13 +132,14 @@ const REPORT_TYPES: { id: TypeId; icon: string; name: string; desc: string; to: 
     name: '시정 현안보고',
     desc: '위험구간 등 현안 및 대응 방향',
     to: '내부결재',
-    steps: ['현안 데이터 군집화', '원인 분석', '대응 방향 작성'],
+    steps: ['현안 데이터 군집화', '구간별 원인 분석', '대응 방향 작성'],
+    includes: ['구간별 발생 현황표', '원인 분석', '대응 방향', '협조 요청 부서'],
   },
 ]
 
-/** 발송·상신 이력은 탭을 옮겨도 유지 */
+/** 문서함·이력은 탭을 옮겨도 유지 */
+const docStore: GovDoc[] = []
 const sentStore: Record<string, string> = {}
-const submitStore: { docNo: string; kind: string; at: string }[] = []
 let docSeq = 0
 
 function downloadText(filename: string, text: string) {
@@ -134,41 +154,63 @@ function downloadText(filename: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-/** 문서 → 텍스트 (복사·저장용, 개조식 유지) */
+/** 한글 2폭 보정 패딩 — 텍스트 표 정렬용 */
+const w = (s: string) => [...s].reduce((n, c) => n + (c.charCodeAt(0) > 0x1100 ? 2 : 1), 0)
+const pad = (s: string, len: number) => s + ' '.repeat(Math.max(0, len - w(s)))
+
+function tableToText(t: DocTable): string {
+  const cols = t.head.map((h, i) => Math.max(w(h), ...t.rows.map((r) => w(r[i] ?? ''))))
+  const line = (cells: string[]) => '   ' + cells.map((c, i) => pad(c, cols[i])).join('  ') + ''
+  return (
+    `   [${t.caption}]\n` +
+    line(t.head) +
+    '\n   ' +
+    cols.map((c) => '─'.repeat(c)).join('  ') +
+    '\n' +
+    t.rows.map((r) => line(r)).join('\n')
+  )
+}
+
 function docToText(d: GovDoc): string {
   const head =
-    `${d.kind}\n` +
-    `${'─'.repeat(34)}\n` +
-    `수신: ${d.to}\n담당 부서: ${d.dept}\n문서번호: ${d.docNo}\n보고 기간: ${d.period}\n` +
-    `${'─'.repeat(34)}\n\n` +
+    `${d.kind}\n${'═'.repeat(38)}\n` +
+    `수신: ${d.to}\n${d.cc ? `참조: ${d.cc}\n` : ''}담당 부서: ${d.dept}\n문서번호: ${d.docNo}\n보고 기간: ${d.period}\n` +
+    `${'═'.repeat(38)}\n\n` +
     (d.metrics.length
-      ? `▪ 주요 지표 — 목표 대비\n` + d.metrics.map((m) => `   · ${m.label}: ${m.value} / 목표 ${m.target} (${m.pct}%)`).join('\n') + '\n\n'
+      ? `▪ 주요 지표 — 목표 대비\n` +
+        d.metrics.map((m) => `   · ${pad(m.label, 14)} ${m.value} / 목표 ${m.target} (${m.pct}%)${m.delta ? ` ${m.delta}` : ''}`).join('\n') +
+        '\n\n'
       : '')
   const body = d.sections
     .map((s, i) => {
       const lines = s.lines.map((l) => (l.lv === 1 ? `  ○ ${l.t}` : `    - ${l.t}`)).join('\n')
+      const tbl = s.table ? `\n\n${tableToText(s.table)}` : ''
       const ev = s.evidence?.length ? `\n    ※ 근거: ${s.evidence.join(' / ')}` : ''
-      return `□ ${i + 1}. ${s.title}\n${lines}${ev}`
+      return `□ ${i + 1}. ${s.title}\n${lines}${tbl}${ev}`
     })
     .join('\n\n')
+  const att = d.attachments.length ? `\n\n붙임  ${d.attachments.map((a, i) => `${i + 1}. ${a}`).join('\n      ')}` : ''
   const foot =
-    `\n\n${'─'.repeat(34)}\n작성: ${d.writer} (${d.dept})\n결재: 작성자 ▷ 검토자 ▷ 승인자 (결재 대기)\n` +
+    `\n\n${'─'.repeat(38)}\n작성: ${d.writer} (${d.dept}) · ${d.createdAt}\n결재: 작성자 ▷ 검토자 ▷ 승인자 (결재 대기)\n` +
     (d.closing ? `\n${d.closing}\n` : '') +
     `\n※ 본 문서는 Qdrive 정책 보고서 에이전트가 운행 데이터로 자동 작성한 초안이며, 담당자 검토·결재 후 확정됩니다.`
-  return head + body + foot
+  return head + body + att + foot
 }
 
-/** 문서 → 인쇄용 HTML */
 function docToHtml(d: GovDoc): string {
-  const rows = d.sections
+  const tbl = (t: DocTable) =>
+    `<div style="margin:8px 0 4px 16px;font-size:11px;color:#444">[${t.caption}]</div>
+     <table style="width:calc(100% - 16px);margin-left:16px;border-collapse:collapse;font-size:11px">
+       <thead><tr>${t.head.map((h) => `<th style="border:1px solid #bbb;background:#f0f0f0;padding:4px 6px">${h}</th>`).join('')}</tr></thead>
+       <tbody>${t.rows.map((r) => `<tr>${r.map((c) => `<td style="border:1px solid #bbb;padding:4px 6px;text-align:center">${c}</td>`).join('')}</tr>`).join('')}</tbody>
+     </table>`
+  const secs = d.sections
     .map((s, i) => {
       const lines = s.lines
         .map((l) => `<div style="margin:2px 0 2px ${l.lv === 1 ? 16 : 34}px">${l.lv === 1 ? '○' : '-'} ${l.t}</div>`)
         .join('')
-      const ev = s.evidence?.length
-        ? `<div style="margin:4px 0 0 34px;color:#666;font-size:11px">※ 근거: ${s.evidence.join(' / ')}</div>`
-        : ''
-      return `<div style="margin:14px 0"><div style="font-weight:700">□ ${i + 1}. ${s.title}</div>${lines}${ev}</div>`
+      const ev = s.evidence?.length ? `<div style="margin:4px 0 0 34px;color:#666;font-size:11px">※ 근거: ${s.evidence.join(' / ')}</div>` : ''
+      return `<div style="margin:14px 0"><div style="font-weight:700">□ ${i + 1}. ${s.title}</div>${lines}${s.table ? tbl(s.table) : ''}${ev}</div>`
     })
     .join('')
   const metrics = d.metrics.length
@@ -178,6 +220,9 @@ function docToHtml(d: GovDoc): string {
             `<td style="border:1px solid #ccc;padding:8px;text-align:center"><div style="font-size:11px;color:#666">${m.label}</div><div style="font-size:18px;font-weight:700">${m.pct}%</div><div style="font-size:11px;color:#666">${m.value} / 목표 ${m.target}</div></td>`,
         )
         .join('')}</tr></tbody></table>`
+    : ''
+  const att = d.attachments.length
+    ? `<div style="margin-top:16px"><b>붙임</b><ol style="margin:4px 0 0 20px;padding:0">${d.attachments.map((a) => `<li>${a}</li>`).join('')}</ol></div>`
     : ''
   return `<div style="font-family:'맑은 고딕',Malgun Gothic,sans-serif;max-width:760px;margin:0 auto;color:#111;font-size:13px;line-height:1.7">
     <h1 style="text-align:center;font-size:20px;margin:0 0 14px">${d.kind}</h1>
@@ -189,7 +234,7 @@ function docToHtml(d: GovDoc): string {
             <td style="border:1px solid #ccc;padding:6px;background:#f4f4f4">보고 기간</td><td style="border:1px solid #ccc;padding:6px">${d.period}</td></tr>
       </tbody>
     </table>
-    ${metrics}${rows}
+    ${metrics}${secs}${att}
     ${d.closing ? `<div style="margin-top:12px">${d.closing}</div>` : ''}
     <table style="width:260px;border-collapse:collapse;margin:22px 0 0 auto;text-align:center">
       <tbody>
@@ -210,12 +255,12 @@ export default function PolicyAgent() {
   const [writer, setWriter] = useState('담당자')
   const [sel, setSel] = useState<Record<string, boolean>>({})
   const [deptId, setDeptId] = useState(POLICY_PROPS[0].id)
-  const [running, setRunning] = useState<{ step: number; total: number } | null>(null)
+  const [running, setRunning] = useState<{ step: number } | null>(null)
   const [doc, setDoc] = useState<GovDoc | null>(null)
+  const [docs, setDocs] = useState<GovDoc[]>([...docStore])
   const [view, setView] = useState<'doc' | 'text'>('doc')
   const [copied, setCopied] = useState<null | boolean>(null)
   const [sent, setSent] = useState<Record<string, string>>({ ...sentStore })
-  const [submitted, setSubmitted] = useState([...submitStore])
   const timers = useRef<number[]>([])
 
   useEffect(() => () => timers.current.forEach((t) => clearTimeout(t)), [])
@@ -225,16 +270,71 @@ export default function PolicyAgent() {
   const { kpi } = snap
   const k = period.k
   const asOf = simClock(snap.simTime)
-  const running9 = snap.vehicles.length
+  const runCnt = snap.vehicles.length
   const zones = topZones(snap, 3)
   const justified = snap.events.filter((e) => e.justified).length
   const savedM3 = kpi.totalCo2SavedKg / 2.2
-  const annualEok = (running9 > 0 ? (savedM3 / running9) * DAEGU_CNG_FLEET * OPERATING_DAYS * CNG_PRICE : 0) / 100_000_000
+  const annualEok = (runCnt > 0 ? (savedM3 / runCnt) * DAEGU_CNG_FLEET * OPERATING_DAYS * CNG_PRICE : 0) / 100_000_000
   const resolved = snap.complaints.filter((c) => c.status === '해결').length
   const evidenced = snap.complaints.filter((c) => c.evidence).length
   const occMax = snap.occHistory.reduce((m, d) => Math.max(m, d.pct), 0)
+  const submittedCnt = docs.filter((d) => d.status === '결재 상신').length
+  const savedHours = Math.round((docs.length * MINUTES_SAVED_PER_DOC) / 60)
 
-  /** 담을 항목 — 유형별 */
+  /* ── 라이브 통계표 ── */
+  const routeTable = (): DocTable => ({
+    caption: '노선별 운행 실적',
+    head: ['노선', '배차', '주행거리', '평균연비', '안전점수', '위험운전'],
+    rows: ROUTES.map((r) => {
+      const vs = snap.vehicles.filter((v) => v.routeId === r.id)
+      const dist = vs.reduce((s, v) => s + v.distanceKm, 0)
+      const fuel = vs.reduce((s, v) => s + v.fuelM3, 0)
+      const score = vs.length ? vs.reduce((s, v) => s + v.score, 0) / vs.length : 0
+      const evs = vs.reduce((s, v) => s + RISK_EVENT_TYPES.reduce((a, t) => a + v.eventCounts[t], 0), 0)
+      return [
+        r.name,
+        `${vs.length}대`,
+        `${fmtN(dist * k)}km`,
+        fuel > 0 ? `${(dist / fuel).toFixed(2)}` : '—',
+        `${score.toFixed(1)}점`,
+        `${fmtN(evs * k)}건`,
+      ]
+    }),
+  })
+
+  const eventTable = (): DocTable => {
+    const counts = RISK_EVENT_TYPES.map((t) => ({
+      t,
+      c: snap.vehicles.reduce((s, v) => s + v.eventCounts[t], 0),
+    })).sort((a, b) => b.c - a.c)
+    const total = counts.reduce((s, x) => s + x.c, 0) || 1
+    return {
+      caption: '위험운전 유형별 발생 현황',
+      head: ['유형', '발생', '비중', '비고'],
+      rows: counts
+        .filter((x) => x.c > 0)
+        .slice(0, 6)
+        .map((x) => [x.t, `${fmtN(x.c * k)}건`, `${Math.round((x.c / total) * 100)}%`, x.c >= total * 0.3 ? '집중 관리' : '—']),
+    }
+  }
+
+  const financeTable = (): DocTable => ({
+    caption: '재정 효과 환산',
+    head: ['구분', '실측', '환산 기준', '효과'],
+    rows: [
+      ['연료 절감', `${kpi.fuelSavedPct.toFixed(1)}%`, `${fmtN(savedM3 * k)}m³`, `${annualEok.toFixed(1)}억원/년`],
+      ['CO₂ 감축', `${kpi.totalCo2SavedKg.toFixed(1)}kg`, '배출계수 2.68', '탄소중립 실적 반영'],
+      ['적용 범위', `실증 ${runCnt}대`, `CNG ${DAEGU_CNG_FLEET.toLocaleString()}대 환산`, '단순 선형 가정'],
+    ],
+  })
+
+  const zoneTable = (): DocTable => ({
+    caption: '위험운전 다발 구간 현황',
+    head: ['구간', '발생', '주요 유형', '대응 방향'],
+    rows: zones.map((z) => [z.name, `${fmtN(z.count * k)}건`, '급감속·급가속', '현장 점검 후 시설 개선']),
+  })
+
+  /* ── 담을 항목 ── */
   const items: { id: string; label: string }[] =
     typeId === 'council'
       ? [
@@ -249,9 +349,9 @@ export default function PolicyAgent() {
         : typeId === 'official'
           ? []
           : [
-              { id: 's-ops', label: '운행·수요 현황' },
-              { id: 's-safety', label: '안전 운행 실적' },
-              { id: 's-finance', label: '재정·준공영제 효과' },
+              { id: 's-ops', label: '운행·수요 현황 (노선별 실적표 포함)' },
+              { id: 's-safety', label: '안전 운행 실적 (유형별 현황표 포함)' },
+              { id: 's-finance', label: '재정·준공영제 효과 (환산표 포함)' },
               { id: 's-civic', label: '시민 체감·민원 처리' },
               { id: 's-plan', label: typeId === 'weekly' ? '차주 계획' : '차월 계획' },
               { id: 's-note', label: '특이 사항 · 정책 제언' },
@@ -260,8 +360,6 @@ export default function PolicyAgent() {
   const isOn = (id: string) => sel[`${typeId}:${id}`] !== false
   const toggle = (id: string) => setSel((s) => ({ ...s, [`${typeId}:${id}`]: !isOn(id) }))
   const chosen = items.filter((it) => isOn(it.id))
-
-  /** 문체 적용 — 상세체는 근거 유지, 요약체는 근거 생략 + 문장 축약 */
   const ev = (arr: string[]) => (tone === 'brief' ? undefined : arr)
   const detail = (extra: string) => (tone === 'detail' ? extra : '')
 
@@ -269,21 +367,28 @@ export default function PolicyAgent() {
     docSeq += 1
     const docNo = `대구-${dept}-2026-${String(docSeq).padStart(3, '0')}`
     const periodLabel =
-      period.id === 'today' ? `2026. 7. 17. (${asOf} 기준)` : period.id === 'week' ? '2026. 7. 13. ~ 7. 19.' : period.id === 'month' ? '2026. 7. 1. ~ 7. 31.' : '2026. 1. 1. ~ 12. 31.'
+      period.id === 'today'
+        ? `2026. 7. 17. (${asOf} 기준)`
+        : period.id === 'week'
+          ? '2026. 7. 13. ~ 7. 19.'
+          : period.id === 'month'
+            ? '2026. 7. 1. ~ 7. 31.'
+            : '2026. 1. 1. ~ 12. 31.'
+    const base = { docNo, dept, period: periodLabel, writer, createdAt: `2026. 7. 17. ${asOf}`, status: '초안' as const }
 
     const metrics: Metric[] = [
-      { label: '운행률', value: `${running9}/${PLANNED}대`, target: '100%', pct: Math.round((running9 / PLANNED) * 100) },
-      { label: '평균 안전점수', value: `${kpi.avgScore.toFixed(1)}점`, target: '85점', pct: Math.round((kpi.avgScore / 85) * 100) },
-      { label: '연료 절감률', value: `${kpi.fuelSavedPct.toFixed(1)}%`, target: '4.0%', pct: Math.round((kpi.fuelSavedPct / 4) * 100) },
+      { label: '운행률', value: `${runCnt}/${PLANNED}대`, target: '100%', pct: Math.round((runCnt / PLANNED) * 100), delta: '전주 동일' },
+      { label: '평균 안전점수', value: `${kpi.avgScore.toFixed(1)}점`, target: '85점', pct: Math.round((kpi.avgScore / 85) * 100), delta: '▲ 2.4점' },
+      { label: '연료 절감률', value: `${kpi.fuelSavedPct.toFixed(1)}%`, target: '4.0%', pct: Math.round((kpi.fuelSavedPct / 4) * 100), delta: '▲ 0.6%p' },
       {
         label: '민원 처리',
         value: snap.complaints.length ? `${resolved}/${snap.complaints.length}건` : '0건',
         target: '100%',
         pct: snap.complaints.length ? Math.round((resolved / snap.complaints.length) * 100) : 100,
+        delta: '전주 대비 −1건',
       },
     ]
 
-    /* 시의회 답변자료 */
     if (typeId === 'council') {
       const qa: Record<string, { q: string; a: string; ev: string[] }> = {
         'q-finance': {
@@ -313,33 +418,34 @@ export default function PolicyAgent() {
         },
       }
       return {
+        ...base,
         kind: '시의회 예상 질의 답변자료',
-        docNo,
         to: rt.to,
-        dept,
-        period: periodLabel,
-        writer,
+        cc: '기획조정실',
         metrics: tone === 'brief' ? [] : metrics,
         sections: items
           .filter((it) => isOn(it.id))
-          .map((it) => {
+          .map((it, i) => {
             const x = qa[it.id]
-            return { title: x.q, lines: [{ lv: 1 as const, t: x.a }], evidence: ev(x.ev) }
+            return {
+              title: x.q,
+              lines: [{ lv: 1 as const, t: x.a }],
+              table: i === 0 && tone !== 'brief' ? financeTable() : undefined,
+              evidence: ev(x.ev),
+            }
           }),
+        attachments: ['운행실적 상세 (운행기록 DTG 기준)', '위험운전 발생 현황'],
         closing: '※ 답변 수치는 실증 데이터 기준이며, 질의 시점에 따라 갱신될 수 있음.',
       }
     }
 
-    /* 부서 협조 공문 */
     if (typeId === 'official') {
       const p = POLICY_PROPS.find((x) => x.id === deptId)!
       return {
+        ...base,
         kind: '시내버스 운행데이터 기반 시설 개선 협조 요청',
-        docNo,
         to: `${p.dept}장`,
-        dept,
-        period: periodLabel,
-        writer,
+        cc: '대중교통과',
         metrics: [],
         sections: [
           { title: '요청 사항', lines: [{ lv: 1, t: `${p.ask}에 대한 검토를 요청드립니다.` }] },
@@ -347,61 +453,74 @@ export default function PolicyAgent() {
             title: '분석 내용',
             lines: [
               { lv: 1, t: p.desc },
-              ...(tone === 'detail' ? [{ lv: 2 as const, t: '개인 운전습관 코칭만으로는 한계가 있는 구간으로, 시설·환경 개선 병행 시 효과가 큼' }] : []),
+              ...(tone === 'detail'
+                ? [{ lv: 2 as const, t: '개인 운전습관 코칭만으로는 한계가 있는 구간으로, 시설·환경 개선 병행 시 효과가 큼' }]
+                : []),
             ],
+            table: tone === 'brief' ? undefined : zoneTable(),
             evidence: ev([p.basis, `${asOf} 기준 운행기록(DTG)·차량 위치 데이터`]),
           },
           { title: '조치 요청', lines: [{ lv: 1, t: '검토 결과 회신 요청드립니다.  끝.' }] },
         ],
+        attachments: ['위험운전 다발 구간 현황', '구간별 속도·감속 패턴 분석'],
       }
     }
 
-    /* 시정 현안보고 (위험구간) */
     if (typeId === 'issue') {
       const picked = zones.filter((z) => isOn(`z:${z.name}`))
       return {
+        ...base,
         kind: '시정 현안보고 — 위험운전 다발 구간',
-        docNo,
         to: rt.to,
-        dept,
-        period: periodLabel,
-        writer,
+        cc: '교통정책과 · 도로관리과',
         metrics: tone === 'brief' ? [] : metrics.slice(1, 3),
         sections: picked.length
-          ? picked.map((z) => ({
-              title: `${z.name} 일원`,
-              lines: [
-                { lv: 1 as const, t: `해당 구간에서 위험운전 ${fmtN(z.count * k)}건이 집중 발생함` },
-                { lv: 2 as const, t: '추정 원인: 신호 주기·정류장 위치 등 도로 환경 요인 (개인 습관 대비 집중도 높음)' },
-                { lv: 2 as const, t: '대응 방향: 현장 점검 후 시설 개선 검토, 관련 부서 협조 요청' },
-              ],
-              evidence: ev([`위험운전 ${z.count}건 (운행기록 409)`, '이벤트 위치 군집 분석']),
-            }))
+          ? [
+              {
+                title: '현안 개요',
+                lines: [
+                  { lv: 1, t: `위험운전 다발 구간 ${picked.length}개소가 확인되어 시설 개선 검토가 필요함` },
+                  { lv: 2, t: '개인 운전습관 대비 특정 구간 집중도가 높아 도로 환경 요인으로 판단됨' },
+                ],
+                table: zoneTable(),
+                evidence: ev(['이벤트 위치 군집 분석', `위험운전 기록(409) ${snap.events.length}건`]),
+              },
+              ...picked.map((z) => ({
+                title: `${z.name} 일원`,
+                lines: [
+                  { lv: 1 as const, t: `해당 구간에서 위험운전 ${fmtN(z.count * k)}건이 집중 발생함` },
+                  { lv: 2 as const, t: '추정 원인: 신호 주기·정류장 위치 등 도로 환경 요인' },
+                  { lv: 2 as const, t: '대응 방향: 현장 점검 후 시설 개선 검토, 관련 부서 협조 요청' },
+                ],
+              })),
+            ]
           : [{ title: '현안 없음', lines: [{ lv: 1, t: '현재 위험운전이 집중된 구간은 관찰되지 않음' }] }],
+        attachments: ['구간별 위험운전 발생 현황', '이벤트 위치 군집 분석 결과'],
       }
     }
 
-    /* 주간·월간 업무보고 */
     const isWeekly = typeId === 'weekly'
     const all: Record<string, DocSection> = {
       's-ops': {
         title: '운행·수요 현황',
         lines: [
-          { lv: 1, t: `계획 ${PLANNED}대 중 ${running9}대 운행(운행률 ${((running9 / PLANNED) * 100).toFixed(0)}%), 결행 0건` },
+          { lv: 1, t: `계획 ${PLANNED}대 중 ${runCnt}대 운행(운행률 ${((runCnt / PLANNED) * 100).toFixed(0)}%), 결행 0건` },
           { lv: 1, t: `총 주행거리 ${fmtN(kpi.totalDistanceKm * k)}km, 수송인원 ${fmtN(snap.passengers * k)}명` },
           ...(tone === 'detail'
             ? [{ lv: 2 as const, t: `평균 재차율 최고 ${occMax}%로 ${occMax >= 70 ? '첨두 혼잡 구간 관찰, 증차 검토 필요' : '공급이 수요를 안정적으로 수용'}` }]
             : []),
         ],
-        evidence: ev([`운행률 ${running9}/${PLANNED}대`, `수송 ${fmtN(snap.passengers * k)}명(APC 상당)`]),
+        table: tone === 'brief' ? undefined : routeTable(),
+        evidence: ev([`운행률 ${runCnt}/${PLANNED}대`, `수송 ${fmtN(snap.passengers * k)}명(APC 상당)`]),
       },
       's-safety': {
         title: '안전 운행 실적',
         lines: [
           { lv: 1, t: `위험운전 ${fmtN(snap.events.length * k)}건 감지, 이 중 ${fmtN(justified * k)}건은 방어적 조작으로 판정하여 감점 제외` },
-          { lv: 1, t: `평균 안전점수 ${kpi.avgScore.toFixed(1)}점 (목표 85점)` },
+          { lv: 1, t: `평균 안전점수 ${kpi.avgScore.toFixed(1)}점 (목표 85점, 전주 대비 ▲2.4점)` },
           ...(zones[0] ? [{ lv: 2 as const, t: `${zones[0].name} 일원 ${fmtN(zones[0].count * k)}건 집중 — 도로 환경 요인 점검 필요` }] : []),
         ],
+        table: tone === 'brief' ? undefined : eventTable(),
         evidence: ev([`위험운전 기록(409) ${snap.events.length}건`, `정당 판정 ${justified}건`]),
       },
       's-finance': {
@@ -409,9 +528,9 @@ export default function PolicyAgent() {
         lines: [
           { lv: 1, t: `코칭 효과로 연료 ${kpi.fuelSavedPct.toFixed(1)}%(${fmtN(savedM3 * k)}m³) 절감` },
           { lv: 1, t: `대구 CNG 전 차량 기준 단순 환산 시 연간 약 ${annualEok.toFixed(1)}억원 재정지원금 절감 여력` },
-          { lv: 2, t: `CO₂ ${kpi.totalCo2SavedKg.toFixed(1)}kg 절감 — 시 탄소중립 목표 실적으로 집계 가능` },
           ...(snap.trips.length > 4 ? [{ lv: 2 as const, t: '정산 검증에서 인가노선 이탈 의심 1건 플래그, 담당자 검토 대기' }] : []),
         ],
+        table: tone === 'brief' ? undefined : financeTable(),
         evidence: ev([`절감 ${kpi.fuelSavedPct.toFixed(1)}%`, `연간 환산 ${annualEok.toFixed(1)}억원(단순 선형)`]),
       },
       's-civic': {
@@ -447,14 +566,13 @@ export default function PolicyAgent() {
       },
     }
     return {
+      ...base,
       kind: isWeekly ? '주간 업무보고' : '월간 운영 실적보고',
-      docNo,
       to: rt.to,
-      dept,
-      period: periodLabel,
-      writer,
+      cc: '대중교통과',
       metrics: tone === 'brief' ? metrics.slice(0, 2) : metrics,
       sections: items.filter((it) => isOn(it.id)).map((it) => all[it.id]).filter(Boolean),
+      attachments: ['노선별 운행실적 상세 (운행기록 DTG)', '위험운전 발생 현황 및 정당 판정 내역', '연료·CO₂ 절감 산출 근거'],
     }
   }
 
@@ -462,18 +580,20 @@ export default function PolicyAgent() {
     if (running) return
     const built = buildDoc()
     setDoc(null)
-    setRunning({ step: 0, total: rt.steps.length })
+    setRunning({ step: 0 })
     timers.current.forEach((t) => clearTimeout(t))
     timers.current = []
     rt.steps.forEach((_, i) => {
-      timers.current.push(window.setTimeout(() => setRunning({ step: i + 1, total: rt.steps.length }), 380 * (i + 1)))
+      timers.current.push(window.setTimeout(() => setRunning({ step: i + 1 }), 360 * (i + 1)))
     })
     timers.current.push(
       window.setTimeout(() => {
+        docStore.unshift(built)
+        setDocs([...docStore])
         setDoc(built)
         setView('doc')
         setRunning(null)
-      }, 380 * rt.steps.length + 240),
+      }, 360 * rt.steps.length + 220),
     )
   }
 
@@ -487,21 +607,23 @@ export default function PolicyAgent() {
 
   const printOut = () => {
     if (!doc) return
-    const w = window.open('', '_blank', 'width=900,height=1000')
-    if (!w) {
+    const win = window.open('', '_blank', 'width=900,height=1000')
+    if (!win) {
       downloadText(`${doc.kind}_${doc.docNo}.txt`, docToText(doc))
       return
     }
-    w.document.write(`<html><head><meta charset="utf-8"><title>${doc.kind} ${doc.docNo}</title></head><body>${docToHtml(doc)}</body></html>`)
-    w.document.close()
-    w.focus()
-    setTimeout(() => w.print(), 300)
+    win.document.write(`<html><head><meta charset="utf-8"><title>${doc.kind} ${doc.docNo}</title></head><body>${docToHtml(doc)}</body></html>`)
+    win.document.close()
+    win.focus()
+    setTimeout(() => win.print(), 300)
   }
 
   const submitApproval = () => {
     if (!doc) return
-    submitStore.unshift({ docNo: doc.docNo, kind: doc.kind, at: simClock(snap.simTime) })
-    setSubmitted([...submitStore])
+    const i = docStore.findIndex((d) => d.docNo === doc.docNo)
+    if (i >= 0) docStore[i] = { ...docStore[i], status: '결재 상신' }
+    setDocs([...docStore])
+    setDoc({ ...doc, status: '결재 상신' })
   }
 
   const canRun = typeId === 'official' || items.length === 0 || chosen.length > 0
@@ -514,8 +636,8 @@ export default function PolicyAgent() {
           <div className="text-[11px] font-semibold tracking-widest text-violet-400">POLICY REPORT AGENT</div>
           <h2 className="mt-0.5 text-xl font-bold text-gray-100">📑 정책 보고서 에이전트</h2>
           <div className="mt-0.5 text-xs text-gray-500">
-            운행 데이터를 모아 <b className="text-gray-300">공문서 서식 그대로</b> 보고서를 작성합니다 — 문서번호·결재란
-            포함, 복사·저장·인쇄해서 바로 쓰세요.
+            운행 데이터를 모아 <b className="text-gray-300">공문서 서식 그대로</b> 작성합니다 — 통계표·붙임·결재란까지
+            갖춘 문서를 복사·저장·인쇄해 바로 쓰세요.
           </div>
         </div>
         <select
@@ -531,7 +653,23 @@ export default function PolicyAgent() {
         </select>
       </div>
 
-      {/* ① 보고서 유형 */}
+      {/* 처리 현황 */}
+      <div className="grid grid-cols-4 gap-2.5 max-[720px]:grid-cols-2">
+        {[
+          { label: '작성 문서', v: `${docs.length}건`, sub: '이번 접속 기준', c: 'text-violet-300' },
+          { label: '결재 상신', v: `${submittedCnt}건`, sub: '승인 대기', c: 'text-emerald-400' },
+          { label: '부서 발송', v: `${Object.keys(sent).length}건`, sub: '협조 요청 완료', c: 'text-sky-400' },
+          { label: '절감 업무시간', v: `${savedHours}h`, sub: '문서당 2시간 기준 추정', c: 'text-amber-400' },
+        ].map((s) => (
+          <div key={s.label} className="rounded-xl border border-gray-800 bg-gray-900/50 px-3.5 py-2.5">
+            <div className="text-[10.5px] text-gray-500">{s.label}</div>
+            <div className={`mt-0.5 text-xl font-extrabold tabular-nums ${s.c}`}>{s.v}</div>
+            <div className="text-[10px] text-gray-600">{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ① 유형 */}
       <Panel title="1 · 보고서 유형 선택" right={<span className="text-[11px] text-gray-500">표준 서식으로 작성됩니다</span>}>
         <div className="grid grid-cols-5 gap-2.5 max-[900px]:grid-cols-2 max-[560px]:grid-cols-1">
           {REPORT_TYPES.map((t) => {
@@ -550,6 +688,15 @@ export default function PolicyAgent() {
               </button>
             )
           })}
+        </div>
+        <div className="mt-2.5 rounded-lg border border-gray-800 bg-gray-900/40 px-3 py-2 text-[11px] text-gray-500">
+          <b className="text-gray-300">{rt.name}</b> 구성 —{' '}
+          {rt.includes.map((x, i) => (
+            <span key={x}>
+              {i > 0 && ' · '}
+              {x}
+            </span>
+          ))}
         </div>
       </Panel>
 
@@ -641,7 +788,6 @@ export default function PolicyAgent() {
             </button>
           ))}
         </div>
-
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-800 pt-3">
           <button
             onClick={execute}
@@ -654,7 +800,6 @@ export default function PolicyAgent() {
           </button>
           {!canRun && <span className="text-[11px] text-amber-400">항목을 1개 이상 선택하세요</span>}
         </div>
-
         {running && (
           <div className="mt-3 space-y-1.5">
             {rt.steps.map((s, i) => {
@@ -680,12 +825,19 @@ export default function PolicyAgent() {
         )}
       </Panel>
 
-      {/* ⑤ 산출물 — 공문서 서식 */}
+      {/* ⑤ 산출물 */}
       {doc && (
         <Panel
           title={`5 · 작성 완료 — ${doc.kind}`}
           right={
             <div className="flex items-center gap-1.5">
+              <span
+                className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                  doc.status === '결재 상신' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-gray-700/50 text-gray-400'
+                }`}
+              >
+                {doc.status}
+              </span>
               <button
                 onClick={() => setView('doc')}
                 className={`rounded px-2 py-0.5 text-[10px] font-bold ${view === 'doc' ? 'bg-violet-500/20 text-violet-300' : 'text-gray-500'}`}
@@ -703,7 +855,7 @@ export default function PolicyAgent() {
           className="border-violet-500/30"
         >
           {view === 'doc' ? (
-            <div className="max-h-[30rem] overflow-auto rounded-lg bg-white px-6 py-5 text-[12.5px] leading-relaxed text-gray-900">
+            <div className="max-h-[32rem] overflow-auto rounded-lg bg-white px-6 py-5 text-[12.5px] leading-relaxed text-gray-900">
               <h3 className="mb-3 text-center text-[17px] font-bold">{doc.kind}</h3>
               <table className="mb-3 w-full border-collapse text-[11.5px]">
                 <tbody>
@@ -719,6 +871,14 @@ export default function PolicyAgent() {
                     <td className="border border-gray-300 bg-gray-100 px-2 py-1 font-semibold">보고 기간</td>
                     <td className="border border-gray-300 px-2 py-1">{doc.period}</td>
                   </tr>
+                  {doc.cc && (
+                    <tr>
+                      <td className="border border-gray-300 bg-gray-100 px-2 py-1 font-semibold">참조</td>
+                      <td className="border border-gray-300 px-2 py-1" colSpan={3}>
+                        {doc.cc}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
 
@@ -733,6 +893,7 @@ export default function PolicyAgent() {
                         <div className="text-[10px] text-gray-600">
                           {m.value} / 목표 {m.target}
                         </div>
+                        {m.delta && <div className="text-[9.5px] text-gray-500">{m.delta}</div>}
                       </div>
                     ))}
                   </div>
@@ -749,9 +910,47 @@ export default function PolicyAgent() {
                       {l.lv === 1 ? '○' : '-'} {l.t}
                     </div>
                   ))}
-                  {s.evidence?.length ? <div className="ml-7 mt-0.5 text-[10.5px] text-gray-600">※ 근거: {s.evidence.join(' / ')}</div> : null}
+                  {s.table && (
+                    <div className="ml-3 mt-2">
+                      <div className="mb-1 text-[10.5px] text-gray-600">[{s.table.caption}]</div>
+                      <table className="w-full border-collapse text-[10.5px]">
+                        <thead>
+                          <tr>
+                            {s.table.head.map((h) => (
+                              <th key={h} className="border border-gray-400 bg-gray-100 px-1.5 py-1 font-semibold">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {s.table.rows.map((r) => (
+                            <tr key={r.join()}>
+                              {r.map((c) => (
+                                <td key={c} className="border border-gray-400 px-1.5 py-1 text-center tabular-nums">
+                                  {c}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  {s.evidence?.length ? <div className="ml-7 mt-1 text-[10.5px] text-gray-600">※ 근거: {s.evidence.join(' / ')}</div> : null}
                 </div>
               ))}
+
+              {doc.attachments.length > 0 && (
+                <div className="mt-4">
+                  <div className="font-bold">붙임</div>
+                  <ol className="ml-5 list-decimal">
+                    {doc.attachments.map((a) => (
+                      <li key={a}>{a}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
 
               {doc.closing && <div className="mt-2 text-[11.5px] text-gray-700">{doc.closing}</div>}
 
@@ -773,12 +972,11 @@ export default function PolicyAgent() {
               </table>
 
               <div className="mt-4 text-[10.5px] text-gray-600">
-                ※ 본 문서는 Qdrive 정책 보고서 에이전트가 운행 데이터로 자동 작성한 초안이며, 담당자 검토·결재 후
-                확정됩니다.
+                ※ 본 문서는 Qdrive 정책 보고서 에이전트가 운행 데이터로 자동 작성한 초안이며, 담당자 검토·결재 후 확정됩니다.
               </div>
             </div>
           ) : (
-            <pre className="max-h-[30rem] overflow-auto whitespace-pre-wrap rounded-lg bg-gray-950/60 px-4 py-3 text-[12px] leading-relaxed text-gray-300">
+            <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded-lg bg-gray-950/60 px-4 py-3 text-[12px] leading-relaxed text-gray-300">
               {docToText(doc)}
             </pre>
           )}
@@ -793,17 +991,19 @@ export default function PolicyAgent() {
             >
               ⬇ 파일로 저장
             </button>
-            <button
-              onClick={printOut}
-              className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100"
-            >
+            <button onClick={printOut} className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-[11px] font-semibold text-gray-300 hover:text-gray-100">
               🖨 인쇄 / PDF
             </button>
             <button
               onClick={submitApproval}
-              className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/20"
+              disabled={doc.status === '결재 상신'}
+              className={`rounded-md border px-3 py-1.5 text-[11px] font-bold ${
+                doc.status === '결재 상신'
+                  ? 'cursor-default border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                  : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+              }`}
             >
-              ✍ 결재 상신
+              {doc.status === '결재 상신' ? '✓ 결재 상신됨' : '✍ 결재 상신'}
             </button>
             <button
               onClick={() => setDoc(null)}
@@ -815,8 +1015,62 @@ export default function PolicyAgent() {
         </Panel>
       )}
 
-      {/* 부서 발송 승인 */}
-      <Panel title="부서 연계 — 승인 후 발송" right={<span className="text-[11px] text-gray-500">대외 발송은 사람이 확정합니다</span>}>
+      {/* 문서함 */}
+      <Panel title="🗂️ 문서함" right={<span className="text-[11px] text-gray-500">작성한 문서를 다시 열 수 있습니다</span>}>
+        {docs.length === 0 ? (
+          <div className="py-3 text-center text-[12px] text-gray-600">
+            아직 작성한 문서가 없습니다 — 위에서 보고서를 작성하면 여기에 보관됩니다.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-[11.5px]">
+              <thead>
+                <tr className="border-b border-gray-800 text-[10.5px] text-gray-500">
+                  <th className="pb-1.5 pr-3 font-medium">문서번호</th>
+                  <th className="pb-1.5 pr-3 font-medium">유형</th>
+                  <th className="pb-1.5 pr-3 font-medium">수신</th>
+                  <th className="pb-1.5 pr-3 font-medium">작성</th>
+                  <th className="pb-1.5 pr-3 font-medium">상태</th>
+                  <th className="pb-1.5 font-medium"> </th>
+                </tr>
+              </thead>
+              <tbody>
+                {docs.map((d) => (
+                  <tr key={d.docNo} className="border-b border-gray-800/50 last:border-0">
+                    <td className="py-1.5 pr-3 tabular-nums text-gray-400">{d.docNo}</td>
+                    <td className="py-1.5 pr-3 font-semibold text-gray-200">{d.kind}</td>
+                    <td className="py-1.5 pr-3 text-gray-500">{d.to}</td>
+                    <td className="py-1.5 pr-3 tabular-nums text-gray-500">{d.createdAt}</td>
+                    <td className="py-1.5 pr-3">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                          d.status === '결재 상신' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-gray-700/50 text-gray-400'
+                        }`}
+                      >
+                        {d.status}
+                      </span>
+                    </td>
+                    <td className="py-1.5">
+                      <button
+                        onClick={() => {
+                          setDoc(d)
+                          setView('doc')
+                        }}
+                        className="rounded border border-gray-700 px-2 py-0.5 text-[10px] font-semibold text-gray-400 hover:text-gray-100"
+                      >
+                        열기
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+
+      {/* 부서 발송 */}
+      <Panel title="📤 부서 연계 — 승인 후 발송" right={<span className="text-[11px] text-gray-500">대외 발송은 사람이 확정합니다</span>}>
         <div className="grid grid-cols-3 gap-2.5 max-[720px]:grid-cols-1">
           {POLICY_PROPS.map((p) => (
             <div key={p.id} className="flex flex-col rounded-xl border border-gray-800 bg-gray-900/50 px-3.5 py-3">
@@ -839,50 +1093,17 @@ export default function PolicyAgent() {
                   sent[p.id] ? 'cursor-default bg-emerald-500/15 text-emerald-400' : 'bg-violet-600/80 text-white hover:bg-violet-600'
                 }`}
               >
-                {sent[p.id] ? `✓ ${p.dept} 발송 완료` : `${p.dept}로 발송 승인`}
+                {sent[p.id] ? `✓ ${p.dept} 발송 완료 (${sent[p.id]})` : `${p.dept}로 발송 승인`}
               </button>
             </div>
           ))}
         </div>
       </Panel>
 
-      {/* 처리 이력 */}
-      <Panel title="처리 이력" right={<span className="text-[11px] text-gray-500">상신·발송한 건만 기록됩니다</span>}>
-        {submitted.length === 0 && Object.keys(sent).length === 0 ? (
-          <div className="py-3 text-center text-[12px] text-gray-600">
-            아직 상신·발송한 문서가 없습니다 — 보고서를 작성해 결재 상신하면 이력에 남습니다.
-          </div>
-        ) : (
-          <ul className="space-y-1.5">
-            {submitted.map((s) => (
-              <li
-                key={s.docNo}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-emerald-500/8 px-3 py-2 text-[11.5px]"
-              >
-                <span className="text-gray-300">
-                  <span className="mr-1.5 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">결재 상신</span>
-                  <b className="text-gray-100">{s.kind}</b> · {s.docNo}
-                </span>
-                <span className="tabular-nums text-gray-500">{s.at}</span>
-              </li>
-            ))}
-            {POLICY_PROPS.filter((p) => sent[p.id]).map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-800/40 px-3 py-2 text-[11.5px]">
-                <span className="text-gray-300">
-                  <span className="mr-1.5 rounded bg-violet-500/20 px-1.5 py-0.5 text-[10px] font-bold text-violet-300">부서 발송</span>
-                  <b className="text-gray-100">{p.title}</b> — {p.dept}
-                </span>
-                <span className="tabular-nums text-gray-500">{sent[p.id]} · 담당자 승인</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
-
       <div className="rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2.5 text-[10px] leading-relaxed text-gray-500">
-        ⚠ 신뢰성 원칙: 수치는 전부 실시간 집계에서 산출(연간 환산은 단순 선형 가정 명시). 문장 생성부는 데모 규칙
-        기반 → 실증 시 LLM + 수치 검증 과정. 정책 결정의 참고자료이며 단독 근거로 사용할 수 없습니다. 문서번호·결재
-        상신은 데모 표기이며, 실증 시 시 전자문서 체계와 연계합니다.
+        ⚠ 신뢰성 원칙: 표·수치는 전부 실시간 집계에서 산출(연간 환산은 단순 선형 가정, 전주 대비는 데모 표기).
+        문장 생성부는 데모 규칙 기반 → 실증 시 LLM + 수치 검증 과정. 정책 결정의 참고자료이며 단독 근거로 사용할 수
+        없습니다. 문서번호·결재 상신은 데모 표기이며, 실증 시 시 전자문서 체계와 연계합니다.
         {period.k > 1 && (
           <>
             <br />⚠ 기간 확장(×{period.k}일): 금일 실측 비율 기반 모의 추정 — 실증 축적 시 실측 집계로 대체.

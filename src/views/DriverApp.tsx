@@ -821,8 +821,8 @@ function MyAgent() {
 /** 주간 연비 추이(내 연비 vs 회사평균, 월~일) — 탄소 플랫폼 원본 서사값 그대로 이식 */
 const WEEKLY_FUEL_TREND = ['월', '화', '수', '목', '금', '토', '일'].map((d, i) => ({
   d,
-  me: [3.2, 3.3, 3.1, 3.4, 3.3, 3.5, 3.4][i],
-  avg: [3.0, 3.0, 2.9, 3.1, 3.0, 3.1, 3.0][i],
+  me: [2.42, 2.48, 2.38, 2.55, 2.5, 2.58, 2.53][i],
+  avg: [2.3, 2.31, 2.26, 2.35, 2.32, 2.36, 2.33][i],
 }))
 
 /** AI 코칭 팁 3종 — 탄소 플랫폼 원본 "개선 포인트" 그대로 이식 */
@@ -871,7 +871,7 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
         <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
           <div className="text-[12px] font-semibold text-gray-500">평균 연비</div>
           <div className="mt-1.5 text-2xl font-bold tabular-nums text-sky-400">
-            3.3<span className="ml-0.5 text-sm font-semibold text-gray-400">km/L</span>
+            2.5<span className="ml-0.5 text-sm font-semibold text-gray-400">km/L</span>
           </div>
           <div className="mt-1 text-[11px] font-semibold text-emerald-400">▲ 회사 평균보다 +8%</div>
         </div>
@@ -893,7 +893,7 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
               <LineChart data={WEEKLY_FUEL_TREND} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
                 <CartesianGrid stroke="var(--color-gray-800)" strokeOpacity={0.5} strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="d" tick={{ fill: 'var(--color-gray-500)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis domain={[2.6, 3.8]} tick={{ fill: 'var(--color-gray-500)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis domain={[2.1, 2.8]} tick={{ fill: 'var(--color-gray-500)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: '#191f28', border: '1px solid #374151', borderRadius: 8, fontSize: 11 }} labelStyle={{ color: '#cbd5e1' }} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
                 <Line type="monotone" dataKey="me" name="내 연비" stroke="#38bdf8" strokeWidth={2.5} dot={{ r: 3 }} />

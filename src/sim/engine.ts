@@ -88,6 +88,8 @@ interface VehicleInternal extends VehicleState {
   nextStopM: number
   tripStartTime: number
   tripStartDist: number
+  /** 회차 시작 시점의 누적 연료 — 회차별 연료·CO₂를 누적값이 아닌 구간값으로 산출 */
+  tripStartFuel: number
   eventCooldown: number
   /** 승인된 배차 권고로 다음 정류장에서 추가 대기할 시간 (s) */
   pendingHoldSec: number
@@ -611,6 +613,8 @@ export class SimEngine {
   private completeTrip(v: VehicleInternal, route: BusRoute) {
     const dist = v.distanceKm - v.tripStartDist
     if (dist < 0.5) return
+    // 회차 구간값 (누적값 아님) — 회차별 연비·CO₂가 회를 거듭할수록 나빠 보이던 오류 수정
+    const fuel = Math.max(0, v.fuelM3 - v.tripStartFuel)
     this.trips.unshift({
       packetType: 521,
       vehicleId: v.id,
@@ -618,12 +622,13 @@ export class SimEngine {
       startSimTime: v.tripStartTime,
       endSimTime: this.simTime,
       distanceKm: Math.round(dist * 10) / 10,
-      fuelM3: Math.round(v.fuelM3 * 100) / 100,
-      co2Kg: Math.round(v.fuelM3 * CO2_PER_M3 * 10) / 10,
+      fuelM3: Math.round(fuel * 100) / 100,
+      co2Kg: Math.round(fuel * CO2_PER_M3 * 10) / 10,
     })
     if (this.trips.length > 60) this.trips.pop()
     v.tripStartTime = this.simTime
     v.tripStartDist = v.distanceKm
+    v.tripStartFuel = v.fuelM3
     v.etasSubmitted = true // eTAS 자동제출 완료
   }
 
@@ -700,6 +705,7 @@ export class SimEngine {
       nextStopM: 0,
       tripStartTime: 0,
       tripStartDist: 0,
+      tripStartFuel: 0,
       eventCooldown: 5,
       pendingHoldSec: 0,
     }

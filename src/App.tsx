@@ -117,7 +117,7 @@ export default function App() {
         {tab === 'carbon' && <CarbonAnalysis onNavigate={(t) => setTab(t as TabId)} />}
         {tab === 'proof' && <PerformanceProof />}
         {tab === 'report' && <ReportView />}
-        {tab === 'admin' && <AdminConsole />}
+        {tab === 'admin' && <AdminConsole onNavigate={(t) => setTab(t as TabId)} />}
         {tab === 'roadmap' && <TeaserView />}
       </main>
 

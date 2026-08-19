@@ -305,7 +305,7 @@ function Welcome({ onPick, busy }: { onPick: (q: string) => void; busy: boolean 
   return (
     <div className="mx-auto max-w-2xl py-6 text-center">
       <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-sky-500 to-sky-300 text-lg">💬</div>
-      <h3 className="text-base font-black text-gray-100">무엇을 물어볼까요?</h3>
+      <h3 className="text-[15px] font-semibold text-gray-100">무엇을 물어볼까요?</h3>
       <div className="mt-4 grid grid-cols-2 gap-2 text-left max-[620px]:grid-cols-1">
         {QA_TOPICS.map((t) => (
           <button
@@ -409,7 +409,25 @@ function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: numbe
             <div className="mt-3 space-y-2.5 border-t border-gray-800 pt-2.5">
               {r.sections.map((sec, si) => (
                 <div key={si}>
-                  <div className="text-[11px] font-bold text-gray-100">{sec.h}</div>
+                  <div className="flex flex-wrap items-baseline gap-1">
+                    <span className="text-[11px] font-bold text-gray-100">{sec.h}</span>
+                    {sec.src?.map((code) => {
+                      const n = r.sources.findIndex((x) => x.code === code)
+                      if (n < 0) return null
+                      return (
+                        <button
+                          key={code}
+                          onClick={() => setOpenSrc(openSrc === code ? null : code)}
+                          title={`출처 ${code} — 눌러서 확인`}
+                          className={`rounded px-1 text-[9.5px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                            openSrc === code ? 'bg-sky-500/20 text-sky-200' : 'text-sky-300 hover:bg-sky-500/10'
+                          }`}
+                        >
+                          [{n + 1}]
+                        </button>
+                      )
+                    })}
+                  </div>
                   <ul className="mt-1 space-y-0.5">
                     {sec.items.map((it, ii) => (
                       <li key={ii} className="flex gap-1.5 break-keep text-[12px] leading-relaxed text-gray-300">

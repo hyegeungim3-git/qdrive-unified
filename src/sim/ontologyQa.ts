@@ -64,7 +64,12 @@ export type Evidence = {
 }
 
 /** 개조식 한 절 — 「무엇을」 다음에 「왜 그런가」가 오도록 제목을 붙인다 */
-export type QaSection = { h: string; items: string[] }
+export type QaSection = {
+  h: string
+  items: string[]
+  /** 이 절이 기댄 원천 코드 — 화면에서 절 제목 옆 각주가 되고, 누르면 그 출처가 펼쳐진다 */
+  src?: string[]
+}
 
 /** 이어서 물을 질문 — 대화가 한 번에 끝나지 않게 다음 수를 놓아 준다 */
 export type QaFollow = { q: string; topic: string; target?: string }
@@ -181,6 +186,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
     sections: [
       {
         h: '판정 근거',
+        src: ['차고지 출입고', 'DTG 521', '노선 기준정보'],
         items: [
           `운행유형 필드가 «${latest.kind}»로 기록됨 — 거리·연료만으로는 구분되지 않는 값`,
           `노선 ${latest.routeName} ${latest.direction} · 그날 ${latest.seq}번째 운행`,
@@ -189,6 +195,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
       },
       {
         h: '이 회차 실적',
+        src: ['DTG 521'],
         items: [
           `주행 ${km(latest.distanceKm)} · 연료 ${latest.fuelM3.toFixed(2)}m³ · CO₂ ${latest.co2Kg.toFixed(1)}kg`,
           `구간 ${mmss(latest.startSimTime)}~${mmss(latest.endSimTime)}`,
@@ -196,6 +203,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
       },
       {
         h: '오늘 전체에서 차지하는 몫',
+        src: ['DTG 521', '차고지 출입고'],
         items: [
           `영업 ${s.trips.length}회 ${km(revKm)} / 공차 ${dh.length}회 ${km(dhKm)}`,
           `공차 비율 ${dhPct.toFixed(1)}% (거리 기준) — 수입 없이 달린 몫`,
@@ -241,6 +249,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
   const sources = [
     src(SRC.dtg409, '이벤트 종류·발생 시각·속도·RPM'),
     src(SRC.rtk, '발생 지점 정밀 위치'),
+    src(SRC.dtg521, '이벤트가 속한 회차·노선 방향'),
     src(SRC.weather, '발생 시점 기상 맥락'),
     src(SRC.plea, '기사 상황 설명(있을 때)'),
   ]
@@ -279,6 +288,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
     sections: [
       {
         h: '언제·어디서·누가',
+        src: ['DTG 409', 'RTK', 'DTG 521'],
         items: [
           `${mmss(decel.simTime)} · ${decel.routeName}${trip ? ` ${trip.direction} ${trip.seq}회차` : ''}`,
           `${v?.driverName ?? '기사'} 기사 · ${decel.vehicleId}`,
@@ -287,6 +297,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
       },
       {
         h: '어떤 상황이었나',
+        src: ['DTG 409', '날씨·돌발'],
         items: [
           `속도 ${decel.speedKmh}km/h · RPM ${decel.rpm}`,
           `발생 시점 날씨 «${decel.weather}» — 현재 날씨는 «${s.weather.condition}»`,
@@ -295,11 +306,12 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
       },
       {
         h: '판정',
+        src: ['날씨·돌발', '기사 소명'],
         items: decel.justified
           ? [`정당 인정 — 사유: ${decel.justifyReason}`, '감점되지 않음 (맥락이 붙어야 가능한 판정)']
           : ['현재 감점 처리', plea ? `기사 상황 설명 ${plea.method} 접수 (${plea.status})` : '기사 상황 설명 없음 — 인정되면 복원됨'],
       },
-      { h: '같은 맥락 누적', items: [`${decel.routeName} · ${decel.weather} 조건에서 ${sameCtx}건`] },
+      { h: '같은 맥락 누적', src: ['DTG 409'], items: [`${decel.routeName} · ${decel.weather} 조건에서 ${sameCtx}건`] },
     ],
     follow: [
       { q: `${short(decel.vehicleId)}의 감축은 코칭 때문인가 유가 때문인가`, topic: 'attribution', target: decel.vehicleId },
@@ -376,15 +388,17 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
     sections: [
       {
         h: '이 차고지가 만든 공차',
+        src: ['차고지 출입고', 'DTG 521'],
         items: [
           `${top.n}회 · ${km(top.km)} · 연료 ${top.fuel.toFixed(1)}m³ · CO₂ ${top.co2.toFixed(1)}kg`,
           `편도 회송거리 ${km(top.oneWay)}가 출·입고마다 반복됨`,
           `운영 주체 ${top.company}`,
         ],
       },
-      { h: '차고지별 비교', items: rows.map((r) => `${r.depot} — ${r.n}회 · ${km(r.km)} · ${r.fuel.toFixed(1)}m³`) },
+      { h: '차고지별 비교', src: ['차고지 출입고'], items: rows.map((r) => `${r.depot} — ${r.n}회 · ${km(r.km)} · ${r.fuel.toFixed(1)}m³`) },
       {
         h: '무엇을 뜻하나',
+        src: ['차고지 출입고', 'DTG 521'],
         items: [
           `3개 차고지 합계 ${km(totKm)} · ${totFuel.toFixed(1)}m³ — 같은 시간 영업거리는 ${km(revKm)}`,
           '공차는 수입이 없는 주행 — 차고지 배치와 교대 주기를 바꾸면 그대로 줄어드는 비용',
@@ -473,6 +487,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
     sections: [
       {
         h: '무엇과 무엇을 비교했나',
+        src: ['OBD/CAN', 'DTG 521'],
         items: [
           `기준선(코칭을 안 했다고 가정) ${base.toFixed(1)}m³`,
           `실측 ${act.toFixed(1)}m³ — 차이 ${saved.toFixed(1)}m³ (−${pct.toFixed(2)}%)`,
@@ -481,6 +496,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
       },
       {
         h: '왜 유가 때문이 아닌가',
+        src: ['OBD/CAN'],
         items: [
           '유가는 같은 양의 연료 «가격»만 바꾸므로 이 차이를 만들 수 없음',
           '날씨(폭염 냉방부하)는 기준선과 실측에 똑같이 적용돼 상쇄됨',
@@ -488,12 +504,14 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
       },
       {
         h: ordered ? '코칭이 원인이라는 지문' : '기사군별 차등 (누적 부족)',
+        src: ['OBD/CAN'],
         items: byPersona.map((g) => `${g.label} ${g.n}대 — −${g.pct.toFixed(2)}%`).concat(
           ordered ? ['개선 여지가 큰 군에서 효과가 크다 = 외부 요인이 아니라 코칭이 원인'] : ['주행이 더 쌓이면 A<B<C 순서가 드러남'],
         ),
       },
       {
         h: '낭비 요인 분해',
+        src: ['DTG 409'],
         items: [
           `운전 습관 ${waste.habit.toFixed(2)}m³ · 급조작 ${waste.harsh.toFixed(2)}m³`,
           `공회전 ${waste.idle.toFixed(2)}m³ · 냉방 ${waste.ac.toFixed(2)}m³`,

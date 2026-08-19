@@ -531,28 +531,8 @@ function MsgView({
           </div>
         )}
 
-        {r.limits && r.limits.length > 0 && (
-          <div className="rounded-lg border border-amber-500/25 bg-gray-900 px-3 py-2">
-            <div className="text-[10.5px] font-bold text-amber-300">이 답이 말할 수 없는 것</div>
-            <ul className="mt-1 space-y-0.5">
-              {r.limits.map((l, i) => (
-                <li key={i} className="flex flex-wrap items-baseline gap-1.5 break-keep text-[11.5px] leading-relaxed text-gray-300">
-                  <span className="mt-[1px] shrink-0 text-gray-500">·</span>
-                  <span>{l.text}</span>
-                  {l.unlock && (
-                    <button
-                      onClick={() => onNavigate?.('roadmap')}
-                      title="이 데이터가 붙으면 답할 수 있습니다 — 로드맵에서 확인"
-                      className="shrink-0 rounded-full border border-sky-500/40 px-2 py-0.5 text-[10px] font-bold text-sky-300 transition-colors hover:bg-sky-500/10 focus-visible:ring-2 focus-visible:ring-sky-500"
-                    >
-                      {l.unlock} 붙으면 → 로드맵
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* 「이 답이 말할 수 없는 것」 절은 사용자 요청으로 미표시.
+            데이터(QaResult.limits)와 unlock→로드맵 딥링크는 엔진에 그대로 남아 있어 되살리면 바로 뜬다 */}
 
         {r.follow.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -812,11 +792,6 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
         ? `<h3>실제로 걸은 연결</h3><p class="dim">시작 ${esc(r.walk.startLabel)} · 기록 ${r.walk.nodes}건 (${esc(r.walk.classes.join(' · '))})</p>
            <ul class="trail">${r.walk.trail.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`
         : ''
-      const lim = r.limits?.length
-        ? `<h3>이 답이 말할 수 없는 것</h3><ul>${r.limits
-            .map((l) => `<li>${esc(l.text)}${l.unlock ? ` <span class="need">필요한 데이터: ${esc(l.unlock)}</span>` : ''}</li>`)
-            .join('')}</ul>`
-        : ''
       const src = `<h3>출처</h3><ol class="srclist">${r.sources
         .map(
           (x) =>
@@ -833,7 +808,7 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
         <p class="headline">${esc(r.headline)}</p>
         ${meta.length ? `<p class="meta">${meta.join('<br>')}</p>` : ''}
         <p class="detail">${bold(r.detail)}</p>
-        ${sec}${ev}${cross}${rec}${walk}${lim}${src}
+        ${sec}${ev}${cross}${rec}${walk}${src}
       </section>`
     })
     .join('')
@@ -894,7 +869,7 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
     <p>각 답의 수치는 «그 답을 낸 시점»의 집계입니다 — 문항마다 적힌 집계 구간이 기준입니다.</p>
   </div>
   ${body || '<p>담긴 답이 없습니다.</p>'}
-  <div class="foot">답의 수치는 운행 데이터에서 계산된 값이며, 근거가 되는 원천과 확인하지 못한 한계를 문항마다 함께 적었습니다. · Qdrive 대구 시내버스 통합 운영 플랫폼</div>
+  <div class="foot">답의 수치는 운행 데이터에서 계산된 값이며, 근거가 되는 원천을 문항마다 함께 적었습니다. · Qdrive 대구 시내버스 통합 운영 플랫폼</div>
 </div>
 </body></html>`
 }
@@ -928,7 +903,7 @@ function buildReport(items: ReportItem[], snap: SimSnapshot): string {
   L.push(`- 작성 시점: ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())} (운행 시뮬레이션 경과 ${elapsed})`)
   L.push(`- 내보낸 시점 기준 누적: 실증 ${snap.vehicles.length}대 · 영업 ${snap.trips.length}회 · 공차 ${snap.deadheads.length}회`)
   L.push('- 각 답의 수치는 «그 답을 낸 시점»의 집계입니다 — 절마다 적힌 집계 구간이 기준입니다.')
-  L.push('- 답의 수치는 전부 운행 데이터에서 계산된 값이며, 각 절에 출처와 한계를 함께 적었습니다.', '')
+  L.push('- 답의 수치는 전부 운행 데이터에서 계산된 값이며, 각 절에 출처를 함께 적었습니다.', '')
 
   let n = 0
   for (const it of items) {
@@ -964,11 +939,6 @@ function buildReport(items: ReportItem[], snap: SimSnapshot): string {
     if (r.walk) {
       L.push('### 실제로 걸은 연결', '', `- 시작 ${r.walk.startLabel} · 기록 ${r.walk.nodes}건 (${r.walk.classes.join(' · ')})`)
       r.walk.trail.forEach((t) => L.push(`- ${t}`))
-      L.push('')
-    }
-    if (r.limits?.length) {
-      L.push('### 이 답이 말할 수 없는 것', '')
-      r.limits.forEach((l) => L.push(`- ${l.text}${l.unlock ? ` (필요한 데이터: ${l.unlock})` : ''}`))
       L.push('')
     }
     L.push('### 출처', '')

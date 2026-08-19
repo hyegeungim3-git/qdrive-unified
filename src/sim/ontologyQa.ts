@@ -469,6 +469,34 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
         const ok = decel.speedKmh >= 0 && decel.speedKmh <= 120 && decel.rpm >= 0 && decel.rpm <= 3000
         return { a: 'DTG 409 (속도)', b: 'OBD/CAN (RPM)', what: '속도·RPM 조합이 물리적으로 가능한가', result: `${decel.speedKmh}km/h · ${decel.rpm}rpm — ${ok ? '정상' : '불일치(센서 점검)'}`, ok }
       })(),
+      (() => {
+        /* 날씨는 도시 공통이라, 같은 시각에 다른 차량이 겪은 날씨가 다르면 어느 한쪽 기록이 틀린 것이다 */
+        const near = s.events.filter((e) => Math.abs(e.simTime - decel.simTime) <= 120)
+        const same = near.filter((e) => e.weather === decel.weather).length
+        const ok = same === near.length
+        return {
+          a: 'DTG 409 (이벤트 기상)',
+          b: '기상 관측 (도시 공통)',
+          what: '같은 시각 다른 차량의 이벤트도 같은 날씨로 기록됐는가',
+          result: `±2분 내 ${near.length}건 중 ${same}건이 «${decel.weather}» — ${ok ? '전부 일치' : '불일치(기상 태깅 점검)'}`,
+          ok,
+        }
+      })(),
+      /* 대조할 짝이 없으면 항목을 만들지 않는다 — 소명이 없는 것은 결함이 아니라 그냥 없는 것 */
+      ...(myPleas.some((p) => p.eventType === decel.eventType)
+        ? [
+            (() => {
+              const hit = myPleas.find((p) => p.eventType === decel.eventType)!
+              return {
+                a: 'DTG 409 (이벤트 유형)',
+                b: '기사 소명 (음성·버튼)',
+                what: '기사가 설명한 상황이 기록된 이벤트와 같은 건인가',
+                result: `${hit.driverName} 기사의 «${hit.eventType}» 소명(${hit.method}) — 차량·유형 일치 · ${hit.status}`,
+                ok: true,
+              }
+            })(),
+          ]
+        : []),
     ],
     limits: [
       { text: '실제 상황 영상은 확인할 수 없습니다 — 차량 영상(DVR)은 비식별 협의가 필요한 3차 원천입니다', unlock: 'DVR 영상' },
@@ -579,6 +607,31 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
     cross: [
       { a: '차고지 출입고', b: 'DTG 521 (회차)', what: '공차 기록 수가 영업 회차 주기와 맞는가', result: `공차 ${s.deadheads.length}건 · 영업 ${s.trips.length}건 — 교대 주기 정합`, ok: true },
       { a: '차고지 정의', b: '노선 기준정보', what: '차고지가 대는 노선이 실제 운행 노선과 일치하는가', result: `${rows.length}개 차고지 ↔ 3개 노선 매핑 일치`, ok: true },
+      (() => {
+        /* 기준정보의 편도거리 × 실제 기록거리 — 한 건당 평균이 편도값에서 크게 벗어나면 어느 한쪽이 틀렸다 */
+        const per = top.n > 0 ? top.km / top.n : 0
+        const ok = top.n === 0 || Math.abs(per - top.oneWay) <= 0.6
+        return {
+          a: '차고지 기준정보 (편도거리)',
+          b: 'DTG 521 (공차 주행거리)',
+          what: '기록된 공차 1건당 거리가 기준 편도거리와 맞는가',
+          result: `1건당 ${per.toFixed(1)}km · 기준 ${top.oneWay}km — ${ok ? '오차 0.6km 이내' : '기준값 재확인 필요'}`,
+          ok,
+        }
+      })(),
+      (() => {
+        /* 참조 무결성 — 한 차고지의 차량이 여러 운수사로 흩어지면 소속 기록이 깨진 것 */
+        const mine = [...s.trips, ...s.deadheads].filter((t) => t.depot === top.depot)
+        const cos = new Set(mine.map((t) => t.company))
+        const ok = cos.size <= 1
+        return {
+          a: '차고지 출입고 (소속)',
+          b: 'DTG 521 (운수사)',
+          what: '이 차고지의 모든 운행이 같은 운수사로 기록되는가',
+          result: `운행 ${mine.length}건 전부 ${[...cos].join('·') || '—'} — ${ok ? '소속 일치' : `${cos.size}개 사로 갈림(점검)`}`,
+          ok,
+        }
+      })(),
     ],
     limits: [
       { text: '실제 출·입고 시각은 아직 연동 전입니다 — 지금은 편도 회송거리를 상수로 둡니다', unlock: '차고지 출입고 실연동' },
@@ -723,12 +776,54 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
     basis: basisOf(s, one ? `${short(one.id)} 1대` : `실증 ${s.vehicles.length}대 · 회차 ${s.trips.length}건`),
     cross: [
       (() => {
+        /*
+         * 회차합과 차량 누적은 «같아야» 하는 값이 아니다 — 아직 안 끝난 회차의 연료가 누적에만 들어 있다.
+         * 그래서 차이를 덮지 않고 잔차로 드러내고, 그 잔차가 «회차 하나 분»을 넘는지로 판정한다.
+         * 넘으면 어딘가에서 회차가 누락된 것이다.
+         */
         const tripFuel = s.trips.reduce((a, t) => a + t.fuelM3, 0)
         const vehFuel = s.vehicles.reduce((a, v) => a + v.fuelM3, 0)
-        const gap = vehFuel > 0 ? Math.abs(tripFuel - vehFuel) / vehFuel : 0
-        return { a: 'DTG 521 (회차 합계)', b: 'OBD/CAN (차량 누적)', what: '회차별 연료 합계가 차량 누적과 맞는가', result: `회차합 ${tripFuel.toFixed(1)}m³ · 누적 ${vehFuel.toFixed(1)}m³ — ${gap < 0.35 ? '정합' : '진행 중 회차만큼 차이'}`, ok: gap < 0.35 }
+        const rest = vehFuel - tripFuel
+        const per = s.trips.length > 0 ? tripFuel / s.trips.length : 0
+        const cap = per * s.vehicles.length * 1.2
+        const ok = rest >= -0.1 && (per === 0 || rest <= cap)
+        return {
+          a: 'DTG 521 (회차 합계)',
+          b: 'OBD/CAN (차량 누적)',
+          what: '회차 합계와 차량 누적의 차이가 «진행 중인 회차» 범위 안인가',
+          result: `회차합 ${tripFuel.toFixed(1)}m³ + 진행 중 ${rest.toFixed(1)}m³ = 누적 ${vehFuel.toFixed(1)}m³ — ${
+            ok ? `${s.vehicles.length}대 × 회차당 ${per.toFixed(1)}m³ 이내` : '회차 누락 의심'
+          }`,
+          ok,
+        }
       })(),
       { a: 'OBD/CAN (실측)', b: '반사실 기준선', what: '기준선이 실측보다 큰가 (절감이 성립하는가)', result: `기준선 ${base.toFixed(1)}m³ > 실측 ${act.toFixed(1)}m³ — 절감 성립`, ok: base > act },
+      (() => {
+        /* 서로 다른 원천이 같은 사람을 같은 방향으로 가리키는가 — 급조작이 잦은 차가 점수도 낮아야 한다 */
+        const rank = [...s.vehicles].sort((a, b) => b.score - a.score)
+        const evOf = (id: string) => s.events.filter((e) => e.vehicleId === id).length
+        const top3 = rank.slice(0, 3).reduce((a, v) => a + evOf(v.id), 0)
+        const bot3 = rank.slice(-3).reduce((a, v) => a + evOf(v.id), 0)
+        const ok = top3 <= bot3
+        return {
+          a: 'DTG 409 (위험운전 건수)',
+          b: '안전점수 (판정 결과)',
+          what: '이벤트가 잦은 차량이 실제로 낮은 점수를 받았는가',
+          result: `상위 3대 ${top3}건 · 하위 3대 ${bot3}건 — ${ok ? '방향 일치' : '역전(판정 규칙 점검)'}`,
+          ok,
+        }
+      })(),
+      (() => {
+        /* 기사군 순서는 «코칭이 원인»의 인과 지문 — 대조 없이 절감률만 보면 유가·날씨와 구분되지 않는다 */
+        const seq = byPersona.map((g) => `${g.label} −${g.pct.toFixed(2)}%`).join(' < ')
+        return {
+          a: '기사 기준정보 (기사군)',
+          b: 'OBD/CAN (연료 절감률)',
+          what: '개선 여지가 큰 군일수록 절감이 큰가 (외부 요인이면 군과 무관해야 한다)',
+          result: ordered ? `${seq} — 순서 성립` : `${seq} — 누적 부족, 순서 미확정`,
+          ok: ordered,
+        }
+      })(),
     ],
     limits: [
       { text: '연료 «가격»은 다루지 않습니다 — 이 비교는 연료 양이며, 유가 데이터는 연결돼 있지 않습니다', unlock: '유가 정보' },

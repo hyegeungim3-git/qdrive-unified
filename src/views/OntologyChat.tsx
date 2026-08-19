@@ -71,10 +71,21 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
   snapRef.current = snap
 
   // 답이 오는 중에 탭을 떠났다면 그 «생각 중» 거품은 영영 끝나지 않는다 — 복원할 때 버린다
-  const [msgs, setMsgs] = useState<Msg[]>(() => kept.filter((m) => m.role !== 'thinking'))
+  const [msgs, setMsgs] = useState<Msg[]>(() => {
+    const live = kept.filter((m) => m.role !== 'thinking')
+    // 복원본이 이미 쓴 번호 뒤에서 이어 붙인다 — 번호가 겹치면 «이 답만» 내보내기가 남의 답까지 집는다
+    live.forEach((m) => {
+      if (m.id >= seq) seq = m.id + 1
+    })
+    return live
+  })
   const msgsRef = useRef(msgs)
   msgsRef.current = msgs
   kept = msgs
+
+  /** 답 한 건만 보고서로 — «이 답만 첨부하겠다»가 실제 업무에서 더 잦다 */
+  const exportOne = (id: number) => openReport(buildReportHtml(collectItems(msgsRef.current, id), snapRef.current))
+  const answered = msgs.filter((m) => m.role === 'qa').length
 
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -199,12 +210,20 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
               1차 데이터 8종 연결됨
             </span>
             <button
-              onClick={() => downloadMd(buildReport(msgsRef.current, snapRef.current), 'qdrive-질의응답-기록.md')}
-              disabled={!msgs.some((m) => m.role === 'qa')}
-              title="지금까지의 질문과 답을 제출용 문서로 저장합니다"
+              onClick={() => openReport(buildReportHtml(collectItems(msgsRef.current), snapRef.current))}
+              disabled={answered === 0}
+              title="지금까지의 질문과 답 전체를 인쇄용 보고서로 엽니다 — 새 탭에서 인쇄·PDF 저장"
               className="rounded-md border border-sky-500/40 px-2 py-0.5 text-[10.5px] font-bold text-sky-300 transition-colors hover:bg-sky-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
-              📄 보고서로 내보내기
+              📄 전체 보고서 ({answered})
+            </button>
+            <button
+              onClick={() => downloadMd(buildReport(collectItems(msgsRef.current), snapRef.current), 'qdrive-질의응답-기록.md')}
+              disabled={answered === 0}
+              title="텍스트(.md) 파일로 저장 — 한글·메일에 붙여 쓸 때"
+              className="rounded-md border border-gray-800 bg-gray-950 px-2 py-0.5 text-[10.5px] font-bold text-gray-400 transition-colors hover:text-gray-200 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              ⤓ 텍스트
             </button>
           </div>
         </header>
@@ -245,7 +264,9 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
           {msgs.length === 0 ? (
             <Welcome onPick={ask} busy={busy} />
           ) : (
-            msgs.map((m) => <MsgView key={m.id} m={m} stream={stream} onNavigate={onNavigate} onAsk={ask} />)
+            msgs.map((m) => (
+              <MsgView key={m.id} m={m} stream={stream} onNavigate={onNavigate} onAsk={ask} onExport={exportOne} />
+            ))
           )}
           <div ref={endRef} />
         </div>
@@ -344,7 +365,19 @@ function Welcome({ onPick, busy }: { onPick: (q: string) => void; busy: boolean 
 
 /* ═══════════ 메시지 ═══════════ */
 
-function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: number; n: number } | null; onNavigate?: (tab: string) => void; onAsk?: (q: string, target?: string, topic?: string) => void }) {
+function MsgView({
+  m,
+  stream,
+  onNavigate,
+  onAsk,
+  onExport,
+}: {
+  m: Msg
+  stream: { id: number; n: number } | null
+  onNavigate?: (tab: string) => void
+  onAsk?: (q: string, target?: string, topic?: string) => void
+  onExport?: (id: number) => void
+}) {
   const [openRec, setOpenRec] = useState(false)
   const [openEvidence, setOpenEvidence] = useState(false)
   const [openSrc, setOpenSrc] = useState<string | null>(null)
@@ -577,6 +610,7 @@ function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: numbe
                 }}
                 label={copied ? '복사됨 ✓' : '복사'}
               />
+              <Action onClick={() => onExport?.(m.id)} label="📄 이 답만" />
             </div>
 
             {openRec && r.record && (
@@ -711,7 +745,180 @@ const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms))
  * 답에 붙은 신뢰 장치(신뢰도·집계구간·교차검증·한계·출처)를 문서에도 그대로 싣는다 —
  * 화면에서만 보이고 문서에서 사라지면 그 장치는 장식이다.
  */
-function buildReport(msgs: Msg[], snap: SimSnapshot): string {
+type ReportItem = { q: string; res: QaResult }
+
+/** 대화에서 «질문 ─ 답» 짝만 골라낸다. 질문은 사용자가 실제로 누른 문장을 쓴다 */
+function collectItems(msgs: Msg[], onlyId?: number): ReportItem[] {
+  const out: ReportItem[] = []
+  msgs.forEach((m, i) => {
+    if (m.role !== 'qa') return
+    if (onlyId !== undefined && m.id !== onlyId) return
+    const prev = [...msgs.slice(0, i)].reverse().find((x) => x.role === 'user') as { text: string } | undefined
+    out.push({ q: prev?.text ?? m.res.q, res: m.res })
+  })
+  return out
+}
+
+const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+/** 답 본문의 **강조**만 살린다 — 그 외 마크업은 쓰지 않는다 */
+const bold = (t: string) => esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+
+/** 문서 머리말 — 언제·무엇을 기준으로 뽑았는지가 첫 줄에 있어야 제출물이 된다 */
+function reportMeta(snap: SimSnapshot) {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return {
+    date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    elapsed: `${Math.floor(snap.simTime / 60)}분 ${pad(Math.floor(snap.simTime % 60))}초`,
+    scope: `실증 ${snap.vehicles.length}대 · 영업 ${snap.trips.length}회 · 공차 ${snap.deadheads.length}회`,
+  }
+}
+
+/**
+ * 인쇄용 보고서(HTML). 텍스트로만 흐르던 근거를 «표»로 되돌린다 —
+ * 근거 수치·교차검증·원본 기록은 줄글로 읽는 것이 아니라 눈으로 대조하는 것이라서다.
+ * 화면 색을 그대로 쓰지 않고 인쇄 기준(흰 종이·검은 글)으로 다시 짠다.
+ */
+function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
+  const m = reportMeta(snap)
+  const body = items
+    .map((it, n) => {
+      const r = it.res
+      const sec = r.sections
+        .map(
+          (x) => `<h3>${esc(x.h)}${x.src?.length ? `<span class="src">출처 ${esc(x.src.join(', '))}</span>` : ''}</h3>
+        <ul>${x.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>`,
+        )
+        .join('')
+      const ev = r.evidence.length
+        ? `<h3>근거 수치</h3><table><thead><tr><th>항목</th><th>값</th><th>출처</th></tr></thead><tbody>${r.evidence
+            .map((e) => `<tr><td>${esc(e.k)}</td><td class="num">${esc(e.v)}</td><td class="src-cell">${esc(e.src ?? '—')}</td></tr>`)
+            .join('')}</tbody></table>`
+        : ''
+      const cross = r.cross?.length
+        ? `<h3>교차검증 — 서로 다른 원천이 같은 사실을 말하는가</h3><table><thead><tr><th>원천 A</th><th>원천 B</th><th>확인한 것</th><th>결과</th><th>판정</th></tr></thead><tbody>${r.cross
+            .map(
+              (c) =>
+                `<tr><td>${esc(c.a)}</td><td>${esc(c.b)}</td><td>${esc(c.what)}</td><td>${esc(c.result)}</td><td class="${c.ok ? 'ok' : 'warn'}">${c.ok ? '통과' : '주의'}</td></tr>`,
+            )
+            .join('')}</tbody></table>`
+        : ''
+      const rec = r.record
+        ? `<h3>원본 기록 — ${esc(r.record.title)}</h3><table class="rec"><tbody>${r.record.fields
+            .map((f) => `<tr><th>${esc(f.k)}</th><td>${esc(f.v)}</td></tr>`)
+            .join('')}</tbody></table>`
+        : ''
+      const walk = r.walk
+        ? `<h3>실제로 걸은 연결</h3><p class="dim">시작 ${esc(r.walk.startLabel)} · 기록 ${r.walk.nodes}건 (${esc(r.walk.classes.join(' · '))})</p>
+           <ul class="trail">${r.walk.trail.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`
+        : ''
+      const lim = r.limits?.length
+        ? `<h3>이 답이 말할 수 없는 것</h3><ul>${r.limits
+            .map((l) => `<li>${esc(l.text)}${l.unlock ? ` <span class="need">필요한 데이터: ${esc(l.unlock)}</span>` : ''}</li>`)
+            .join('')}</ul>`
+        : ''
+      const src = `<h3>출처</h3><ol class="srclist">${r.sources
+        .map(
+          (x) =>
+            `<li><b>${esc(x.code)}</b> — ${esc(x.name)} · 보유 ${esc(x.owner)} · <span class="${x.live ? 'ok' : 'warn'}">${x.live ? '엔진 실집계' : '예시 상수'}</span> · 기여 ${esc(x.role)}</li>`,
+        )
+        .join('')}</ol>`
+      const meta = [
+        r.confidence ? `신뢰도 <b>${esc(r.confidence.level)}</b> (상한 ${r.confidence.pct}%) — ${esc(r.confidence.why)}` : '',
+        r.basis ? `집계 구간 ${esc(r.basis.window)} · 표본 ${esc(r.basis.records)}` : '',
+      ].filter(Boolean)
+      return `<section class="qa">
+        <h2><span class="no">${n + 1}</span>${esc(it.q)}</h2>
+        ${r.subject ? `<p class="subject">대상 · ${esc(r.subject)}</p>` : ''}
+        <p class="headline">${esc(r.headline)}</p>
+        ${meta.length ? `<p class="meta">${meta.join('<br>')}</p>` : ''}
+        <p class="detail">${bold(r.detail)}</p>
+        ${sec}${ev}${cross}${rec}${walk}${lim}${src}
+      </section>`
+    })
+    .join('')
+
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<title>Qdrive AI Q — 질의응답 기록 ${m.date}</title>
+<style>
+  @page { size: A4; margin: 16mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f3f4f6; color: #111827;
+    font-family: -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; font-size: 11.5px; line-height: 1.65; word-break: keep-all; }
+  .sheet { max-width: 190mm; margin: 24px auto; background: #fff; padding: 18mm 16mm; box-shadow: 0 1px 12px rgba(0,0,0,.12); }
+  .bar { position: sticky; top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    background: #111827; color: #e5e7eb; padding: 10px 16px; font-size: 12px; }
+  .bar button { font: inherit; font-weight: 700; cursor: pointer; border: 0; border-radius: 6px; padding: 7px 14px; background: #0284c7; color: #fff; }
+  .bar button:hover { background: #0369a1; }
+  .bar span { opacity: .8; }
+  h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: -.3px; }
+  .head { border-bottom: 2px solid #111827; padding-bottom: 10px; margin-bottom: 18px; }
+  .head p { margin: 2px 0; color: #4b5563; font-size: 11px; }
+  h2 { font-size: 14.5px; margin: 26px 0 8px; padding-bottom: 6px; border-bottom: 1px solid #d1d5db; }
+  h2 .no { display: inline-block; min-width: 20px; margin-right: 7px; color: #0284c7; }
+  h3 { font-size: 12px; margin: 15px 0 5px; color: #0f172a; }
+  h3 .src { margin-left: 8px; font-size: 10px; font-weight: 400; color: #6b7280; }
+  .subject { margin: 0 0 6px; font-size: 11px; color: #0284c7; font-weight: 700; }
+  .headline { margin: 0 0 6px; font-size: 13.5px; font-weight: 700; }
+  .meta { margin: 0 0 10px; padding: 7px 10px; background: #f8fafc; border-left: 3px solid #0284c7; color: #374151; font-size: 10.5px; }
+  .detail { margin: 0 0 6px; }
+  ul, ol { margin: 4px 0 0; padding-left: 17px; }
+  li { margin: 2px 0; }
+  .trail li { color: #4b5563; font-size: 10.5px; }
+  .dim { margin: 2px 0; color: #6b7280; font-size: 10.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 2px; font-size: 10.5px; }
+  th, td { border: 1px solid #d1d5db; padding: 5px 7px; text-align: left; vertical-align: top; }
+  thead th { background: #f3f4f6; font-size: 10px; }
+  .rec th { width: 34%; background: #f9fafb; font-weight: 600; }
+  .num { font-weight: 700; }
+  .src-cell { color: #6b7280; }
+  .ok { color: #047857; font-weight: 700; }
+  .warn { color: #b45309; font-weight: 700; }
+  .need { color: #0284c7; font-weight: 700; }
+  .srclist li { margin: 3px 0; }
+  .foot { margin-top: 26px; padding-top: 10px; border-top: 1px solid #d1d5db; color: #6b7280; font-size: 10px; }
+  h2, h3 { break-after: avoid; }
+  table, tr, li { break-inside: avoid; }
+  @media print {
+    body { background: #fff; font-size: 10.5px; }
+    .sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; }
+    .bar { display: none; }
+  }
+</style></head><body>
+<div class="bar"><button onclick="window.print()">🖨 인쇄 · PDF로 저장</button><span>인쇄 대화상자에서 «PDF로 저장»을 고르면 파일로 남습니다</span></div>
+<div class="sheet">
+  <div class="head">
+    <h1>Qdrive AI Q — 질의응답 기록</h1>
+    <p>작성 ${m.date} · 운행 시뮬레이션 경과 ${m.elapsed}</p>
+    <p>내보낸 시점 기준 누적: ${m.scope} · 문항 ${items.length}건</p>
+    <p>각 답의 수치는 «그 답을 낸 시점»의 집계입니다 — 문항마다 적힌 집계 구간이 기준입니다.</p>
+  </div>
+  ${body || '<p>담긴 답이 없습니다.</p>'}
+  <div class="foot">답의 수치는 운행 데이터에서 계산된 값이며, 근거가 되는 원천과 확인하지 못한 한계를 문항마다 함께 적었습니다. · Qdrive 대구 시내버스 통합 운영 플랫폼</div>
+</div>
+</body></html>`
+}
+
+/**
+ * 새 탭으로 연다 — 시연에서 «다운로드 폴더를 뒤지는 시간»이 가장 설명하기 어려운 구간이라서다.
+ * 팝업이 막히면 파일 저장으로 물러선다.
+ */
+function openReport(html: string) {
+  const w = window.open('', '_blank')
+  if (w && w.document) {
+    w.document.write(html)
+    w.document.close()
+    return
+  }
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'qdrive-질의응답-보고서.html'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function buildReport(items: ReportItem[], snap: SimSnapshot): string {
   const L: string[] = []
   L.push('# Qdrive AI Q — 질의응답 기록', '')
   // 제출 문서는 «언제 뽑았나»가 실제 날짜여야 한다. 시뮬 시각은 경과 시간이므로 분·초로 풀어 쓴다
@@ -724,13 +931,10 @@ function buildReport(msgs: Msg[], snap: SimSnapshot): string {
   L.push('- 답의 수치는 전부 운행 데이터에서 계산된 값이며, 각 절에 출처와 한계를 함께 적었습니다.', '')
 
   let n = 0
-  for (let i = 0; i < msgs.length; i++) {
-    const m = msgs[i]
-    if (m.role !== 'qa') continue
+  for (const it of items) {
     n++
-    const prevUser = [...msgs.slice(0, i)].reverse().find((x) => x.role === 'user') as { text: string } | undefined
-    const r = m.res
-    L.push(`## ${n}. ${prevUser?.text ?? r.q}`, '')
+    const r = it.res
+    L.push(`## ${n}. ${it.q}`, '')
     if (r.subject) L.push(`**대상**: ${r.subject}`, '')
     L.push(`**결론**: ${r.headline}`, '')
     if (r.confidence) L.push(`- 신뢰도: ${r.confidence.level} (상한 ${r.confidence.pct}%) — ${r.confidence.why}`)

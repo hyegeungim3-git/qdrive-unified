@@ -52,7 +52,7 @@ def block(r, meta, loop):
     return f"""  {{
     id: '{meta['id']}',
     name: '{r['ref']}',
-    road: '{meta['road']}',
+    road: '{r.get('roads') or meta['road']}',
     color: '{meta['color']}',
     loop: {'true' if loop else 'false'},
     osm: {r['osm']},

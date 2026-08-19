@@ -37,7 +37,7 @@ export const ROUTES: BusRoute[] = [
   {
     id: 'R1',
     name: '급행1',
-    road: '달구벌대로',
+    road: '팔공로·달구벌대로',
     color: '#ef4444',
     loop: false,
     osm: 12446525,
@@ -99,7 +99,7 @@ export const ROUTES: BusRoute[] = [
   {
     id: 'R2',
     name: '순환2',
-    road: '도심 순환로',
+    road: '명덕로·달서로',
     color: '#3b82f6',
     loop: false,
     osm: 14479301,
@@ -136,7 +136,7 @@ export const ROUTES: BusRoute[] = [
   {
     id: 'R3',
     name: '급행3',
-    road: '팔달로·중앙대로',
+    road: '동대구로·칠곡중앙대로',
     color: '#22c55e',
     loop: false,
     osm: 14477095,
@@ -197,7 +197,7 @@ export const EXTRA_ROUTES: BusRoute[] = [
   {
     id: 'X2',
     name: '급행2',
-    road: '달구벌대로·신천대로',
+    road: '호국로·가창로',
     color: '#fb7185',
     loop: false,
     osm: 13592055,
@@ -246,7 +246,7 @@ export const EXTRA_ROUTES: BusRoute[] = [
   {
     id: 'X3',
     name: '순환3',
-    road: '신천대로·앞산순환로',
+    road: '동북로·서대구로',
     color: '#c084fc',
     loop: false,
     osm: 14479330,
@@ -278,7 +278,7 @@ export const EXTRA_ROUTES: BusRoute[] = [
   {
     id: 'X31',
     name: '순환3-1',
-    road: '앞산순환로·달구벌대로(역방향)',
+    road: '동북로·청호로',
     color: '#a3e635',
     loop: false,
     osm: 14479331,
@@ -330,7 +330,7 @@ export const EXTRA_ROUTES: BusRoute[] = [
   {
     id: 'X6',
     name: '급행6',
-    road: '칠곡중앙대로·성서로',
+    road: '달서대로·달구벌대로',
     color: '#14b8a6',
     loop: false,
     osm: 14477347,
@@ -369,7 +369,7 @@ export const EXTRA_ROUTES: BusRoute[] = [
   {
     id: 'X21',
     name: '순환2-1',
-    road: '도심 순환로(역방향)',
+    road: '명덕로·달서로',
     color: '#60a5fa',
     loop: false,
     osm: 14479300,
@@ -406,7 +406,7 @@ export const EXTRA_ROUTES: BusRoute[] = [
   {
     id: 'X4',
     name: '급행4',
-    road: '앞산순환로·달서로',
+    road: '비슬로·논공로',
     color: '#f59e0b',
     loop: false,
     osm: 14477250,
@@ -431,7 +431,7 @@ export const EXTRA_ROUTES: BusRoute[] = [
   {
     id: 'X7',
     name: '급행7',
-    road: '대구대로·달구벌대로 교차',
+    road: '달서대로·서재로',
     color: '#f472b6',
     loop: false,
     osm: 14477371,

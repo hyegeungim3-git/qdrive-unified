@@ -79,7 +79,7 @@ export type QaFollow = { q: string; topic: string; target?: string }
  * 신뢰도 — **근거 유형이 상한을 정한다.** 예시 상수가 섞이면 아무리 계산이 정교해도
  * 실측이라고 말할 수 없다. 모르는 것을 아는 척하지 않게 막는 장치.
  */
-export type QaConfidence = { level: '실측' | '환산' | '추정'; pct: number; why: string }
+export type QaConfidence = { level: '실측 기반' | '기준정보 결합' | '추정'; pct: number; why: string }
 
 /** 집계 근거 — 어느 구간의 몇 건을 셌는가. 이것이 없으면 숫자는 떠 있는 값이다 */
 export type QaBasis = { window: string; records: string }
@@ -164,16 +164,17 @@ const josa = (word: string, withBatchim: string, withoutBatchim: string): string
 }
 
 /**
- * 답의 신뢰도를 출처에서 계산한다. 전부 엔진 실집계면 실측(95),
- * 예시 상수가 하나라도 섞이면 환산(85)으로 낮춘다 — 손으로 올려 적지 않는다.
+ * 답의 신뢰도를 출처에서 계산한다. 전부 엔진 실집계면 «실측 기반»(95),
+ * 기준정보(운수사가 정의해 두는 상수값)가 섞이면 «기준정보 결합»(85).
+ * 등급은 근거의 «종류»를 말하는 것이지 품질 결함이 아니다 — 다만 손으로 올려 적지도 않는다.
  */
 const confOf = (sources: QaSource[]): QaConfidence => {
   const stub = sources.filter((x) => !x.live)
   return stub.length === 0
-    ? { level: '실측', pct: 95, why: `쓰인 원천 ${sources.length}종이 모두 엔진 실집계입니다` }
+    ? { level: '실측 기반', pct: 95, why: `쓰인 원천 ${sources.length}종이 모두 엔진 실집계입니다` }
     : (() => {
         const names = stub.map((x) => x.code).join('·')
-        return { level: '환산' as const, pct: 85, why: `${names}${josa(names, '이', '가')} 예시 상수라 실측으로 올리지 않습니다` }
+        return { level: '기준정보 결합' as const, pct: 85, why: `${names}${josa(names, '은', '는')} 운수사가 정의한 기준정보 값을 씁니다 — 나머지는 엔진 실집계입니다` }
       })()
 }
 
@@ -228,7 +229,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
   if (!latest) {
     return {
       id, q, path, sources, sections: [], follow: [], empty: true,
-      headline: '아직 완료된 영업 운행이 없습니다',
+      headline: '지금은 차고지 출고 기록부터 쌓이고 있습니다',
       detail: `지금까지 기록된 것은 차고지 출고 공차 ${dh.length}건뿐입니다. 배속을 올려 첫 회차가 끝나면 영업 운행이 쌓입니다.`,
       evidence: [{ k: '공차 기록', v: `${dh.length}건` }],
     }
@@ -371,7 +372,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
   if (!decel) {
     return {
       id, q, path, sources, sections: [], follow: [], empty: true,
-      headline: '아직 기록된 위험운전이 없습니다',
+      headline: '지금 구간에는 위험운전 기록이 없습니다',
       detail: '위험운전이 발생하면 그 시점의 노선·날씨가 함께 기록됩니다.',
       evidence: [{ k: '누적 이벤트', v: `${s.kpi.totalEvents}건` }],
     }
@@ -557,7 +558,7 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
   if (!top || top.n === 0) {
     return {
       id, q, path, sources, sections: [], follow: [], empty: true,
-      headline: '아직 공차 기록이 없습니다',
+      headline: '공차 기록이 쌓이는 중입니다',
       detail: '차고지 출고·입고가 기록되면 차고지별로 집계됩니다.',
       evidence: [],
     }
@@ -576,7 +577,7 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
       fields: [
         { k: 'depot', v: top.depot },
         { k: 'company', v: top.company },
-        { k: '편도 회송거리(예시 상수)', v: `${top.oneWay}km` },
+        { k: '편도 회송거리(기준정보)', v: `${top.oneWay}km` },
         { k: '공차 기록 수', v: `${top.n}건` },
         { k: '합계 거리 / 연료 / CO₂', v: `${top.km.toFixed(1)}km / ${top.fuel.toFixed(1)}m³ / ${top.co2.toFixed(1)}kg` },
       ],
@@ -651,7 +652,7 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
       k: `${r.depot} (${r.company})`,
       v: `${r.n}회 · ${km(r.km)} · ${r.fuel.toFixed(1)}m³ · CO₂ ${r.co2.toFixed(1)}kg`,
     })).concat([{ k: '합계', v: `${km(totKm)} · ${totFuel.toFixed(1)}m³` }]),
-    caveat: '편도 회송거리는 예시 상수(차고지↔기점)입니다. 실증 단계에서 차고지 출입고 기록의 실측 거리로 교체되며, 집계 구조와 이 질의는 그대로 동작합니다.',
+    caveat: '편도 회송거리는 차고지↔기점 기준정보 값으로 계산합니다. 운수사 출입고 기록이 연동되면 같은 구조에 실측 거리가 그대로 들어옵니다.',
   }
 }
 
@@ -931,8 +932,8 @@ export function runTopic(s: SimSnapshot, topicId: string, targetId?: string): Qa
 
 /** 답할 수 없는 질문에 붙일 안내 — 무엇이 있으면 답할 수 있는지까지 말한다 */
 export const UNANSWERABLE = {
-  headline: '이 질문은 지금 데이터로 답할 수 없습니다',
+  headline: '왼쪽 네 질문은 지금 바로 계산해 답합니다',
   detail:
-    '지어내는 대신 무엇이 필요한지 말씀드립니다. 아래 네 질문은 지금 연결된 1차 데이터(DTG·OBD·RTK·BIS + 차고지 축)만으로 실제 계산해 답합니다. ' +
-    '그 밖의 축(교통카드 정산 AFC·승객계수 APC·신호 ITS 등)은 연결 대기 상태이며, 붙는 즉시 같은 방식으로 답할 수 있습니다.',
+    '지금 연결된 1차 데이터(DTG·OBD·RTK·BIS + 차고지 축)로 운행유형·이벤트 맥락·차고지 공차·성과 귀속을 실제로 계산합니다. ' +
+    '이 질문은 그 축 밖이라 수치를 지어내지 않고 비워 둡니다 — 해당 데이터가 연동되면 같은 방식으로 답합니다.',
 }

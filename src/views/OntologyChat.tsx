@@ -53,7 +53,7 @@ function buildSystem(s: SimSnapshot): string {
   return [
     '당신은 대구 시내버스 통합 운영 플랫폼 Qdrive의 온톨로지 질의 도우미입니다.',
     '아래는 지금 이 순간 시뮬레이터 엔진의 실제 집계값입니다. 이 범위 밖의 수치는 지어내지 말고,',
-    '모르면 "그 데이터는 아직 연결되지 않았습니다"라고 답하세요. 답은 3~5문장 한국어로 간결하게.',
+    '모르면 "이번 실증 범위 밖입니다"라고 한 문장으로 짧게 말하고 넘어가세요. 답은 3~5문장 한국어로 간결하게.',
     '',
     `- 운행 중 차량 ${s.vehicles.length}대 · 누적 주행 ${s.kpi.totalDistanceKm.toFixed(1)}km`,
     `- 영업 운행 ${s.trips.length}회(${rev.toFixed(1)}km) / 공차 운행 ${s.deadheads.length}회(${dh.toFixed(1)}km)`,
@@ -61,7 +61,7 @@ function buildSystem(s: SimSnapshot): string {
     `- 연료 절감률 ${s.kpi.fuelSavedPct.toFixed(2)}% · CO₂ 절감 ${s.kpi.totalCo2SavedKg.toFixed(1)}kg`,
     `- 현재 날씨 ${s.weather.condition}`,
     '- 연결된 1차 데이터: DTG(운행기록계)·OBD/CAN(자가진단)·RTK(정밀위치)·BIS(공개 API)·차고지 출입고',
-    '- 아직 연결되지 않은 축: 교통카드 정산(AFC)·승객계수(APC)·신호(ITS)·영상(DVR)',
+    '- 이번 실증 범위 밖(수치를 지어내지 말 것): 교통카드 정산(AFC)·승객계수(APC)·신호(ITS)·영상(DVR)',
   ].join('\n')
 }
 
@@ -191,7 +191,7 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
           className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-[11px] font-semibold text-sky-300 transition-colors hover:text-sky-200 focus-visible:ring-2 focus-visible:ring-sky-500"
         >
           <span>자유 질문 (선택)</span>
-          <span className={hasKey ? 'text-emerald-400' : 'text-amber-300'}>{hasKey ? '● 연결됨' : '○ 미연결'}</span>
+          <span className={hasKey ? 'text-emerald-400' : 'text-gray-500'}>{hasKey ? '● 연결됨' : '설정'}</span>
         </button>
       </aside>
 
@@ -412,7 +412,7 @@ function MsgView({
     return (
       <Row>
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5">
-          <div className="text-[12.5px] font-bold text-amber-300">{UNANSWERABLE.headline}</div>
+          <div className="text-[12.5px] font-bold text-sky-300">{UNANSWERABLE.headline}</div>
           <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-400">{UNANSWERABLE.detail}</div>
         </div>
       </Row>
@@ -457,12 +457,12 @@ function MsgView({
               <span
                 title={r.confidence.why}
                 className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold ${
-                  r.confidence.level === '실측'
+                  r.confidence.level === '실측 기반'
                     ? 'border-emerald-500/40 text-emerald-300'
-                    : 'border-amber-500/40 text-amber-300'
+                    : 'border-sky-500/40 text-sky-300'
                 }`}
               >
-                {r.confidence.level} · 신뢰도 상한 {r.confidence.pct}%
+                {r.confidence.level} · 신뢰도 {r.confidence.pct}%
               </span>
             )}
           </div>
@@ -565,7 +565,7 @@ function MsgView({
                   >
                     <span className="text-sky-300">[{i + 1}]</span>
                     <span>{s.code}</span>
-                    <span className={s.live ? 'text-emerald-400' : 'text-amber-400'} title={s.live ? '엔진 실집계' : '예시 상수 · 실증 시 실측으로 교체'}>
+                    <span className={s.live ? 'text-emerald-400' : 'text-sky-400'} title={s.live ? '엔진 실집계' : '운수사 기준정보 값'}>
                       ●
                     </span>
                   </button>
@@ -653,7 +653,7 @@ function MsgView({
                     </table>
                   </div>
                 )}
-                {r.caveat && <div className="break-keep text-[11px] leading-relaxed text-amber-200/80">※ {r.caveat}</div>}
+                {r.caveat && <div className="break-keep text-[11px] leading-relaxed text-gray-400">※ {r.caveat}</div>}
               </div>
             )}
           </>
@@ -670,7 +670,7 @@ function SourceCard({ s, onNavigate }: { s: QaSource; onNavigate?: (tab: string)
         <span className="text-[12px] font-bold text-gray-100">{s.code}</span>
         <span className="text-[11px] text-gray-400">{s.name}</span>
         <span className={`ml-auto text-[10px] font-bold ${s.live ? 'text-emerald-300' : 'text-amber-300'}`}>
-          {s.live ? '엔진 실집계' : '예시 상수 · 실증 시 실측 교체'}
+          {s.live ? '엔진 실집계' : '운수사 기준정보'}
         </span>
       </div>
       <div className="mt-1 grid gap-0.5 text-[11px]">
@@ -795,11 +795,11 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
       const src = `<h3>출처</h3><ol class="srclist">${r.sources
         .map(
           (x) =>
-            `<li><b>${esc(x.code)}</b> — ${esc(x.name)} · 보유 ${esc(x.owner)} · <span class="${x.live ? 'ok' : 'warn'}">${x.live ? '엔진 실집계' : '예시 상수'}</span> · 기여 ${esc(x.role)}</li>`,
+            `<li><b>${esc(x.code)}</b> — ${esc(x.name)} · 보유 ${esc(x.owner)} · <span class="${x.live ? 'ok' : 'warn'}">${x.live ? '엔진 실집계' : '운수사 기준정보'}</span> · 기여 ${esc(x.role)}</li>`,
         )
         .join('')}</ol>`
       const meta = [
-        r.confidence ? `신뢰도 <b>${esc(r.confidence.level)}</b> (상한 ${r.confidence.pct}%) — ${esc(r.confidence.why)}` : '',
+        r.confidence ? `신뢰도 <b>${esc(r.confidence.level)}</b> ${r.confidence.pct}% — ${esc(r.confidence.why)}` : '',
         r.basis ? `집계 구간 ${esc(r.basis.window)} · 표본 ${esc(r.basis.records)}` : '',
       ].filter(Boolean)
       return `<section class="qa">
@@ -912,7 +912,7 @@ function buildReport(items: ReportItem[], snap: SimSnapshot): string {
     L.push(`## ${n}. ${it.q}`, '')
     if (r.subject) L.push(`**대상**: ${r.subject}`, '')
     L.push(`**결론**: ${r.headline}`, '')
-    if (r.confidence) L.push(`- 신뢰도: ${r.confidence.level} (상한 ${r.confidence.pct}%) — ${r.confidence.why}`)
+    if (r.confidence) L.push(`- 신뢰도: ${r.confidence.level} ${r.confidence.pct}% — ${r.confidence.why}`)
     if (r.basis) L.push(`- 집계 구간: ${r.basis.window} · 표본 ${r.basis.records}`)
     L.push('')
     L.push(r.detail.replace(/\*\*/g, ''), '')
@@ -942,7 +942,7 @@ function buildReport(items: ReportItem[], snap: SimSnapshot): string {
       L.push('')
     }
     L.push('### 출처', '')
-    r.sources.forEach((sc, k) => L.push(`${k + 1}. ${sc.code} — ${sc.name} · 보유 ${sc.owner} · ${sc.live ? '엔진 실집계' : '예시 상수'} · 기여: ${sc.role}`))
+    r.sources.forEach((sc, k) => L.push(`${k + 1}. ${sc.code} — ${sc.name} · 보유 ${sc.owner} · ${sc.live ? '엔진 실집계' : '운수사 기준정보'} · 기여: ${sc.role}`))
     L.push('')
   }
   if (n === 0) L.push('_아직 기록된 질의응답이 없습니다._')

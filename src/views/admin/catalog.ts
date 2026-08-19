@@ -1,4 +1,5 @@
 import { ROUTES } from '../../sim/routes'
+import { DEPOTS } from '../../sim/depots'
 import type { SimSnapshot } from '../../sim/types'
 
 /**
@@ -383,12 +384,16 @@ export const ONTO: OntoClass[] = [
       { name: 'drivenBy → Driver', type: 'rel' },
       { name: 'onRoute → Route', type: 'rel' },
       { name: 'hasEvent → RiskEvent[]', type: 'rel' },
+      { name: 'kind (운행유형)', type: 'enum', note: '영업 / 공차 — 거리·연료만으로는 구분되지 않는 축' },
+      { name: 'fromDepot → Depot', type: 'rel', note: '출·입고한 차고지' },
+      { name: 'direction / seq', type: 'mixed', note: '상행·하행·순환 / 그날 운행 순번' },
       { name: 'distanceKm / fuelM3 / co2Kg', type: 'float' },
     ],
-    count: (s) => s.trips.length,
+    count: (s) => s.trips.length + s.deadheads.length,
     sample: (s) =>
-      s.trips.slice(0, 5).map((t) => ({
+      [...s.trips].slice(0, 3).concat([...s.deadheads].slice(0, 2)).map((t) => ({
         Trip: `${shortId(t.vehicleId)}·${clock(t.startSimTime)}`,
+        유형: t.kind,
         노선: t.routeName,
         '거리(km)': t.distanceKm,
         'CO₂(kg)': t.co2Kg,
@@ -546,6 +551,45 @@ export const ONTO: OntoClass[] = [
       { 구분: '기상', 값: `${s.weather.condition} ${s.weather.tempC}℃`, 영향: `지연 +${s.weather.delayForecastMin}분 · 수요 ${s.weather.demandDeltaPct > 0 ? '+' : ''}${s.weather.demandDeltaPct}%` },
       ...s.incidents.slice(0, 4).map((i) => ({ 구분: i.kind, 값: i.title, 영향: i.status })),
     ],
+  },
+  /*
+   * 차고지·운수사 — 「1회 운행」의 소속 축. 엔진과 AI Q는 이미 이 축으로 답하는데
+   * 정의에 없으면 «온톨로지에 없는 걸 어떻게 답하나»가 된다. 정의와 순회를 같은 어휘로 맞춘다.
+   */
+  {
+    key: 'depot', label: '차고지', en: 'Depot', color: '#f472b6', rel: 'Trip ─ 소속차고지 →',
+    props: [
+      { name: 'depotId / depotName', type: 'string', note: '출·입고 지점 = 공차가 생기는 자리' },
+      { name: 'operatedBy → Operator', type: 'rel' },
+      { name: 'serves → Route', type: 'rel', note: '이 차고지가 대는 인가노선' },
+      { name: 'deadheadKm', type: 'float', note: '차고지↔기점 편도 회송거리 (운수사 기준정보)' },
+    ],
+    count: () => DEPOTS.length,
+    sample: (s) =>
+      DEPOTS.map((d) => ({
+        차고지: d.name,
+        운수사: d.company,
+        '편도(km)': d.deadheadKm,
+        공차: s.deadheads.filter((t) => t.depot === d.name).length,
+        영업: s.trips.filter((t) => t.depot === d.name).length,
+      })),
+  },
+  {
+    key: 'operator', label: '운수사', en: 'Operator', color: '#a78bfa', rel: 'Vehicle ─ 운영주체 →',
+    props: [
+      { name: 'operatorId / companyName', type: 'string' },
+      { name: 'operates → Depot[]', type: 'rel' },
+      { name: 'owns → Vehicle[]', type: 'rel' },
+      { name: 'employs → Driver[]', type: 'rel', note: '정산·평가의 책임 단위' },
+    ],
+    count: () => new Set(DEPOTS.map((d) => d.company)).size,
+    sample: (s) =>
+      [...new Set(DEPOTS.map((d) => d.company))].map((co) => ({
+        운수사: co,
+        차고지: DEPOTS.filter((d) => d.company === co).map((d) => d.name).join(', '),
+        영업: s.trips.filter((t) => t.company === co).length,
+        공차: s.deadheads.filter((t) => t.company === co).length,
+      })),
   },
 ]
 

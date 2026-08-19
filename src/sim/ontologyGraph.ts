@@ -6,11 +6,13 @@
  * 관계를 따라 걸어서** 사슬을 만든다 — 걸을 수 없으면 사슬이 짧아지고, 그 사실이 답에 드러난다.
  *
  * id 규약: `<클래스>:<식별자>` — 화면·답 어디서든 같은 레코드를 같은 id로 가리킨다.
- *  veh:대구70자3742 · drv:김성호 · rt:급행1 · trip:대구70자3742:120 · evt:대구70자3742:1301
+ *  veh:대구70자3742 · drv:김성호 · rt:급행1 · trip:대구70자3742:120:2 · evt:대구70자3742:1301
+ *  회차 id 끝의 숫자는 운행 순번 — 영업과 공차가 같은 시각에 시작해도 서로 다른 노드로 남는다.
  *  dep:북부차고지 · co:경북교통(주) · ctx:폭우 · plea:12 · vd:대구70자3742:1301
  *
  * 이 파일은 두 저장소(qdrive-unified · qdrive-ontology)가 공유한다.
  */
+import { ROUTES } from './routes'
 import type { SimSnapshot } from './types'
 
 export type GNode = { id: string; cls: string; label: string }
@@ -36,8 +38,15 @@ const CLS_KO: Record<string, string> = {
   dep: '차고지',
   co: '운수사',
   plea: '상황 설명',
+  sns: '센서 측정',
+  loc: '위치 관측',
+  wo: '정비 작업지시',
 }
 export const clsKo = (id: string) => CLS_KO[cls(id)] ?? cls(id)
+
+/** 회차 노드 키 — 차량·시작시각·순번. 순번이 없으면 영업과 공차가 한 노드로 합쳐진다 */
+export const tripKey = (t: { vehicleId: string; startSimTime: number; seq: number }) =>
+  `trip:${t.vehicleId}:${Math.round(t.startSimTime)}:${t.seq}`
 
 /**
  * 스냅샷 전체를 노드·링크로 편다.
@@ -66,12 +75,13 @@ export function buildGraph(s: SimSnapshot): { nodes: Map<string, GNode>; out: Ma
     const vid = N(`veh:${v.id}`, v.id)
     const did = N(`drv:${v.driverName}`, `${v.driverName} 기사`)
     L(vid, '운전자', did)
-    const rt = s.trips.find((t) => t.vehicleId === v.id)?.routeName ?? v.routeId
+    // 아직 회차가 없으면 노선 기준정보에서 이름을 가져온다 — «R1»은 사람이 읽는 말이 아니다
+    const rt = s.trips.find((t) => t.vehicleId === v.id)?.routeName ?? ROUTES.find((r) => r.id === v.routeId)?.name ?? v.routeId
     L(vid, '운행노선', N(`rt:${rt}`, rt))
   }
 
   for (const t of [...s.trips, ...s.deadheads]) {
-    const tid = N(`trip:${t.vehicleId}:${Math.round(t.startSimTime)}`, `${t.routeName} ${t.seq}회차`)
+    const tid = N(tripKey(t), `${t.routeName} ${t.seq}회차`)
     L(tid, '수행차량', N(`veh:${t.vehicleId}`, t.vehicleId))
     L(tid, '운행노선', N(`rt:${t.routeName}`, t.routeName))
     const dep = N(`dep:${t.depot}`, t.depot)
@@ -88,12 +98,33 @@ export function buildGraph(s: SimSnapshot): { nodes: Map<string, GNode>; out: Ma
     L(eid, '뒷받침한다', vd)
     // 이벤트가 속한 회차를 시각으로 귀속 — 운행 단위가 중심축이라는 것이 여기서 실제로 쓰인다
     const tr = s.trips.find((t) => t.vehicleId === e.vehicleId && e.simTime >= t.startSimTime && e.simTime <= t.endSimTime)
-    if (tr) L(`trip:${tr.vehicleId}:${Math.round(tr.startSimTime)}`, '발생사건', eid)
+    if (tr) L(tripKey(tr), '발생사건', eid)
   }
 
   for (const p of s.pleas) {
     const pid = N(`plea:${p.id}`, `${p.method} 상황 설명`)
     L(pid, '설명대상', N(`veh:${p.vehicleId}`, p.vehicleId))
+  }
+
+  /*
+   * 센서·위치·정비 — 데이터 관리자 온톨로지에는 있는데 이 순회에만 없던 축.
+   * 없으면 «이 고장은 어느 회차에서 났나»를 AI Q가 걸어서 답할 수 없다.
+   */
+  for (const v of s.vehicles) {
+    const vid = `veh:${v.id}`
+    L(vid, '위치 관측', N(`loc:${v.id}`, `${v.nextStopName} 접근`))
+  }
+  if (s.fault) {
+    const f = s.fault
+    const sid = N(`sns:${f.vehicleId}:coolantTemp`, `냉각수온 ${Math.round(f.coolantTemp)}℃`)
+    L(N(`veh:${f.vehicleId}`, f.vehicleId), '탑재센서', sid)
+    const tr = s.trips.find((t) => t.vehicleId === f.vehicleId && f.startedAt >= t.startSimTime && f.startedAt <= t.endSimTime)
+    if (tr) L(tripKey(tr), '측정치', sid)
+  }
+  for (const w of s.workOrders) {
+    const wid = N(`wo:${w.id}`, `${w.kind} (${w.status})`)
+    L(N(`veh:${w.vehicleId}`, w.vehicleId), '정비이력', wid)
+    L(N(`sns:${w.vehicleId}:coolantTemp`, '냉각수온'), '고장 라벨', wid)
   }
 
   void ctx

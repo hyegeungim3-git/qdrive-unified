@@ -1,3 +1,4 @@
+import { DEPOTS } from '../../sim/depots'
 import { ROUTES } from '../../sim/routes'
 import type { SimSnapshot } from '../../sim/types'
 import { clock, coolantOf, shortId } from './catalog'
@@ -20,15 +21,21 @@ const stopId = (rid: string, name: string) => `stop:${rid}:${name}`
 const evtId = (vid: string, t: number, type: string) => `evt:${vid}:${Math.round(t)}:${type}`
 const snsId = (vid: string, ch: string) => `sns:${vid}:${ch}`
 const locId = (vid: string) => `loc:${vid}`
+/* AI Q의 순회(sim/ontologyGraph.ts)와 같은 id 규약 — 두 그래프가 같은 레코드를 같은 이름으로 가리켜야 한다 */
+const depId = (name: string) => `dep:${name}`
+const coId = (name: string) => `co:${name}`
 const CTX = 'ctx:weather'
+const depotByName = (name: string) => DEPOTS.find((d) => d.name === name)
 
 /** 시작점 후보 — 실제로 쌓인 레코드에서 고른다 */
 export function entryPoints(s: SimSnapshot): InstNode[] {
   const out: InstNode[] = []
-  s.trips.slice(0, 4).forEach((t) =>
+  // 공차도 «1회 운행»이다 — 시작 직후엔 출고 공차만 쌓여 있어서, 영업만 보면 시작점이 텅 빈다
+  ;[...s.trips, ...s.deadheads].slice(0, 3).forEach((t) =>
     out.push({ id: tripId(t.vehicleId, t.startSimTime), cls: 'trip', label: `운행 ${shortId(t.vehicleId)}`, sub: `${clock(t.startSimTime)}–${clock(t.endSimTime)} · ${t.routeName}` }),
   )
-  s.vehicles.slice(0, 3).forEach((v) => out.push({ id: vehId(v.id), cls: 'vehicle', label: shortId(v.id), sub: `${v.driverName} · 안전 ${Math.round(v.score)}점` }))
+  DEPOTS.slice(0, 2).forEach((d) => out.push({ id: depId(d.name), cls: 'depot', label: d.name, sub: `${d.company} · 편도 ${d.deadheadKm}km` }))
+  s.vehicles.slice(0, 2).forEach((v) => out.push({ id: vehId(v.id), cls: 'vehicle', label: shortId(v.id), sub: `${v.driverName} · 안전 ${Math.round(v.score)}점` }))
   s.events.slice(0, 3).forEach((e) => out.push({ id: evtId(e.vehicleId, e.simTime, e.eventType), cls: 'event', label: e.eventType, sub: `${clock(e.simTime)} · ${shortId(e.vehicleId)}` }))
   return out
 }
@@ -55,7 +62,7 @@ export function neighborhood(s: SimSnapshot, focusId: string): Hood | null {
   if (kind === 'trip') {
     const vid = rest[0]
     const start = Number(rest[1])
-    const t = s.trips.find((x) => x.vehicleId === vid && Math.round(x.startSimTime) === start)
+    const t = [...s.trips, ...s.deadheads].find((x) => x.vehicleId === vid && Math.round(x.startSimTime) === start)
     if (!t) return null
     const v = vOf(vid)
     const route = ROUTES.find((r) => r.name === t.routeName)
@@ -71,6 +78,7 @@ export function neighborhood(s: SimSnapshot, focusId: string): Hood | null {
       push({ id: snsId(v.id, 'coolantTemp'), cls: 'sensor', label: 'coolantTemp', sub: `${coolantOf(s, v.id, v.rpm)}℃` }, '측정치')
     if (v) push({ id: locId(v.id), cls: 'loc', label: '궤적', sub: `${v.lat.toFixed(4)}, ${v.lng.toFixed(4)}` }, '궤적')
     push({ id: CTX, cls: 'ctx', label: s.weather.condition, sub: `${s.weather.tempC}℃ · 강수 ${s.weather.rainMm}mm` }, '운행맥락')
+    push({ id: depId(t.depot), cls: 'depot', label: t.depot, sub: `${t.company} · ${t.kind}` }, '소속차고지')
     return { center, nodes, edges }
   }
 
@@ -87,6 +95,8 @@ export function neighborhood(s: SimSnapshot, focusId: string): Hood | null {
     push({ id: snsId(vid, 'coolantTemp'), cls: 'sensor', label: 'coolantTemp', sub: `${coolantOf(s, vid, v.rpm)}℃` }, '탑재 센서')
     push({ id: locId(vid), cls: 'loc', label: '현재 위치', sub: v.nextStopName }, '위치 관측')
     s.workOrders.filter((w) => w.vehicleId === vid).slice(0, 2).forEach((w) => push({ id: `wo:${w.id}`, cls: 'work', label: w.kind, sub: w.status }, '정비이력'))
+    const myCo = [...s.trips, ...s.deadheads].find((t) => t.vehicleId === vid)
+    if (myCo) push({ id: coId(myCo.company), cls: 'operator', label: myCo.company, sub: myCo.depot }, '운영주체')
     return { center, nodes, edges }
   }
 
@@ -186,6 +196,42 @@ export function neighborhood(s: SimSnapshot, focusId: string): Hood | null {
     const center: InstNode = { id: focusId, cls: 'work', label: w.kind, sub: `${shortId(w.vehicleId)} · ${w.status} · ${w.estHours}h` }
     push({ id: vehId(w.vehicleId), cls: 'vehicle', label: shortId(w.vehicleId), sub: '정비 대상' }, '대상 차량', 'in')
     push({ id: snsId(w.vehicleId, 'coolantTemp'), cls: 'sensor', label: 'coolantTemp', sub: '이상 징후' }, '근거 센서', 'in')
+    return { center, nodes, edges }
+  }
+
+  /* ── 차고지 — 공차가 생기는 자리 ── */
+  if (kind === 'dep') {
+    const name = rest.join(':')
+    const d = depotByName(name)
+    if (!d) return null
+    const rev = s.trips.filter((t) => t.depot === name)
+    const dead = s.deadheads.filter((t) => t.depot === name)
+    const center: InstNode = { id: focusId, cls: 'depot', label: name, sub: `${d.company} · 편도 ${d.deadheadKm}km · 공차 ${dead.length}건` }
+    push({ id: coId(d.company), cls: 'operator', label: d.company, sub: '운영 주체' }, '운영주체')
+    const route = ROUTES.find((r) => r.id === d.routeId)
+    if (route) push({ id: rtId(route.id), cls: 'route', label: route.name, sub: '이 차고지가 대는 노선' }, '담당노선')
+    dead.slice(0, 2).forEach((t) => push(nodeOfTrip(t), '공차 운행', 'in'))
+    rev.slice(0, 2).forEach((t) => push(nodeOfTrip(t), '영업 운행', 'in'))
+    return { center, nodes, edges }
+  }
+
+  /* ── 운수사 — 정산·평가의 책임 단위 ── */
+  if (kind === 'co') {
+    const name = rest.join(':')
+    const mine = DEPOTS.filter((d) => d.company === name)
+    if (mine.length === 0) return null
+    const runs = [...s.trips, ...s.deadheads].filter((t) => t.company === name)
+    const center: InstNode = { id: focusId, cls: 'operator', label: name, sub: `차고지 ${mine.length} · 운행 ${runs.length}건` }
+    mine.forEach((d) => push({ id: depId(d.name), cls: 'depot', label: d.name, sub: `편도 ${d.deadheadKm}km` }, '운영차고지'))
+    const vids = [...new Set(runs.map((t) => t.vehicleId))].slice(0, 3)
+    vids.forEach((vid) => {
+      const v = vOf(vid)
+      if (v) push({ id: vehId(vid), cls: 'vehicle', label: shortId(vid), sub: v.driverName }, '보유차량')
+    })
+    vids.slice(0, 2).forEach((vid) => {
+      const v = vOf(vid)
+      if (v) push({ id: drvId(v.driverName), cls: 'driver', label: v.driverName, sub: `안전 ${Math.round(v.score)}점` }, '소속기사')
+    })
     return { center, nodes, edges }
   }
 

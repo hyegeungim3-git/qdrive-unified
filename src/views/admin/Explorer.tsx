@@ -73,7 +73,7 @@ export default function Explorer({ snap }: { snap: SimSnapshot }) {
       {/* 시작점 + 경로 */}
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <span className="text-[11px] font-semibold text-gray-500">시작점</span>
-        {entries.slice(0, 6).map((e) => (
+        {entries.slice(0, 8).map((e) => (
           <button
             key={e.id}
             onClick={() => {

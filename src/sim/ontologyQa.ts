@@ -11,7 +11,7 @@
  * 이 파일은 두 저장소(qdrive-unified · qdrive-ontology)가 공유한다. 한쪽을 고치면 양쪽에 반영할 것.
  */
 import { DEPOTS } from './depots'
-import { countByClass, walkFrom, type Walk } from './ontologyGraph'
+import { tripKey, countByClass, walkFrom, type Walk } from './ontologyGraph'
 import type { Packet521, SimSnapshot } from './types'
 
 /**
@@ -203,7 +203,7 @@ const tripLine = (t: Packet521) =>
 
 export const tripTargets = (s: SimSnapshot): QaTarget[] =>
   [...s.trips.slice(0, 5).map((t) => ({ id: `t:${t.vehicleId}:${Math.round(t.startSimTime)}`, label: `${short(t.vehicleId)} ${t.seq}회차`, sub: `${mmss(t.startSimTime)}~${mmss(t.endSimTime)} ${t.routeName}` })),
-   ...s.deadheads.slice(0, 3).map((t) => ({ id: `d:${t.vehicleId}:${Math.round(t.endSimTime)}`, label: `${short(t.vehicleId)} ${t.routeName}`, sub: `회송 ${t.distanceKm}km` }))]
+   ...s.deadheads.slice(0, 3).map((t) => ({ id: `d:${t.vehicleId}:${Math.round(t.endSimTime)}:${t.seq}`, label: `${short(t.vehicleId)} ${t.routeName}`, sub: `회송 ${t.distanceKm}km` }))]
 
 const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
   const id = 'tripKind'
@@ -218,10 +218,10 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
   /** 지목한 회차가 있으면 그것을, 없으면 최근 회차를 본다 */
   const pickTrip = () => {
     if (!targetId) return s.trips[0]
-    const [kind, vid, t0] = targetId.split(':')
+    const [kind, vid, t0, seq] = targetId.split(':')
     const pool = kind === 'd' ? dh : s.trips
     const key = kind === 'd' ? (x: Packet521) => Math.round(x.endSimTime) : (x: Packet521) => Math.round(x.startSimTime)
-    return pool.find((x) => x.vehicleId === vid && String(key(x)) === t0) ?? null
+    return pool.find((x) => x.vehicleId === vid && String(key(x)) === t0 && (!seq || String(x.seq) === seq)) ?? null
   }
   const picked = pickTrip()
   if (targetId && !picked) return notFound(id, q, targetId, path, sources)
@@ -242,7 +242,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
   const isRev = latest.kind === '영업'
   return {
     id, q, path, sources,
-    walk: walkOf(s, `trip:${latest.vehicleId}:${Math.round(latest.startSimTime)}`, `${latest.routeName} ${latest.seq}회차`),
+    walk: walkOf(s, tripKey(latest), `${latest.routeName} ${latest.seq}회차`),
     subject: `${latest.vehicleId} · ${latest.seq}회차 (${mmss(latest.startSimTime)}~${mmss(latest.endSimTime)})`,
     record: {
       title: `DTG 521 운행기록 — ${latest.vehicleId}`,

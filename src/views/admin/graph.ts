@@ -18,6 +18,8 @@ export const NODES: NodePos[] = [
   { key: 'ctx', x: 104, y: 180, r: 26 },
   { key: 'work', x: 108, y: 62, r: 24 },
   { key: 'plea', x: 652, y: 302, r: 24 },
+  { key: 'depot', x: 240, y: 330, r: 26 },
+  { key: 'operator', x: 104, y: 300, r: 24 },
 ]
 
 /** at = 라벨을 놓을 위치(0=시작 노드 쪽, 1=끝 노드 쪽) — 겹침 회피용 */
@@ -38,6 +40,9 @@ export const EDGES: Edge[] = [
   { from: 'vehicle', to: 'driver', label: '배정', kind: 'derived' },
   { from: 'event', to: 'loc', label: '발생 지점', kind: 'derived', at: 0.25 },
   { from: 'sensor', to: 'work', label: '고장 라벨', kind: 'derived', at: 0.16 },
+  { from: 'trip', to: 'depot', label: '소속차고지', kind: 'core', at: 0.72 },
+  { from: 'depot', to: 'operator', label: '운영주체', kind: 'core' },
+  { from: 'vehicle', to: 'operator', label: '보유차량', kind: 'derived', at: 0.7 },
 ]
 
 /** 엣지를 두 원의 경계에서 끊어 선이 원 안으로 들어가지 않게 한다 */

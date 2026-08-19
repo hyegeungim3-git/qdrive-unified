@@ -147,6 +147,7 @@ export class SimEngine {
     this.vehicles = FLEET.map((seed) => this.spawnVehicle(seed))
     // 영업 개시 전 이미 일어난 일 — 전 차량이 차고지에서 기점까지 공차로 나왔다
     this.vehicles.forEach((v) => this.pushDeadhead(v, '출고'))
+    this.seedPleas()
     this.snapshot = this.buildSnapshot()
   }
 
@@ -585,8 +586,26 @@ export class SimEngine {
     return null
   }
 
+  /** 지금 있는 곳을 «앞 정류장 → 다음 정류장»으로. 좌표는 현장을 못 찾지만 이건 찾는다 */
+  private segmentOf(v: VehicleInternal): { segment: string; road: string } {
+    const ctx = this.routes.get(v.routeId)
+    if (!ctx) return { segment: '구간 미상', road: '' }
+    const { route, stopDists } = ctx
+    let prev = route.stops[0]?.name ?? ''
+    let next = route.stops[route.stops.length - 1]?.name ?? ''
+    for (let i = 0; i < stopDists.length; i++) {
+      if (stopDists[i] <= v.odoOnRoute) prev = route.stops[i].name
+      if (stopDists[i] > v.odoOnRoute) {
+        next = route.stops[i].name
+        break
+      }
+    }
+    return { segment: prev === next ? `${prev} 인근` : `${prev} → ${next}`, road: route.road }
+  }
+
   private fireEvent(v: VehicleInternal, type: RiskEventType) {
     const reason = this.justifyEvent(v, type)
+    const where = this.segmentOf(v)
     const ev: Packet409 = {
       packetType: 409,
       vehicleId: v.id,
@@ -597,6 +616,8 @@ export class SimEngine {
       rpm: v.rpm,
       simTime: this.simTime,
       routeName: this.routes.get(v.routeId)?.route.name ?? v.routeId,
+      segment: where.segment,
+      road: where.road,
       weather: this.weather.condition,
       justified: reason != null,
       justifyReason: reason ?? undefined,
@@ -663,6 +684,31 @@ export class SimEngine {
    * 차량 누적(distanceKm·fuelM3)에는 더하지 않는다 — 영업 기준 연비·정산 수치를 흔들지 않기 위해서다.
    * 공차 연료는 deadheads 배열에서 별도로 합산한다.
    */
+  /**
+   * 기사 상황 설명 예시 — 소명은 «있으면 보이는» 것이라 빈 상태로 두면 그 축이 없는 것처럼 읽힌다.
+   * 시연 시작 시점에 접수·인정 각 1건씩 두어 왕복(접수 → 인정)이 화면에 보이게 한다.
+   */
+  private seedPleas() {
+    const seeds: { vid: string; type: RiskEventType; note: string; method: '음성' | '버튼'; status: '접수' | '인정' }[] = [
+      { vid: '대구70자3742', type: '급감속', note: '앞차가 정류장에 급정거해서 따라 섰습니다', method: '음성', status: '인정' },
+      { vid: '대구70자5563', type: '급진로변경', note: '공사 구간 라바콘 때문에 차로를 옮겼습니다', method: '버튼', status: '접수' },
+    ]
+    for (const sd of seeds) {
+      const v = this.vehicles.find((x) => x.id === sd.vid)
+      if (!v) continue
+      this.pleas.unshift({
+        id: this.pleaSeq++,
+        vehicleId: v.id,
+        driverName: v.driverName,
+        eventType: sd.type,
+        note: sd.note,
+        method: sd.method,
+        simTime: 0,
+        status: sd.status,
+      })
+    }
+  }
+
   private pushDeadhead(v: VehicleInternal, leg: '출고' | '입고') {
     const depot = depotOfRoute(v.routeId)
     const km = depot.deadheadKm

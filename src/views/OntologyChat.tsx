@@ -518,8 +518,25 @@ function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: numbe
 
             {openEvidence && (
               <div className="space-y-2">
+                {r.walk && (
+                  <div className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2">
+                    <div className="flex flex-wrap items-baseline gap-1.5">
+                      <span className="text-[10.5px] font-bold tracking-wider text-gray-400">실제로 걸은 연결</span>
+                      <span className="text-[10px] text-gray-500">
+                        {r.walk.startLabel}에서 출발 · 레코드 {r.walk.nodes}개 ({r.walk.classes.join(' · ')})
+                      </span>
+                    </div>
+                    <ul className="mt-1 space-y-0.5">
+                      {r.walk.trail.map((t, i) => (
+                        <li key={i} className="break-keep font-mono text-[10.5px] leading-relaxed text-gray-300">
+                          {t}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-1">
-                  <span className="text-[10.5px] font-bold tracking-wider text-gray-400">근거 사슬</span>
+                  <span className="text-[10.5px] font-bold tracking-wider text-gray-400">문법상 사슬</span>
                   {r.path.map((p, i) => (
                     <span key={i} className="rounded border border-gray-800 bg-gray-950 px-1.5 py-0.5 text-[10.5px] font-semibold text-gray-300">
                       {p}

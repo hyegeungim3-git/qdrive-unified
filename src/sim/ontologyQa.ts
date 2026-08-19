@@ -11,6 +11,7 @@
  * 이 파일은 두 저장소(qdrive-unified · qdrive-ontology)가 공유한다. 한쪽을 고치면 양쪽에 반영할 것.
  */
 import { DEPOTS } from './depots'
+import { countByClass, walkFrom, type Walk } from './ontologyGraph'
 import type { Packet521, SimSnapshot } from './types'
 
 /**
@@ -78,8 +79,10 @@ export type QaResult = {
   id: string
   /** 질문 원문 */
   q: string
-  /** 근거 사슬 — 순회한 클래스·관계 */
+  /** 문법상 사슬 — 어떤 클래스를 어떤 관계로 걸을 수 있는가 (정의) */
   path: string[]
+  /** 실제로 걸은 사슬 — 레코드 사이를 순회한 결과 (증거) */
+  walk?: { trail: string[]; nodes: number; classes: string[]; startLabel: string }
   /** 이 답이 쓴 데이터 원천 */
   sources: QaSource[]
   /** 한 줄 답 */
@@ -122,6 +125,12 @@ export type QaTopic = {
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`
 const short = (id: string) => id.slice(-4) + '호'
 const km = (n: number) => `${n.toFixed(1)}km`
+
+/** 순회 결과를 답에 담을 형태로 — 걸을 수 없으면 undefined라서 화면이 «못 걸었다»를 말할 수 있다 */
+const walkOf = (s: SimSnapshot, startId: string, startLabel: string) => {
+  const w: Walk = walkFrom(s, startId)
+  return w.nodes.length ? { trail: w.trail, nodes: w.nodes.length, classes: countByClass(w), startLabel } : undefined
+}
 
 /** 영업·공차를 한 줄로 요약 — 여러 질문이 같은 형식을 쓴다 */
 const tripLine = (t: Packet521) =>
@@ -168,6 +177,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
   const isRev = latest.kind === '영업'
   return {
     id, q, path, sources,
+    walk: walkOf(s, `trip:${latest.vehicleId}:${Math.round(latest.startSimTime)}`, `${latest.routeName} ${latest.seq}회차`),
     subject: `${latest.vehicleId} · ${latest.seq}회차 (${mmss(latest.startSimTime)}~${mmss(latest.endSimTime)})`,
     record: {
       title: `DTG 521 운행기록 — ${latest.vehicleId}`,
@@ -250,6 +260,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
     src(SRC.dtg409, '이벤트 종류·발생 시각·속도·RPM'),
     src(SRC.rtk, '발생 지점 정밀 위치'),
     src(SRC.dtg521, '이벤트가 속한 회차·노선 방향'),
+    src(SRC.route, '정류장 구간·도로명'),
     src(SRC.weather, '발생 시점 기상 맥락'),
     src(SRC.plea, '기사 상황 설명(있을 때)'),
   ]
@@ -269,6 +280,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
   const plea = s.pleas.find((p) => p.vehicleId === decel.vehicleId && p.eventType === decel.eventType)
   return {
     id, q, path, sources,
+    walk: walkOf(s, `evt:${decel.vehicleId}:${Math.round(decel.simTime)}`, `${decel.eventType} ${mmss(decel.simTime)}`),
     subject: `${decel.vehicleId} · ${decel.eventType} @ ${mmss(decel.simTime)}`,
     record: {
       title: `DTG 409 위험운전 패킷 — ${decel.vehicleId}`,
@@ -292,7 +304,8 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
         items: [
           `${mmss(decel.simTime)} · ${decel.routeName}${trip ? ` ${trip.direction} ${trip.seq}회차` : ''}`,
           `${v?.driverName ?? '기사'} 기사 · ${decel.vehicleId}`,
-          `발생 지점 ${decel.lat.toFixed(4)}, ${decel.lng.toFixed(4)} (RTK 정밀 위치)`,
+          `발생 지점 ${decel.segment}${decel.road ? ` · ${decel.road}` : ''}`,
+          `RTK 정밀 좌표 ${decel.lat.toFixed(5)}, ${decel.lng.toFixed(5)}`,
         ],
       },
       {
@@ -309,7 +322,16 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
         src: ['날씨·돌발', '기사 소명'],
         items: decel.justified
           ? [`정당 인정 — 사유: ${decel.justifyReason}`, '감점되지 않음 (맥락이 붙어야 가능한 판정)']
-          : ['현재 감점 처리', plea ? `기사 상황 설명 ${plea.method} 접수 (${plea.status})` : '기사 상황 설명 없음 — 인정되면 복원됨'],
+          : ['현재 감점 처리', plea ? `기사 상황 설명 ${plea.method} 접수 (${plea.status})` : '이 이벤트에 대한 기사 상황 설명 없음 — 인정되면 복원됨'],
+      },
+      {
+        h: '기사 상황 설명 (소명)',
+        src: ['기사 소명'],
+        items: s.pleas.length
+          ? s.pleas
+              .slice(0, 4)
+              .map((p) => `${p.driverName} 기사 · ${p.eventType} — “${p.note}” (${p.method} · ${p.status})`)
+          : ['접수된 상황 설명이 없습니다'],
       },
       { h: '같은 맥락 누적', src: ['DTG 409'], items: [`${decel.routeName} · ${decel.weather} 조건에서 ${sameCtx}건`] },
     ],
@@ -327,7 +349,8 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
       { k: '노선', v: `${decel.routeName}${trip ? ` ${trip.direction} ${trip.seq}회차` : ''}`, src: 'DTG 521' },
       { k: '발생 시점 날씨', v: `${decel.weather} (현재 ${s.weather.condition})`, src: '날씨·돌발' },
       { k: '속도 · RPM', v: `${decel.speedKmh}km/h · ${decel.rpm}`, src: 'DTG 409' },
-      { k: '발생 지점', v: `${decel.lat.toFixed(4)}, ${decel.lng.toFixed(4)}`, src: 'RTK' },
+      { k: '발생 지점', v: `${decel.segment}${decel.road ? ` · ${decel.road}` : ''}`, src: '노선 기준정보' },
+      { k: 'RTK 좌표', v: `${decel.lat.toFixed(5)}, ${decel.lng.toFixed(5)}`, src: 'RTK' },
       { k: '판정', v: decel.justified ? `정당 — ${decel.justifyReason}` : '감점', src: '날씨·돌발' },
       { k: '상황 설명', v: plea ? `${plea.method} 접수 (${plea.status})` : '없음', src: '기사 소명' },
       { k: '같은 노선·같은 날씨', v: `${sameCtx}건 누적`, src: 'DTG 409' },
@@ -373,6 +396,7 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
   const revKm = s.trips.reduce((n, t) => n + t.distanceKm, 0)
   return {
     id, q, path, sources,
+    walk: walkOf(s, `dep:${top.depot}`, top.depot),
     subject: `${top.depot} (${top.company})`,
     record: {
       title: `차고지 출입고 기록 — ${top.depot}`,
@@ -469,6 +493,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
   )
   return {
     id, q, path, sources,
+    walk: one ? walkOf(s, `veh:${one.id}`, one.id) : walkOf(s, `veh:${s.vehicles[0]?.id ?? ''}`, s.vehicles[0]?.id ?? ''),
     subject: one ? `${one.id} (${one.driverName} 기사 · ${PERSONA_LABEL[one.persona]})` : '실증 9대 전체',
     record: one
       ? {

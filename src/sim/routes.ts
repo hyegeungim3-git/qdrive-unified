@@ -15,6 +15,8 @@ export interface BusStop {
 export interface BusRoute {
   id: string
   name: string
+  /** 이 노선이 타는 주요 도로 — 발생 지점을 좌표가 아니라 «어디»로 말하기 위해 */
+  road: string
   color: string
   loop: boolean
   points: LatLng[]
@@ -26,6 +28,7 @@ export const ROUTES: BusRoute[] = [
     // 동서축 — 달구벌대로 (성서 ~ 반월당 ~ 담티)
     id: 'R1',
     name: '급행1',
+    road: '달구벌대로',
     color: '#ef4444',
     loop: false,
     points: [
@@ -57,6 +60,7 @@ export const ROUTES: BusRoute[] = [
     // 도심 순환
     id: 'R2',
     name: '순환2',
+    road: '도심 순환로',
     color: '#3b82f6',
     loop: true,
     points: [
@@ -88,6 +92,7 @@ export const ROUTES: BusRoute[] = [
     // 남북축 — 팔달로·중앙대로 (칠곡 ~ 반월당 ~ 성당못)
     id: 'R3',
     name: '급행3',
+    road: '팔달로·중앙대로',
     color: '#22c55e',
     loop: false,
     points: [

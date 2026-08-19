@@ -11,6 +11,7 @@
  */
 
 const ALLOWED_ORIGINS = [
+  'https://qdrive-unified.pages.dev', // Cloudflare Pages (정본)
   'https://hyegeungim3-git.github.io',
   'http://localhost:5173', // vite dev
   'http://127.0.0.1:5173',

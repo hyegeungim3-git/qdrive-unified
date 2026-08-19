@@ -4,7 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/qdrive-unified/', // GitHub Pages 서브경로 — 배포 저장소명과 일치시킬 것
+  // 기본은 루트 '/' — Cloudflare Pages(qdrive-unified.pages.dev)가 정본 배포처.
+  // GitHub Pages는 저장소 하위경로라 워크플로에서 BASE_PATH=/qdrive-unified/ 를 넘긴다.
+  base: process.env.BASE_PATH ?? '/',
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {

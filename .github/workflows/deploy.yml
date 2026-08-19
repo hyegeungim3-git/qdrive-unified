@@ -27,7 +27,10 @@ jobs:
           node-version: 22
       # Windows에서 생성된 lockfile은 Linux 옵션 의존성 항목이 빠져 npm ci가 실패 — install 사용
       - run: npm install --no-audit --no-fund
+      # GitHub Pages는 저장소 하위경로로 서빙 — vite base를 여기서 지정 (기본값은 Cloudflare Pages용 '/')
       - run: npm run build
+        env:
+          BASE_PATH: /qdrive-unified/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

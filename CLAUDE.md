@@ -22,11 +22,16 @@
 별도 진입점: **시민 공개 페이지**(`#citizen`) · 공통 오버레이: **AI 코파일럿**(엔진 규칙조회+라이브 Claude, 전 탭)
 AI 업무센터·에이전트 플랫폼은 최상위 탭에서 해체돼 각 소속 탭의 조치함/내 에이전트/승인함으로 흡수됨 — 상세는 하단 "서비스 구조 재편" 절 참조. 이 절 아래 매트릭스·탭 목록은 그 재편 **이전** 스냅샷이므로 탭 개수 등 일부 옛 정보 포함(이력 보존용).
 
-## 배포 (2026-07-13)
+## 배포 (2026-08-19 Cloudflare Pages 전환 — 최신)
+- **라이브(정본)**: https://qdrive-unified.pages.dev/ — Cloudflare Pages, 계정 hyegeungim3@gmail.com
+- **시민 공개**: https://qdrive-unified.pages.dev/#citizen
+- **재배포**: `npm run build` 후 `npx wrangler pages deploy dist --project-name=qdrive-unified --branch=main --commit-dirty=true`
 - **저장소(공개)**: https://github.com/hyegeungim3-git/qdrive-unified
-- **라이브**: https://hyegeungim3-git.github.io/qdrive-unified/ (main push 시 Actions 자동 배포)
-- **시민 공개**: https://hyegeungim3-git.github.io/qdrive-unified/#citizen
-- Pages는 `.github/workflows/deploy.yml`(트리거 `main`, npm install, dist 업로드). vite base `/qdrive-unified/` = 저장소명 일치. 민감정보 미커밋 확인 후 공개.
+- **GitHub Pages(보조·유지)**: https://hyegeungim3-git.github.io/qdrive-unified/ — main push 시 Actions 자동 배포. 기존 공유 링크 보호용으로 살려 둠.
+- **base 경로 이원화**: vite base 기본값은 `'/'`(Cloudflare Pages는 루트 서빙). GitHub Pages는 저장소 하위경로라 `.github/workflows/deploy.yml`이 `BASE_PATH=/qdrive-unified/`를 넘겨 오버라이드. **vite.config.ts의 base를 직접 하드코딩하지 말 것** — 두 배포처가 갈라진다.
+- `public/_redirects`(`/* /index.html 200`) — Cloudflare Pages SPA 폴백. 해시 라우팅(#citizen)이라 필수는 아니나 임의 경로 404 방지.
+- **BIS 프록시 Worker**(`worker/`, qdrive-bis-proxy.hyegeungim3.workers.dev): `ALLOWED_ORIGINS`에 `https://qdrive-unified.pages.dev` 추가·재배포 완료. **새 도메인을 붙이면 이 목록도 같이 고치고 `npx wrangler deploy` 할 것** — 안 하면 실차 오버레이만 조용히 죽는다.
+- **Windows Git Bash 함정**: `BASE_PATH=/qdrive-unified/ ...`를 Git Bash에서 실행하면 MSYS 경로 변환이 값을 `C:/Program Files/Git/qdrive-unified/`로 바꿔 버린다. 로컬 확인 시 `MSYS_NO_PATHCONV=1` 필수(GitHub Actions는 Linux라 무관).
 
 ## 통합 매트릭스 (best-of-both — 진행 상태)
 | 통합 대상 | proto 기반(유지) | 탄소 플랫폼에서 이식 | 결정 | 상태 |

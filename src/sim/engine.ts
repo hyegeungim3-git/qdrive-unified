@@ -1,3 +1,4 @@
+import { DEADHEAD_EVERY_N_TRIPS, depotOfRoute } from './depots'
 import { haversine, indexPolyline, pointAt, type PolylineIndex } from './geo'
 import { ROUTES, type BusRoute } from './routes'
 import {
@@ -90,6 +91,10 @@ interface VehicleInternal extends VehicleState {
   tripStartDist: number
   /** 회차 시작 시점의 누적 연료 — 회차별 연료·CO₂를 누적값이 아닌 구간값으로 산출 */
   tripStartFuel: number
+  /** 그날 운행 순번 (영업·공차 통합, 1부터) */
+  tripSeq: number
+  /** 마지막 회송 이후 완료한 영업 회차 수 */
+  tripsSinceDepot: number
   eventCooldown: number
   /** 승인된 배차 권고로 다음 정류장에서 추가 대기할 시간 (s) */
   pendingHoldSec: number
@@ -102,6 +107,8 @@ export class SimEngine {
   private vehicles: VehicleInternal[] = []
   private events: Packet409[] = []
   private trips: Packet521[] = []
+  /** 공차 운행 — 영업(trips)과 섞으면 연비·정산 화면이 오염되므로 별도 보관 */
+  private deadheads: Packet521[] = []
   private complaints: Complaint[] = []
   private fault: VehicleFault | null = null
   private complaintSeq = 1
@@ -138,6 +145,8 @@ export class SimEngine {
       this.routes.set(route.id, { route, idx, stopDists })
     }
     this.vehicles = FLEET.map((seed) => this.spawnVehicle(seed))
+    // 영업 개시 전 이미 일어난 일 — 전 차량이 차고지에서 기점까지 공차로 나왔다
+    this.vehicles.forEach((v) => this.pushDeadhead(v, '출고'))
     this.snapshot = this.buildSnapshot()
   }
 
@@ -587,6 +596,8 @@ export class SimEngine {
       speedKmh: Math.round(v.speedKmh),
       rpm: v.rpm,
       simTime: this.simTime,
+      routeName: this.routes.get(v.routeId)?.route.name ?? v.routeId,
+      weather: this.weather.condition,
       justified: reason != null,
       justifyReason: reason ?? undefined,
     }
@@ -615,6 +626,8 @@ export class SimEngine {
     if (dist < 0.5) return
     // 회차 구간값 (누적값 아님) — 회차별 연비·CO₂가 회를 거듭할수록 나빠 보이던 오류 수정
     const fuel = Math.max(0, v.fuelM3 - v.tripStartFuel)
+    const depot = depotOfRoute(v.routeId)
+    v.tripSeq++
     this.trips.unshift({
       packetType: 521,
       vehicleId: v.id,
@@ -624,12 +637,54 @@ export class SimEngine {
       distanceKm: Math.round(dist * 10) / 10,
       fuelM3: Math.round(fuel * 100) / 100,
       co2Kg: Math.round(fuel * CO2_PER_M3 * 10) / 10,
+      kind: '영업',
+      direction: route.loop ? '순환' : v.dir === 1 ? '상행' : '하행',
+      seq: v.tripSeq,
+      depot: depot.name,
+      company: depot.company,
     })
     if (this.trips.length > 60) this.trips.pop()
     v.tripStartTime = this.simTime
     v.tripStartDist = v.distanceKm
     v.tripStartFuel = v.fuelM3
     v.etasSubmitted = true // eTAS 자동제출 완료
+
+    // 교대·급유 주기마다 차고지 회송 — 수입 없는 주행이 여기서 실제로 생긴다
+    v.tripsSinceDepot++
+    if (v.tripsSinceDepot >= DEADHEAD_EVERY_N_TRIPS) {
+      v.tripsSinceDepot = 0
+      this.pushDeadhead(v, '입고')
+      this.pushDeadhead(v, '출고')
+    }
+  }
+
+  /**
+   * 공차(회송) 기록 1건. 거리는 차고지↔기점 예시 상수, 연료는 같은 연비 모델로 환산한다.
+   * 차량 누적(distanceKm·fuelM3)에는 더하지 않는다 — 영업 기준 연비·정산 수치를 흔들지 않기 위해서다.
+   * 공차 연료는 deadheads 배열에서 별도로 합산한다.
+   */
+  private pushDeadhead(v: VehicleInternal, leg: '출고' | '입고') {
+    const depot = depotOfRoute(v.routeId)
+    const km = depot.deadheadKm
+    const fuel = km * FUEL_PER_KM * (1 + PERSONAS[v.persona].fuelPenalty)
+    const durSec = Math.round((km / 26) * 3600) // 회송 평균 26km/h 근사
+    v.tripSeq++
+    this.deadheads.unshift({
+      packetType: 521,
+      vehicleId: v.id,
+      routeName: `${depot.name} ${leg}`,
+      startSimTime: Math.max(0, this.simTime - durSec),
+      endSimTime: this.simTime,
+      distanceKm: Math.round(km * 10) / 10,
+      fuelM3: Math.round(fuel * 100) / 100,
+      co2Kg: Math.round(fuel * CO2_PER_M3 * 10) / 10,
+      kind: '공차',
+      direction: '회송',
+      seq: v.tripSeq,
+      depot: depot.name,
+      company: depot.company,
+    })
+    if (this.deadheads.length > 80) this.deadheads.pop()
   }
 
   private stepFault(dt: number) {
@@ -706,6 +761,8 @@ export class SimEngine {
       tripStartTime: 0,
       tripStartDist: 0,
       tripStartFuel: 0,
+      tripSeq: 0,
+      tripsSinceDepot: 0,
       eventCooldown: 5,
       pendingHoldSec: 0,
     }
@@ -807,6 +864,7 @@ export class SimEngine {
       vehicles,
       events: [...this.events],
       trips: [...this.trips],
+      deadheads: [...this.deadheads],
       fault: this.fault
         ? { ...this.fault, history: [...this.fault.history] }
         : null,

@@ -36,6 +36,10 @@ export interface Packet409 {
   speedKmh: number // 차량속도 (GPS 아님 — 내부 차량속도 기반)
   rpm: number
   simTime: number // 시뮬레이션 시각 (초)
+  /** 발생 시점의 노선명 — 사후 조회 시 차량의 «현재» 노선이 아니라 그때의 노선을 답하기 위해 박아 둔다 */
+  routeName: string
+  /** 발생 시점의 날씨 — 스냅샷은 현재 날씨만 들고 있어, 이벤트에 새기지 않으면 과거 이벤트의 맥락을 잃는다 */
+  weather: WeatherCondition
   /** 맥락 융합 판정: 방어적 조작으로 인정되어 감점 면제 */
   justified?: boolean
   justifyReason?: string
@@ -53,7 +57,20 @@ export interface Plea {
   status: '접수' | '인정'
 }
 
-/** 운행기록 요약 — 공단 521 패킷 상당 */
+/**
+ * 운행유형 — 「이 주행은 영업인가 공차인가」에 답하는 축.
+ * 영업 = 승객을 태우는 인가노선 주행 / 공차 = 차고지 출입고·회송 (수입 없는 주행)
+ */
+export type TripKind = '영업' | '공차'
+
+/** 노선 방향 — 왕복 노선은 상·하행, 순환 노선은 순환 하나뿐 */
+export type TripDirection = '상행' | '하행' | '순환' | '회송'
+
+/**
+ * 운행기록 요약 — 공단 521 패킷 상당.
+ * 뒤쪽 6개 필드가 「1회 운행」 온톨로지의 나머지 항목(회사·차고지·방향·순번·유형)이다.
+ * 이것이 없으면 거리·연료는 있어도 «무엇에 관한 주행인가»를 답할 수 없다.
+ */
 export interface Packet521 {
   packetType: 521
   vehicleId: string
@@ -63,6 +80,16 @@ export interface Packet521 {
   distanceKm: number
   fuelM3: number // CNG 소모량
   co2Kg: number
+  /** 운행유형 — 영업 / 공차 */
+  kind: TripKind
+  /** 노선 방향 */
+  direction: TripDirection
+  /** 그날 이 차량의 운행 순번 (1부터, 공차 포함) */
+  seq: number
+  /** 소속 차고지 */
+  depot: string
+  /** 운수회사 */
+  company: string
 }
 
 export type DriverPersonaId = 'A' | 'B' | 'C'
@@ -221,7 +248,10 @@ export interface SimSnapshot {
   weather: WeatherState
   vehicles: VehicleState[]
   events: Packet409[] // 최근 이벤트 (최신 우선)
+  /** 영업 운행만 — 기존 화면(운행 이력·연비·정산)이 그대로 쓰는 축이라 공차를 섞지 않는다 */
   trips: Packet521[]
+  /** 공차 운행 (차고지 출고·회송) — 영업과 분리 집계해야 공차율·차고지 배치 효율을 답할 수 있다 */
+  deadheads: Packet521[]
   fault: VehicleFault | null
   complaints: Complaint[]
   recommendations: DispatchRecommendation[]

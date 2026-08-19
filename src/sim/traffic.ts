@@ -1,4 +1,4 @@
-import { EXTRA_ROUTES, ROUTES } from './routes'
+import { EXTRA_ROUTES } from './routes'
 import { MAJOR_ROADS } from './roads'
 import { indexPolyline, pointAt, type PolylineIndex } from './geo'
 import type { LatLng } from './geo'
@@ -15,7 +15,6 @@ import type { LatLng } from './geo'
 export interface BgBus {
   id: string
   pos: LatLng
-  heading: number
   color: string
   /** 무엇 위를 달리는가 — 툴팁에 그대로 쓴다 */
   on: string
@@ -82,11 +81,10 @@ export function backgroundBuses(simTime: number): BgBus[] {
       const cycle = total * 2
       const d = (simTime * SPEED + offset * cycle) % cycle
       const along = d <= total ? d : cycle - d
-      const { pos, heading } = pointAt(t.idx, along)
+      const { pos } = pointAt(t.idx, along)
       out.push({
         id: `${t.key}#${i}`,
         pos,
-        heading: d <= total ? heading : heading + 180,
         color: t.color,
         on: t.on,
         kind: t.kind,
@@ -96,8 +94,3 @@ export function backgroundBuses(simTime: number): BgBus[] {
   return out
 }
 
-/** 배경 교통 규모 — 화면에 «표시용 N대»를 정직하게 적기 위해 */
-export const BG_BUS_COUNT = () => backgroundBuses(0).length
-
-/** 실증 차량 수 — 배경과 나란히 적어 구분이 흐려지지 않게 */
-export const DRIVEN_ROUTE_COUNT = ROUTES.length

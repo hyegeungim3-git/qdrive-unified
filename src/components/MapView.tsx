@@ -77,6 +77,21 @@ const ROUTE_IDX = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points)]))
  * 간선도로 배경 — 도로는 변하지 않는다. memo로 묶지 않으면 엔진이 250ms마다 스냅샷을
  * 갈아끼울 때마다 폴리라인 수백 개가 다시 조정돼 지도가 눈에 띄게 느려진다.
  */
+/**
+ * 배경 교통 전용 레이어를 만든다 — overlayPane(400)보다 아래(390)에 깔아
+ * 표시용 버스가 정류장 핀·노선을 절대 덮지 않게 한다. JSX 순서에 기대면 다음 수정에서 쉽게 깨진다.
+ */
+function BgTrafficPane() {
+  const map = useMap()
+  useEffect(() => {
+    if (!map.getPane('bgTraffic')) {
+      const pane = map.createPane('bgTraffic')
+      pane.style.zIndex = '390'
+    }
+  }, [map])
+  return null
+}
+
 const RoadLayer = memo(function RoadLayer({ light }: { light: boolean }) {
   /* 밝은 타일 위에서는 같은 앰버가 흰 종이에 노란 형광펜처럼 날아간다 — 라이트 모드는 진한 색으로 */
   const color = light ? '#b45309' : '#fbbf24'
@@ -164,6 +179,8 @@ function MapHud({
   showRoads,
   onToggleRoads,
   showLive,
+  bgCount,
+  drivenCount,
 }: {
   showHeat: boolean
   hidden: Set<string>
@@ -174,6 +191,10 @@ function MapHud({
   onToggleRoads: () => void
   /** 지도 밖에 이미 LIVE 배지가 있으면 HUD에서는 빼고 칩 줄을 그만큼 올린다 */
   showLive: boolean
+  /** 지금 화면에 떠 있는 표시용 버스 수 — 레이어를 끄면 같이 줄어야 표기가 거짓이 되지 않는다 */
+  bgCount: number
+  /** 실증 차량 수 — 노선 수가 아니라 차량 수여야 한다 */
+  drivenCount: number
 }) {
   const map = useMap()
   // 스크롤 휠만 지도로 전파 차단(지도 줌 방지). 클릭 전파는 막지 않는다 —
@@ -234,6 +255,18 @@ function MapHud({
         >
             간선도로 {MAJOR_ROADS.length}
           </button>
+          {/*
+            움직이는 점이 실증 9대보다 훨씬 많다. 툴팁에만 «표시용»이라 적으면 마우스를 올린 사람만 안다 —
+            발표를 지켜보는 사람에게는 상시로 적혀 있어야 한다. 숫자는 실제 렌더 개수라 레이어를 끄면 따라 줄어든다.
+          */}
+          {bgCount > 0 && (
+            <span
+              title="표시용 버스는 거리·연료·CO₂·안전점수 등 실증 집계에 포함되지 않습니다"
+              className="rounded-full border border-gray-700 bg-gray-900/85 px-2 py-[3px] text-[10px] font-bold text-gray-400"
+            >
+              표시용 {bgCount} · 실증 {drivenCount}대
+            </span>
+          )}
         </div>
       </div>
 
@@ -398,6 +431,8 @@ export default function MapView({
         attribution='&copy; OpenStreetMap &copy; CARTO'
       />
 
+      <BgTrafficPane />
+
       {/* 간선도로 — 노선보다 먼저 그린다. 나중에 그리면 도로가 노선을 덮어 «어디서 가로지르는지»가 안 보인다 */}
       {showRoads && <RoadLayer light={theme === 'light'} />}
 
@@ -442,8 +477,9 @@ export default function MapView({
         <CircleMarker
           key={b.id}
           center={b.pos}
-          radius={3.4}
-          pathOptions={{ color: b.color, weight: 2, opacity: 0.9, fillColor: '#0b0f16', fillOpacity: 0.9 }}
+          radius={2}
+          pane="bgTraffic"
+          pathOptions={{ stroke: false, fillColor: b.color, fillOpacity: 0.55 }}
         >
           <Tooltip direction="top" offset={[0, -4]}>
             {b.on} · {b.kind} 표시용 — 실증 집계에 포함되지 않습니다
@@ -480,6 +516,8 @@ export default function MapView({
         showRoads={showRoads}
         onToggleRoads={() => setShowRoads((v) => !v)}
         showLive={showLive}
+        bgCount={bgBuses.length}
+        drivenCount={vehicles.length}
       />
 
       {/* 돌발정보 — 영향 반경 서클 + 배지 마커 */}

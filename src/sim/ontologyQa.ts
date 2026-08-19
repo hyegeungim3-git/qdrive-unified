@@ -278,6 +278,8 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
   const trip = s.trips.find((t) => t.vehicleId === decel.vehicleId && decel.simTime >= t.startSimTime && decel.simTime <= t.endSimTime)
   const sameCtx = s.events.filter((e) => e.routeName === decel.routeName && e.weather === decel.weather).length
   const plea = s.pleas.find((p) => p.vehicleId === decel.vehicleId && p.eventType === decel.eventType)
+  const myPleas = s.pleas.filter((p) => p.vehicleId === decel.vehicleId).slice(0, 4)
+  const otherPleas = s.pleas.length - myPleas.length
   return {
     id, q, path, sources,
     walk: walkOf(s, `evt:${decel.vehicleId}:${Math.round(decel.simTime)}`, `${decel.eventType} ${mmss(decel.simTime)}`),
@@ -325,13 +327,20 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
           : ['현재 감점 처리', plea ? `기사 상황 설명 ${plea.method} 접수 (${plea.status})` : '이 이벤트에 대한 기사 상황 설명 없음 — 인정되면 복원됨'],
       },
       {
-        h: '기사 상황 설명 (소명)',
+        h: `이 차량의 상황 설명 (소명) — ${short(decel.vehicleId)}`,
         src: ['기사 소명'],
-        items: s.pleas.length
-          ? s.pleas
-              .slice(0, 4)
-              .map((p) => `${p.driverName} 기사 · ${p.eventType} — “${p.note}” (${p.method} · ${p.status})`)
-          : ['접수된 상황 설명이 없습니다'],
+        /* 소명은 «그 차량의 기사»가 낸 것이다. 전체 목록을 실으면 한 대의 상황에
+           다른 차량 기사의 말이 섞여 «두 사람이 같은 건에 답한» 것처럼 읽힌다. */
+        items: myPleas.length
+          ? myPleas.map(
+              (p) =>
+                `${p.driverName} 기사 · ${p.eventType} — “${p.note}” (${p.method} · ${p.status})` +
+                (p.eventType === decel.eventType ? ' ← 이 이벤트 유형' : ''),
+            )
+          : [
+              `${short(decel.vehicleId)}에 접수된 상황 설명 없음`,
+              ...(otherPleas > 0 ? [`다른 차량 ${otherPleas}건은 기사 앱에서 확인 — 이 답에는 섞지 않는다`] : []),
+            ],
       },
       { h: '같은 맥락 누적', src: ['DTG 409'], items: [`${decel.routeName} · ${decel.weather} 조건에서 ${sameCtx}건`] },
     ],

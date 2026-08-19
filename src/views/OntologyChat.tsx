@@ -16,7 +16,8 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { useSim } from '../sim/store'
-import { QA_TOPICS, UNANSWERABLE, answerQuestion, type QaResult, type QaSource } from '../sim/ontologyQa'
+import { QA_TOPICS, UNANSWERABLE, answerQuestion, type QaResult, type QaSource, type QaTopic } from '../sim/ontologyQa'
+import { setOperatorSubtabIntent } from '../sim/navIntent'
 import type { SimSnapshot } from '../sim/types'
 
 const KEY_LS = 'qdrive-anthropic-key'
@@ -52,7 +53,7 @@ function buildSystem(s: SimSnapshot): string {
   ].join('\n')
 }
 
-export default function OntologyChat() {
+export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const snap = useSim()
   const snapRef = useRef(snap)
   snapRef.current = snap
@@ -93,7 +94,7 @@ export default function OntologyChat() {
 
   const push = (m: Msg) => setMsgs((prev) => [...prev, m])
 
-  const ask = async (q: string) => {
+  const ask = async (q: string, targetId?: string) => {
     const text = q.trim()
     if (!text || busy) return
     setInput('')
@@ -108,7 +109,7 @@ export default function OntologyChat() {
     }
     await wait(160)
 
-    const res = answerQuestion(snapRef.current, text)
+    const res = answerQuestion(snapRef.current, text, targetId)
     if (res) {
       const id = seq++
       setMsgs((prev) => [...prev.filter((m) => m.id !== thinkId), { id, role: 'qa', res }])
@@ -153,17 +154,9 @@ export default function OntologyChat() {
 
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-gray-800 bg-gray-900 p-2 max-[900px]:max-h-[168px]">
           <div className="px-1 pb-1.5 text-[10.5px] font-bold tracking-wider text-gray-400">맥락이 있어야 답하는 질문</div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {QA_TOPICS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => ask(t.q)}
-                disabled={busy}
-                className="w-full rounded-lg border border-transparent px-2.5 py-2 text-left transition-colors hover:border-gray-800 hover:bg-gray-800/50 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
-              >
-                <div className="break-keep text-[11.5px] font-semibold leading-snug text-gray-300">{t.q}</div>
-                <div className="mt-0.5 text-[10px] text-sky-300">{t.tag}</div>
-              </button>
+              <TopicCard key={t.id} topic={t} snap={snap} busy={busy} onAsk={ask} />
             ))}
           </div>
         </div>
@@ -228,7 +221,7 @@ export default function OntologyChat() {
           {msgs.length === 0 ? (
             <Welcome onPick={ask} busy={busy} />
           ) : (
-            msgs.map((m) => <MsgView key={m.id} m={m} stream={stream} />)
+            msgs.map((m) => <MsgView key={m.id} m={m} stream={stream} onNavigate={onNavigate} />)
           )}
           <div ref={endRef} />
         </div>
@@ -261,6 +254,46 @@ export default function OntologyChat() {
   )
 }
 
+/* ═══════════ 질문 카드 — 대상을 고른 뒤 묻는다 ═══════════ */
+
+/**
+ * «이 주행»이 아니라 «6690호 3회차»를 묻게 만드는 자리.
+ * 대상을 안 고르면 최근 것으로 답하되, 고른 대상은 질문 문장과 답의 subject에 그대로 박힌다.
+ */
+function TopicCard({ topic, snap, busy, onAsk }: { topic: QaTopic; snap: SimSnapshot; busy: boolean; onAsk: (q: string, id?: string) => void }) {
+  const list = topic.targets ? topic.targets(snap) : []
+  const [sel, setSel] = useState<string>('')
+  const target = list.find((x) => x.id === sel)
+  const q = target && topic.qOf ? topic.qOf(target) : topic.q
+  return (
+    <div className="rounded-lg border border-gray-800 bg-gray-900 p-2">
+      <div className="break-keep text-[11.5px] font-semibold leading-snug text-gray-300">{topic.q}</div>
+      <div className="mt-0.5 text-[10px] text-sky-300">{topic.tag}</div>
+      {list.length > 0 && (
+        <select
+          value={sel}
+          onChange={(e) => setSel(e.target.value)}
+          className="mt-1.5 w-full rounded-md border border-gray-700 bg-gray-900 px-1.5 py-1 text-[10.5px] text-gray-200 outline-none focus:border-sky-500"
+        >
+          <option value="">대상 선택 (기본: 최근)</option>
+          {list.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label}{t.sub ? ` — ${t.sub}` : ''}
+            </option>
+          ))}
+        </select>
+      )}
+      <button
+        onClick={() => onAsk(q, sel || undefined)}
+        disabled={busy}
+        className="mt-1.5 w-full rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[10.5px] font-bold text-sky-300 transition-colors hover:bg-sky-500/20 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+      >
+        묻기
+      </button>
+    </div>
+  )
+}
+
 /* ═══════════ 빈 상태 ═══════════ */
 
 function Welcome({ onPick, busy }: { onPick: (q: string) => void; busy: boolean }) {
@@ -287,7 +320,8 @@ function Welcome({ onPick, busy }: { onPick: (q: string) => void; busy: boolean 
 
 /* ═══════════ 메시지 ═══════════ */
 
-function MsgView({ m, stream }: { m: Msg; stream: { id: number; n: number } | null }) {
+function MsgView({ m, stream, onNavigate }: { m: Msg; stream: { id: number; n: number } | null; onNavigate?: (tab: string) => void }) {
+  const [openRec, setOpenRec] = useState(false)
   const [openEvidence, setOpenEvidence] = useState(false)
   const [openSrc, setOpenSrc] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -353,6 +387,11 @@ function MsgView({ m, stream }: { m: Msg; stream: { id: number; n: number } | nu
       <div className="min-w-0 space-y-2">
         {/* 답 */}
         <div className={`rounded-xl border px-3.5 py-3 ${r.empty ? 'border-gray-800 bg-gray-900' : 'border-sky-500/30 bg-sky-500/10'}`}>
+          {r.subject && (
+            <div className="mb-1.5 inline-block rounded border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-300">
+              대상 · {r.subject}
+            </div>
+          )}
           <div className={`break-keep text-[13.5px] font-bold leading-snug ${r.empty ? 'text-gray-200' : 'text-sky-200'}`}>{r.headline}</div>
           <div className="mt-1.5 break-keep text-[12.5px] leading-relaxed text-gray-300">
             {detail}
@@ -382,7 +421,7 @@ function MsgView({ m, stream }: { m: Msg; stream: { id: number; n: number } | nu
                   </button>
                 ))}
               </div>
-              {openSrc && <SourceCard s={r.sources.find((x) => x.code === openSrc)!} />}
+              {openSrc && <SourceCard s={r.sources.find((x) => x.code === openSrc)!} onNavigate={onNavigate} />}
             </div>
 
             {/* 액션 */}
@@ -391,6 +430,7 @@ function MsgView({ m, stream }: { m: Msg; stream: { id: number; n: number } | nu
                 onClick={() => setOpenEvidence((v) => !v)}
                 label={openEvidence ? '근거 접기' : `근거 ${r.evidence.length}항목 보기`}
               />
+              {r.record && <Action onClick={() => setOpenRec((v) => !v)} label={openRec ? '원본 접기' : '원본 레코드'} />}
               <Action
                 onClick={async () => {
                   const txt = [r.headline, r.detail.replace(/\*\*/g, ''), '', ...r.evidence.map((e) => `${e.k}: ${e.v}${e.src ? ` [${e.src}]` : ''}`)].join('\n')
@@ -401,6 +441,22 @@ function MsgView({ m, stream }: { m: Msg; stream: { id: number; n: number } | nu
                 label={copied ? '복사됨 ✓' : '복사'}
               />
             </div>
+
+            {openRec && r.record && (
+              <div className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2">
+                <div className="mb-1 text-[11px] font-bold text-gray-200">{r.record.title}</div>
+                <table className="w-full text-left text-[11px]">
+                  <tbody>
+                    {r.record.fields.map((f, i) => (
+                      <tr key={i} className="border-b border-gray-800/50 last:border-0">
+                        <td className="w-[42%] py-1 pr-2 font-mono text-[10.5px] text-gray-400">{f.k}</td>
+                        <td className="py-1 break-keep font-semibold text-gray-200">{f.v}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {openEvidence && (
               <div className="space-y-2">
@@ -439,7 +495,7 @@ function MsgView({ m, stream }: { m: Msg; stream: { id: number; n: number } | nu
   )
 }
 
-function SourceCard({ s }: { s: QaSource }) {
+function SourceCard({ s, onNavigate }: { s: QaSource; onNavigate?: (tab: string) => void }) {
   return (
     <div className="mt-1.5 rounded-lg border border-gray-800 bg-gray-900 px-3 py-2">
       <div className="flex flex-wrap items-baseline gap-x-2">
@@ -459,6 +515,17 @@ function SourceCard({ s }: { s: QaSource }) {
           <span className="break-keep text-gray-300">{s.role}</span>
         </div>
       </div>
+      {s.see && (
+        <button
+          onClick={() => {
+            if (s.see?.sub) setOperatorSubtabIntent(s.see.sub)
+            onNavigate?.(s.see!.tab)
+          }}
+          className="mt-1.5 w-full rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[10.5px] font-bold text-sky-300 transition-colors hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+        >
+          원본 확인 → {s.see.label}
+        </button>
+      )}
     </div>
   )
 }

@@ -27,6 +27,8 @@ export type QaSource = {
   role: string
   /** 지금 엔진이 실제로 내는 값인가 (false = 예시 상수·설계상 정의) */
   live: boolean
+  /** 원본을 눈으로 확인할 수 있는 화면 — 답을 믿으라고 하지 않고 «가서 보라»고 한다 */
+  see?: { tab: string; sub?: string; label: string }
 }
 
 const SRC = {
@@ -40,7 +42,19 @@ const SRC = {
   route: { code: '노선 기준정보', name: '인가노선·방향 정의', owner: '대구시 공개' },
 } as const
 
-const src = (s: (typeof SRC)[keyof typeof SRC], role: string, live = true): QaSource => ({ ...s, role, live })
+/** 원천별 «원본을 볼 수 있는 화면» — 데이터 관리자 ①수집의 최근 데이터 탭이 기본 확인처다 */
+const SEE: Record<string, { tab: string; sub?: string; label: string }> = {
+  'DTG 409': { tab: 'admin', label: '데이터 관리자 ①수집 → 최근 데이터' },
+  'DTG 521': { tab: 'operator', sub: 'trips', label: '운수사 관제 → 운행 이력' },
+  'OBD/CAN': { tab: 'operator', sub: 'scanner', label: '운수사 관제 → 진단 스캐너' },
+  RTK: { tab: 'admin', label: '데이터 관리자 ①수집 → 최근 데이터' },
+  '날씨·돌발': { tab: 'city', label: '시티 대시보드 → 기상·돌발' },
+  '기사 소명': { tab: 'driver', label: '기사 앱 → 상황 설명' },
+  '차고지 출입고': { tab: 'operator', sub: 'depot', label: '운수사 관제 → 차고지·충전' },
+  '노선 기준정보': { tab: 'operator', sub: 'routes', label: '운수사 관제 → 노선 관리' },
+}
+
+const src = (s: (typeof SRC)[keyof typeof SRC], role: string, live = true): QaSource => ({ ...s, role, live, see: SEE[s.code] })
 
 export type Evidence = {
   k: string
@@ -62,21 +76,32 @@ export type QaResult = {
   /** 풀어 쓴 답 */
   detail: string
   evidence: Evidence[]
+  /** 이 답이 가리키는 대상 (지칭 대상을 답에도 그대로 적는다) */
+  subject?: string
+  /** 원본 레코드 — 답의 근거가 된 패킷/기록 그 자체. 화면에서 펼쳐 대조한다 */
+  record?: { title: string; fields: { k: string; v: string }[] }
   /** 예시 데이터·모델 한계 고지 */
   caveat?: string
   /** 아직 계산할 데이터가 없다 */
   empty?: boolean
 }
 
+/** 질문이 가리킬 대상 — «이 주행»이 아니라 «6690호 3회차»를 묻게 만드는 축 */
+export type QaTarget = { id: string; label: string; sub?: string }
+
 export type QaTopic = {
   id: string
-  /** 화면에 띄우는 대표 질문 (제안서 문구 그대로) */
+  /** 대상이 없을 때의 대표 질문 (제안서 문구) */
   q: string
+  /** 대상을 고른 뒤의 구체 질문 */
+  qOf?: (t: QaTarget) => string
+  /** 지금 고를 수 있는 대상들 — 스냅샷에서 뽑는다 */
+  targets?: (s: SimSnapshot) => QaTarget[]
   /** 짧은 꼬리표 */
   tag: string
   /** 자유 입력 라우팅용 키워드 */
   keywords: string[]
-  run: (s: SimSnapshot) => QaResult
+  run: (s: SimSnapshot, targetId?: string) => QaResult
 }
 
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`
@@ -89,7 +114,11 @@ const tripLine = (t: Packet521) =>
 
 /* ═══════════ ① 이 주행은 영업인가 공차인가 ═══════════ */
 
-const runTripKind = (s: SimSnapshot): QaResult => {
+export const tripTargets = (s: SimSnapshot): QaTarget[] =>
+  [...s.trips.slice(0, 5).map((t) => ({ id: `t:${t.vehicleId}:${Math.round(t.startSimTime)}`, label: `${short(t.vehicleId)} ${t.seq}회차`, sub: `${mmss(t.startSimTime)}~${mmss(t.endSimTime)} ${t.routeName}` })),
+   ...s.deadheads.slice(0, 3).map((t) => ({ id: `d:${t.vehicleId}:${Math.round(t.endSimTime)}`, label: `${short(t.vehicleId)} ${t.routeName}`, sub: `회송 ${t.distanceKm}km` }))]
+
+const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
   const id = 'tripKind'
   const q = '이 주행은 영업인가 공차인가'
   const path = ['운행(Trip)', '─운행유형→ 영업/공차', '─소속차고지→ 차고지(Depot)', '─운행노선→ 노선(Route)']
@@ -98,8 +127,16 @@ const runTripKind = (s: SimSnapshot): QaResult => {
     src(SRC.depot, '운행유형(영업/공차)·소속 차고지', false),
     src(SRC.route, '인가노선·방향'),
   ]
-  const latest = s.trips[0]
   const dh = s.deadheads
+  /** 지목한 회차가 있으면 그것을, 없으면 최근 회차를 본다 */
+  const pickTrip = () => {
+    if (!targetId) return s.trips[0]
+    const [kind, vid, t0] = targetId.split(':')
+    const pool = kind === 'd' ? dh : s.trips
+    const key = kind === 'd' ? (x: Packet521) => Math.round(x.endSimTime) : (x: Packet521) => Math.round(x.startSimTime)
+    return pool.find((x) => x.vehicleId === vid && String(key(x)) === t0) ?? s.trips[0]
+  }
+  const latest = pickTrip()
   if (!latest) {
     return {
       id, q, path, sources, empty: true,
@@ -113,15 +150,32 @@ const runTripKind = (s: SimSnapshot): QaResult => {
   const total = revKm + dhKm
   const dhPct = total > 0 ? (dhKm / total) * 100 : 0
   const sameVehDh = dh.filter((t) => t.vehicleId === latest.vehicleId)
+  const isRev = latest.kind === '영업'
   return {
     id, q, path, sources,
-    headline: `${tripLine(latest)} — 영업`,
+    subject: `${latest.vehicleId} · ${latest.seq}회차 (${mmss(latest.startSimTime)}~${mmss(latest.endSimTime)})`,
+    record: {
+      title: `DTG 521 운행기록 — ${latest.vehicleId}`,
+      fields: [
+        { k: 'packetType', v: '521' },
+        { k: 'vehicleId', v: latest.vehicleId },
+        { k: 'routeName', v: latest.routeName },
+        { k: 'direction / seq', v: `${latest.direction} / ${latest.seq}` },
+        { k: 'kind (운행유형)', v: latest.kind },
+        { k: 'depot / company', v: `${latest.depot} / ${latest.company}` },
+        { k: 'start~end', v: `${mmss(latest.startSimTime)}~${mmss(latest.endSimTime)}` },
+        { k: 'distanceKm / fuelM3 / co2Kg', v: `${latest.distanceKm} / ${latest.fuelM3} / ${latest.co2Kg}` },
+      ],
+    },
+    headline: `${tripLine(latest)} — ${latest.kind}`,
     detail:
-      `이 기록은 인가노선 ${latest.routeName} ${latest.direction} 주행이므로 **영업**입니다. ` +
+      (isRev
+        ? `이 기록은 인가노선 ${latest.routeName} ${latest.direction} 주행이므로 **영업**입니다. `
+        : `이 기록은 ${latest.routeName} 구간이라 승객을 태우지 않는 **공차**입니다. `) +
       `같은 차량은 ${latest.depot}(${latest.company}) 소속이고, 오늘 회송(공차) ${sameVehDh.length}건이 따로 기록돼 있습니다. ` +
       `거리·연료만 보면 둘은 구분되지 않습니다 — 운행유형을 운행 단위에 붙여 둬야 나오는 답입니다.`,
     evidence: [
-      { k: '판정', v: `영업 (${latest.routeName} ${latest.direction})`, src: '차고지 출입고' },
+      { k: '판정', v: `${latest.kind} (${latest.routeName} ${latest.direction})`, src: '차고지 출입고' },
       { k: '운행 순번', v: `${latest.seq}회차`, src: 'DTG 521' },
       { k: '소속', v: `${latest.depot} · ${latest.company}`, src: '차고지 출입고' },
       { k: '이 회차 실적', v: `${km(latest.distanceKm)} · ${latest.fuelM3.toFixed(2)}m³ · CO₂ ${latest.co2Kg.toFixed(1)}kg`, src: 'DTG 521' },
@@ -133,7 +187,10 @@ const runTripKind = (s: SimSnapshot): QaResult => {
 
 /* ═══════════ ② 이 급감속은 어떤 노선·날씨에서 났나 ═══════════ */
 
-const runEventContext = (s: SimSnapshot): QaResult => {
+export const eventTargets = (s: SimSnapshot): QaTarget[] =>
+  s.events.slice(0, 6).map((e) => ({ id: `${e.vehicleId}:${Math.round(e.simTime)}`, label: `${short(e.vehicleId)} ${e.eventType}`, sub: `${mmss(e.simTime)} · ${e.routeName} · ${e.weather}` }))
+
+const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
   const id = 'eventContext'
   const q = '이 급감속은 어떤 노선·날씨에서 났나'
   const path = [
@@ -148,7 +205,8 @@ const runEventContext = (s: SimSnapshot): QaResult => {
     src(SRC.weather, '발생 시점 기상 맥락'),
     src(SRC.plea, '기사 상황 설명(있을 때)'),
   ]
-  const decel = s.events.find((e) => e.eventType === '급감속' || e.eventType === '급정지') ?? s.events[0]
+  const byId = targetId ? s.events.find((e) => `${e.vehicleId}:${Math.round(e.simTime)}` === targetId) : null
+  const decel = byId ?? s.events.find((e) => e.eventType === '급감속' || e.eventType === '급정지') ?? s.events[0]
   if (!decel) {
     return {
       id, q, path, sources, empty: true,
@@ -163,6 +221,21 @@ const runEventContext = (s: SimSnapshot): QaResult => {
   const plea = s.pleas.find((p) => p.vehicleId === decel.vehicleId && p.eventType === decel.eventType)
   return {
     id, q, path, sources,
+    subject: `${decel.vehicleId} · ${decel.eventType} @ ${mmss(decel.simTime)}`,
+    record: {
+      title: `DTG 409 위험운전 패킷 — ${decel.vehicleId}`,
+      fields: [
+        { k: 'packetType', v: '409' },
+        { k: 'vehicleId', v: decel.vehicleId },
+        { k: 'eventType', v: decel.eventType },
+        { k: 'simTime', v: `${mmss(decel.simTime)} (${Math.round(decel.simTime)}s)` },
+        { k: 'speedKmh / rpm', v: `${decel.speedKmh} / ${decel.rpm}` },
+        { k: 'lat / lng', v: `${decel.lat.toFixed(5)} / ${decel.lng.toFixed(5)}` },
+        { k: 'routeName', v: decel.routeName },
+        { k: 'weather', v: decel.weather },
+        { k: 'justified', v: String(!!decel.justified) + (decel.justifyReason ? ` (${decel.justifyReason})` : '') },
+      ],
+    },
     headline: `${mmss(decel.simTime)} ${short(decel.vehicleId)} ${decel.eventType} — ${decel.routeName} · ${decel.weather}`,
     detail:
       `${v?.driverName ?? '기사'} 기사, ${decel.speedKmh}km/h에서 발생했습니다. 발생 시점 날씨는 **${decel.weather}**이고 노선은 **${decel.routeName}**입니다. ` +
@@ -184,7 +257,9 @@ const runEventContext = (s: SimSnapshot): QaResult => {
 
 /* ═══════════ ③ 이 차고지가 만든 공차는 얼마인가 ═══════════ */
 
-const runDepotDeadhead = (s: SimSnapshot): QaResult => {
+export const depotTargets = (): QaTarget[] => DEPOTS.map((d) => ({ id: d.name, label: d.name, sub: `${d.company} · 편도 ${d.deadheadKm}km` }))
+
+const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
   const id = 'depotDeadhead'
   const q = '이 차고지가 만든 공차는 얼마인가'
   const path = ['차고지(Depot)', '←소속차고지─ 운행(Trip, 유형=공차)', '─집계→ 거리·연료·CO₂']
@@ -204,7 +279,7 @@ const runDepotDeadhead = (s: SimSnapshot): QaResult => {
       oneWay: d.deadheadKm,
     }
   }).sort((a, b) => b.km - a.km)
-  const top = rows[0]
+  const top = (targetId ? rows.find((r) => r.depot === targetId) : null) ?? rows[0]
   if (!top || top.n === 0) {
     return {
       id, q, path, sources, empty: true,
@@ -218,6 +293,17 @@ const runDepotDeadhead = (s: SimSnapshot): QaResult => {
   const revKm = s.trips.reduce((n, t) => n + t.distanceKm, 0)
   return {
     id, q, path, sources,
+    subject: `${top.depot} (${top.company})`,
+    record: {
+      title: `차고지 출입고 기록 — ${top.depot}`,
+      fields: [
+        { k: 'depot', v: top.depot },
+        { k: 'company', v: top.company },
+        { k: '편도 회송거리(예시 상수)', v: `${top.oneWay}km` },
+        { k: '공차 기록 수', v: `${top.n}건` },
+        { k: '합계 거리 / 연료 / CO₂', v: `${top.km.toFixed(1)}km / ${top.fuel.toFixed(1)}m³ / ${top.co2.toFixed(1)}kg` },
+      ],
+    },
     headline: `${top.depot} — 공차 ${km(top.km)} (${top.n}회, 연료 ${top.fuel.toFixed(1)}m³)`,
     detail:
       `${top.company} 소속 ${top.depot}가 오늘 만든 공차가 가장 많습니다. 편도 회송거리 ${km(top.oneWay)}가 출·입고마다 반복되기 때문입니다. ` +
@@ -235,7 +321,11 @@ const runDepotDeadhead = (s: SimSnapshot): QaResult => {
 
 const PERSONA_LABEL: Record<string, string> = { A: '모범 운전군', B: '평균 운전군', C: '코칭 대상군' }
 
-const runAttribution = (s: SimSnapshot): QaResult => {
+export const vehicleTargets = (s: SimSnapshot): QaTarget[] =>
+  [{ id: 'all', label: '실증 9대 전체', sub: '기사군 A/B/C 대조' },
+   ...s.vehicles.map((v) => ({ id: v.id, label: short(v.id), sub: `${v.driverName} · ${PERSONA_LABEL[v.persona]}` }))]
+
+const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
   const id = 'attribution'
   const q = '이 감축은 코칭 때문인가 유가 때문인가'
   const path = [
@@ -248,8 +338,10 @@ const runAttribution = (s: SimSnapshot): QaResult => {
     src(SRC.dtg521, '회차별 주행거리·연료 — 기준선 산출의 축'),
     src(SRC.dtg409, '급조작 낭비 분해'),
   ]
-  const base = s.vehicles.reduce((a, v) => a + v.baselineFuelM3, 0)
-  const act = s.vehicles.reduce((a, v) => a + v.fuelM3, 0)
+  const one = targetId && targetId !== 'all' ? s.vehicles.find((v) => v.id === targetId) : null
+  const scope = one ? [one] : s.vehicles
+  const base = scope.reduce((a, v) => a + v.baselineFuelM3, 0)
+  const act = scope.reduce((a, v) => a + v.fuelM3, 0)
   if (base <= 0) {
     return {
       id, q, path, sources, empty: true,
@@ -273,6 +365,20 @@ const runAttribution = (s: SimSnapshot): QaResult => {
   )
   return {
     id, q, path, sources,
+    subject: one ? `${one.id} (${one.driverName} 기사 · ${PERSONA_LABEL[one.persona]})` : '실증 9대 전체',
+    record: one
+      ? {
+          title: `연료 실측 vs 기준선 — ${one.id}`,
+          fields: [
+            { k: 'vehicleId / driver', v: `${one.id} / ${one.driverName}` },
+            { k: 'persona (기사군)', v: `${one.persona} · ${PERSONA_LABEL[one.persona]}` },
+            { k: 'distanceKm', v: one.distanceKm.toFixed(2) },
+            { k: 'fuelM3 (실측)', v: one.fuelM3.toFixed(3) },
+            { k: 'baselineFuelM3 (반사실)', v: one.baselineFuelM3.toFixed(3) },
+            { k: 'fuelWaste 분해', v: `습관 ${one.fuelWaste.habit.toFixed(3)} · 급조작 ${one.fuelWaste.harsh.toFixed(3)} · 공회전 ${one.fuelWaste.idle.toFixed(3)} · 냉방 ${one.fuelWaste.ac.toFixed(3)}` },
+          ],
+        }
+      : undefined,
     headline: `코칭 귀속 −${pct.toFixed(2)}% — 유가 효과 아님 (연료 «양»이 줄었음)`,
     detail:
       `비교 대상은 금액이 아니라 **연료량**입니다. 코칭을 하지 않았다고 가정한 기준선 ${base.toFixed(1)}m³ 대비 실측 ${act.toFixed(1)}m³로 ` +
@@ -299,6 +405,8 @@ export const QA_TOPICS: QaTopic[] = [
   {
     id: 'tripKind',
     q: '이 주행은 영업인가 공차인가',
+    qOf: (t) => `${t.label} 주행(${t.sub ?? ''})은 영업인가 공차인가`,
+    targets: tripTargets,
     tag: '운행유형',
     keywords: ['영업', '공차', '운행유형', '회송'],
     run: runTripKind,
@@ -306,6 +414,8 @@ export const QA_TOPICS: QaTopic[] = [
   {
     id: 'eventContext',
     q: '이 급감속은 어떤 노선·날씨에서 났나',
+    qOf: (t) => `${t.label}(${t.sub ?? ''})은 어떤 노선·날씨에서 났나`,
+    targets: eventTargets,
     tag: '맥락',
     keywords: ['급감속', '급정지', '위험운전', '날씨', '폭우', '맥락'],
     run: runEventContext,
@@ -313,6 +423,8 @@ export const QA_TOPICS: QaTopic[] = [
   {
     id: 'depotDeadhead',
     q: '이 차고지가 만든 공차는 얼마인가',
+    qOf: (t) => `${t.label}가 만든 공차는 얼마인가`,
+    targets: () => depotTargets(),
     tag: '차고지',
     keywords: ['차고지', '공차', '회송', '출고', '입고'],
     run: runDepotDeadhead,
@@ -320,6 +432,8 @@ export const QA_TOPICS: QaTopic[] = [
   {
     id: 'attribution',
     q: '이 감축은 코칭 때문인가 유가 때문인가',
+    qOf: (t) => `${t.label}의 감축은 코칭 때문인가 유가 때문인가`,
+    targets: vehicleTargets,
     tag: '성과 귀속',
     keywords: ['감축', '코칭', '유가', '절감', '귀속', '기준선', '반사실'],
     run: runAttribution,
@@ -344,9 +458,9 @@ export function routeQuestion(text: string): QaTopic | null {
 }
 
 /** 라우팅 + 실행. 못 알아들으면 null — 지어내지 않고 «답할 수 없다»로 넘긴다 */
-export function answerQuestion(s: SimSnapshot, text: string): QaResult | null {
+export function answerQuestion(s: SimSnapshot, text: string, targetId?: string): QaResult | null {
   const topic = routeQuestion(text)
-  return topic ? topic.run(s) : null
+  return topic ? topic.run(s, targetId) : null
 }
 
 /** 답할 수 없는 질문에 붙일 안내 — 무엇이 있으면 답할 수 있는지까지 말한다 */

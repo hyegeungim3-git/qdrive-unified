@@ -120,7 +120,7 @@ export default function App() {
         {tab === 'proof' && <PerformanceProof />}
         {tab === 'report' && <ReportView />}
         {tab === 'admin' && <AdminConsole onNavigate={(t) => setTab(t as TabId)} />}
-        {tab === 'ask' && <OntologyChat />}
+        {tab === 'ask' && <OntologyChat onNavigate={(t) => setTab(t as TabId)} />}
         {tab === 'roadmap' && <TeaserView />}
       </main>
 

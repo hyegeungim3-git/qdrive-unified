@@ -148,7 +148,7 @@ export default function Ingest({ snap, total }: { snap: SimSnapshot; total: numb
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="text-[12.5px] font-bold text-gray-100">{t}</div>
-                  <div className="truncate text-[11px] text-gray-500">{d}</div>
+                  <div className="break-keep text-[11px] text-gray-500">{d}</div>
                 </div>
                 <div className="shrink-0 text-right text-[11px] font-bold text-sky-300">{m}</div>
               </div>

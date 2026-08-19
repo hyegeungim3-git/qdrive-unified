@@ -116,7 +116,7 @@ export default function Datasets({ snap, onNavigate }: { snap: SimSnapshot; onNa
           <div className="space-y-2">
             {[
               ['L0', '산재', '시스템마다 따로 — 위치는 안내용, 기록은 제출용, 상태는 정비용', 'done'],
-              ['L1', '수집', '원천을 하나의 관로로 모음 (1차 8종 실시간)', 'done'],
+              ['L1', '수집', '원천을 하나로 모음 (1차 8종 실시간)', 'done'],
               ['L2', '품질', '6개 규칙 + 3중 교차검증 통과분만 적재', 'done'],
               ['L3', '온톨로지', '운행 단위 중심축으로 의미 연결 — 9개 종류', 'done'],
               ['L4', 'AI-Ready', '정답·맥락·재현성을 갖춘 학습셋 6종', 'now'],

@@ -18,12 +18,12 @@ import Operations from './admin/Operations'
  */
 
 const STEPS = [
-  { id: 'ingest', n: '①', label: '수집', desc: '흩어진 원천을 하나의 파이프로' },
+  { id: 'ingest', n: '①', label: '수집', desc: '흩어진 원천을 하나로 모아' },
   { id: 'quality', n: '②', label: '품질', desc: '믿을 수 있는 것만 통과' },
   { id: 'ontology', n: '③', label: '온톨로지', desc: '운행 단위로 의미를 연결' },
   { id: 'dataset', n: '④', label: 'AI-Ready', desc: 'AI가 바로 쓰는 형태로' },
   { id: 'lineage', n: '⑤', label: '서비스 연결', desc: '어느 화면이 무엇을 쓰는가' },
-  { id: 'ops', n: '⑥', label: '운영', desc: '처리 작업·저장·감사 관리' },
+  { id: 'ops', n: '⑥', label: '운영', desc: '처리 작업·저장·감사' },
 ] as const
 type StepId = (typeof STEPS)[number]['id']
 
@@ -115,7 +115,7 @@ export default function AdminConsole({ onNavigate }: { onNavigate?: (tab: string
 
       {/* 6단계 내비 */}
       <div className="-mx-1 overflow-x-auto px-1">
-        <div className="grid min-w-[900px] grid-cols-6 gap-2">
+        <div className="grid min-w-[1000px] grid-cols-6 gap-2">
           {STEPS.map((s, i) => {
             const on = step === s.id
             const done = STEPS.findIndex((x) => x.id === step) > i

@@ -162,23 +162,21 @@ function MapHud({
   }
   return (
     <>
-      {/* LIVE 배지 — 지도가 실제 실시간임을 알리는 정직한 신호 (날씨칩 아래) */}
+      {/* 좌상단 스택 — LIVE 배지와 노선 칩. 한 흐름에 넣어야 배지 크기가 바뀌어도 겹치지 않는다 */}
       <div
         ref={stop}
-        className="pointer-events-auto absolute left-3 top-14 z-[1000] flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-gray-900/90 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-lg"
+        className="pointer-events-auto absolute left-3 top-14 z-[1000] flex max-w-[calc(100%-6rem)] flex-col items-start gap-1.5"
       >
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-        </span>
-        LIVE
-      </div>
+        <div className="flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-gray-900/90 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-lg">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </span>
+          LIVE
+        </div>
 
-      {/* 노선 선택 — 실증 3개는 개별 토글, 나머지 주요 노선은 한 번에 */}
-      <div
-        ref={stop}
-        className="pointer-events-auto absolute left-3 top-[74px] z-[1000] flex max-w-[calc(100%-6rem)] flex-wrap items-center gap-1"
-      >
+        {/* 노선 선택 — 실증 3개는 개별 토글, 나머지 주요 노선은 한 번에 */}
+        <div className="flex flex-wrap items-center gap-1">
         {ROUTES.map((r) => {
           const off = hidden.has(r.id)
           return (
@@ -211,8 +209,9 @@ function MapHud({
             showRoads ? 'border-amber-500/50 bg-amber-500/15 text-amber-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
           }`}
         >
-          간선도로 {MAJOR_ROADS.length}
-        </button>
+            간선도로 {MAJOR_ROADS.length}
+          </button>
+        </div>
       </div>
 
       {/* 히트맵 범례 — 히트맵 ON 시에만, 줌 컨트롤 위 */}

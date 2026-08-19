@@ -63,6 +63,12 @@ export type Evidence = {
   src?: string
 }
 
+/** 개조식 한 절 — 「무엇을」 다음에 「왜 그런가」가 오도록 제목을 붙인다 */
+export type QaSection = { h: string; items: string[] }
+
+/** 이어서 물을 질문 — 대화가 한 번에 끝나지 않게 다음 수를 놓아 준다 */
+export type QaFollow = { q: string; topic: string; target?: string }
+
 export type QaResult = {
   id: string
   /** 질문 원문 */
@@ -73,8 +79,12 @@ export type QaResult = {
   sources: QaSource[]
   /** 한 줄 답 */
   headline: string
-  /** 풀어 쓴 답 */
+  /** 한 줄 요약 — 결론 바로 밑에 붙는 짧은 문장 */
   detail: string
+  /** 개조식 본문 */
+  sections: QaSection[]
+  /** 이어서 물을 질문 */
+  follow: QaFollow[]
   evidence: Evidence[]
   /** 이 답이 가리키는 대상 (지칭 대상을 답에도 그대로 적는다) */
   subject?: string
@@ -139,7 +149,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
   const latest = pickTrip()
   if (!latest) {
     return {
-      id, q, path, sources, empty: true,
+      id, q, path, sources, sections: [], follow: [], empty: true,
       headline: '아직 완료된 영업 운행이 없습니다',
       detail: `지금까지 기록된 것은 차고지 출고 공차 ${dh.length}건뿐입니다. 배속을 올려 첫 회차가 끝나면 영업 운행이 쌓입니다.`,
       evidence: [{ k: '공차 기록', v: `${dh.length}건` }],
@@ -168,6 +178,35 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
       ],
     },
     headline: `${tripLine(latest)} — ${latest.kind}`,
+    sections: [
+      {
+        h: '판정 근거',
+        items: [
+          `운행유형 필드가 «${latest.kind}»로 기록됨 — 거리·연료만으로는 구분되지 않는 값`,
+          `노선 ${latest.routeName} ${latest.direction} · 그날 ${latest.seq}번째 운행`,
+          `소속 ${latest.depot}(${latest.company}) — 차고지 축이 붙어야 나오는 답`,
+        ],
+      },
+      {
+        h: '이 회차 실적',
+        items: [
+          `주행 ${km(latest.distanceKm)} · 연료 ${latest.fuelM3.toFixed(2)}m³ · CO₂ ${latest.co2Kg.toFixed(1)}kg`,
+          `구간 ${mmss(latest.startSimTime)}~${mmss(latest.endSimTime)}`,
+        ],
+      },
+      {
+        h: '오늘 전체에서 차지하는 몫',
+        items: [
+          `영업 ${s.trips.length}회 ${km(revKm)} / 공차 ${dh.length}회 ${km(dhKm)}`,
+          `공차 비율 ${dhPct.toFixed(1)}% (거리 기준) — 수입 없이 달린 몫`,
+          `이 차량의 회송만 ${sameVehDh.length}건`,
+        ],
+      },
+    ],
+    follow: [
+      { q: `${latest.depot}가 만든 공차는 얼마인가`, topic: 'depotDeadhead', target: latest.depot },
+      { q: `${short(latest.vehicleId)}의 감축은 코칭 때문인가 유가 때문인가`, topic: 'attribution', target: latest.vehicleId },
+    ],
     detail:
       (isRev
         ? `이 기록은 인가노선 ${latest.routeName} ${latest.direction} 주행이므로 **영업**입니다. `
@@ -209,7 +248,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
   const decel = byId ?? s.events.find((e) => e.eventType === '급감속' || e.eventType === '급정지') ?? s.events[0]
   if (!decel) {
     return {
-      id, q, path, sources, empty: true,
+      id, q, path, sources, sections: [], follow: [], empty: true,
       headline: '아직 기록된 위험운전이 없습니다',
       detail: '위험운전이 발생하면 그 시점의 노선·날씨가 함께 기록됩니다.',
       evidence: [{ k: '누적 이벤트', v: `${s.kpi.totalEvents}건` }],
@@ -237,6 +276,35 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
       ],
     },
     headline: `${mmss(decel.simTime)} ${short(decel.vehicleId)} ${decel.eventType} — ${decel.routeName} · ${decel.weather}`,
+    sections: [
+      {
+        h: '언제·어디서·누가',
+        items: [
+          `${mmss(decel.simTime)} · ${decel.routeName}${trip ? ` ${trip.direction} ${trip.seq}회차` : ''}`,
+          `${v?.driverName ?? '기사'} 기사 · ${decel.vehicleId}`,
+          `발생 지점 ${decel.lat.toFixed(4)}, ${decel.lng.toFixed(4)} (RTK 정밀 위치)`,
+        ],
+      },
+      {
+        h: '어떤 상황이었나',
+        items: [
+          `속도 ${decel.speedKmh}km/h · RPM ${decel.rpm}`,
+          `발생 시점 날씨 «${decel.weather}» — 현재 날씨는 «${s.weather.condition}»`,
+          `날씨는 이벤트에 새겨 둔 값이라 시간이 지나도 이 답은 바뀌지 않음`,
+        ],
+      },
+      {
+        h: '판정',
+        items: decel.justified
+          ? [`정당 인정 — 사유: ${decel.justifyReason}`, '감점되지 않음 (맥락이 붙어야 가능한 판정)']
+          : ['현재 감점 처리', plea ? `기사 상황 설명 ${plea.method} 접수 (${plea.status})` : '기사 상황 설명 없음 — 인정되면 복원됨'],
+      },
+      { h: '같은 맥락 누적', items: [`${decel.routeName} · ${decel.weather} 조건에서 ${sameCtx}건`] },
+    ],
+    follow: [
+      { q: `${short(decel.vehicleId)}의 감축은 코칭 때문인가 유가 때문인가`, topic: 'attribution', target: decel.vehicleId },
+      { q: '이 주행은 영업인가 공차인가', topic: 'tripKind' },
+    ],
     detail:
       `${v?.driverName ?? '기사'} 기사, ${decel.speedKmh}km/h에서 발생했습니다. 발생 시점 날씨는 **${decel.weather}**이고 노선은 **${decel.routeName}**입니다. ` +
       (decel.justified
@@ -282,7 +350,7 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
   const top = (targetId ? rows.find((r) => r.depot === targetId) : null) ?? rows[0]
   if (!top || top.n === 0) {
     return {
-      id, q, path, sources, empty: true,
+      id, q, path, sources, sections: [], follow: [], empty: true,
       headline: '아직 공차 기록이 없습니다',
       detail: '차고지 출고·입고가 기록되면 차고지별로 집계됩니다.',
       evidence: [],
@@ -305,6 +373,28 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
       ],
     },
     headline: `${top.depot} — 공차 ${km(top.km)} (${top.n}회, 연료 ${top.fuel.toFixed(1)}m³)`,
+    sections: [
+      {
+        h: '이 차고지가 만든 공차',
+        items: [
+          `${top.n}회 · ${km(top.km)} · 연료 ${top.fuel.toFixed(1)}m³ · CO₂ ${top.co2.toFixed(1)}kg`,
+          `편도 회송거리 ${km(top.oneWay)}가 출·입고마다 반복됨`,
+          `운영 주체 ${top.company}`,
+        ],
+      },
+      { h: '차고지별 비교', items: rows.map((r) => `${r.depot} — ${r.n}회 · ${km(r.km)} · ${r.fuel.toFixed(1)}m³`) },
+      {
+        h: '무엇을 뜻하나',
+        items: [
+          `3개 차고지 합계 ${km(totKm)} · ${totFuel.toFixed(1)}m³ — 같은 시간 영업거리는 ${km(revKm)}`,
+          '공차는 수입이 없는 주행 — 차고지 배치와 교대 주기를 바꾸면 그대로 줄어드는 비용',
+        ],
+      },
+    ],
+    follow: [
+      { q: '이 주행은 영업인가 공차인가', topic: 'tripKind' },
+      { q: '실증 9대 전체의 감축은 코칭 때문인가 유가 때문인가', topic: 'attribution', target: 'all' },
+    ],
     detail:
       `${top.company} 소속 ${top.depot}가 오늘 만든 공차가 가장 많습니다. 편도 회송거리 ${km(top.oneWay)}가 출·입고마다 반복되기 때문입니다. ` +
       `3개 차고지 합계는 ${km(totKm)}·${totFuel.toFixed(1)}m³이고, 같은 시간 영업거리는 ${km(revKm)}입니다. ` +
@@ -344,7 +434,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
   const act = scope.reduce((a, v) => a + v.fuelM3, 0)
   if (base <= 0) {
     return {
-      id, q, path, sources, empty: true,
+      id, q, path, sources, sections: [], follow: [], empty: true,
       headline: '아직 주행이 쌓이지 않아 귀속을 계산할 수 없습니다',
       detail: '배속을 올려 주행이 누적되면 반사실(코칭 미적용 가정) 대비 순효과가 계산됩니다.',
       evidence: [],
@@ -380,6 +470,40 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
         }
       : undefined,
     headline: `코칭 귀속 −${pct.toFixed(2)}% — 유가 효과 아님 (연료 «양»이 줄었음)`,
+    sections: [
+      {
+        h: '무엇과 무엇을 비교했나',
+        items: [
+          `기준선(코칭을 안 했다고 가정) ${base.toFixed(1)}m³`,
+          `실측 ${act.toFixed(1)}m³ — 차이 ${saved.toFixed(1)}m³ (−${pct.toFixed(2)}%)`,
+          '비교 대상은 금액이 아니라 연료 «양»',
+        ],
+      },
+      {
+        h: '왜 유가 때문이 아닌가',
+        items: [
+          '유가는 같은 양의 연료 «가격»만 바꾸므로 이 차이를 만들 수 없음',
+          '날씨(폭염 냉방부하)는 기준선과 실측에 똑같이 적용돼 상쇄됨',
+        ],
+      },
+      {
+        h: ordered ? '코칭이 원인이라는 지문' : '기사군별 차등 (누적 부족)',
+        items: byPersona.map((g) => `${g.label} ${g.n}대 — −${g.pct.toFixed(2)}%`).concat(
+          ordered ? ['개선 여지가 큰 군에서 효과가 크다 = 외부 요인이 아니라 코칭이 원인'] : ['주행이 더 쌓이면 A<B<C 순서가 드러남'],
+        ),
+      },
+      {
+        h: '낭비 요인 분해',
+        items: [
+          `운전 습관 ${waste.habit.toFixed(2)}m³ · 급조작 ${waste.harsh.toFixed(2)}m³`,
+          `공회전 ${waste.idle.toFixed(2)}m³ · 냉방 ${waste.ac.toFixed(2)}m³`,
+        ],
+      },
+    ],
+    follow: [
+      { q: '이 급감속은 어떤 노선·날씨에서 났나', topic: 'eventContext' },
+      { q: '이 차고지가 만든 공차는 얼마인가', topic: 'depotDeadhead' },
+    ],
     detail:
       `비교 대상은 금액이 아니라 **연료량**입니다. 코칭을 하지 않았다고 가정한 기준선 ${base.toFixed(1)}m³ 대비 실측 ${act.toFixed(1)}m³로 ` +
       `${saved.toFixed(1)}m³ 적게 썼습니다. 유가는 같은 양의 연료 «가격»만 바꾸므로 이 차이를 만들 수 없습니다. ` +
@@ -461,6 +585,12 @@ export function routeQuestion(text: string): QaTopic | null {
 export function answerQuestion(s: SimSnapshot, text: string, targetId?: string): QaResult | null {
   const topic = routeQuestion(text)
   return topic ? topic.run(s, targetId) : null
+}
+
+/** 후속 질문처럼 «어느 토픽인지 이미 아는» 경우 — 키워드 라우팅을 거치지 않는다 */
+export function runTopic(s: SimSnapshot, topicId: string, targetId?: string): QaResult | null {
+  const t = QA_TOPICS.find((x) => x.id === topicId)
+  return t ? t.run(s, targetId) : null
 }
 
 /** 답할 수 없는 질문에 붙일 안내 — 무엇이 있으면 답할 수 있는지까지 말한다 */

@@ -21,7 +21,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { useSim } from '../sim/store'
-import { QA_TOPICS, UNANSWERABLE, answerQuestion, type QaResult, type QaSource, type QaTopic } from '../sim/ontologyQa'
+import { QA_TOPICS, UNANSWERABLE, answerQuestion, runTopic, type QaResult, type QaSource, type QaTopic } from '../sim/ontologyQa'
 import { setOperatorSubtabIntent } from '../sim/navIntent'
 import type { SimSnapshot } from '../sim/types'
 
@@ -99,7 +99,7 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
 
   const push = (m: Msg) => setMsgs((prev) => [...prev, m])
 
-  const ask = async (q: string, targetId?: string) => {
+  const ask = async (q: string, targetId?: string, topicId?: string) => {
     const text = q.trim()
     if (!text || busy) return
     setInput('')
@@ -114,7 +114,7 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
     }
     await wait(160)
 
-    const res = answerQuestion(snapRef.current, text, targetId)
+    const res = topicId ? runTopic(snapRef.current, topicId, targetId) : answerQuestion(snapRef.current, text, targetId)
     if (res) {
       const id = seq++
       setMsgs((prev) => [...prev.filter((m) => m.id !== thinkId), { id, role: 'qa', res }])
@@ -226,7 +226,7 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
           {msgs.length === 0 ? (
             <Welcome onPick={ask} busy={busy} />
           ) : (
-            msgs.map((m) => <MsgView key={m.id} m={m} stream={stream} onNavigate={onNavigate} />)
+            msgs.map((m) => <MsgView key={m.id} m={m} stream={stream} onNavigate={onNavigate} onAsk={ask} />)
           )}
           <div ref={endRef} />
         </div>
@@ -325,7 +325,7 @@ function Welcome({ onPick, busy }: { onPick: (q: string) => void; busy: boolean 
 
 /* ═══════════ 메시지 ═══════════ */
 
-function MsgView({ m, stream, onNavigate }: { m: Msg; stream: { id: number; n: number } | null; onNavigate?: (tab: string) => void }) {
+function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: number; n: number } | null; onNavigate?: (tab: string) => void; onAsk?: (q: string, target?: string, topic?: string) => void }) {
   const [openRec, setOpenRec] = useState(false)
   const [openEvidence, setOpenEvidence] = useState(false)
   const [openSrc, setOpenSrc] = useState<string | null>(null)
@@ -404,7 +404,40 @@ function MsgView({ m, stream, onNavigate }: { m: Msg; stream: { id: number; n: n
             {detail}
             {typing && <Caret />}
           </div>
+
+          {r.sections.length > 0 && (
+            <div className="mt-3 space-y-2.5 border-t border-gray-800 pt-2.5">
+              {r.sections.map((sec, si) => (
+                <div key={si}>
+                  <div className="text-[11px] font-bold text-gray-100">{sec.h}</div>
+                  <ul className="mt-1 space-y-0.5">
+                    {sec.items.map((it, ii) => (
+                      <li key={ii} className="flex gap-1.5 break-keep text-[12px] leading-relaxed text-gray-300">
+                        <span className="mt-[1px] shrink-0 text-gray-600">·</span>
+                        <span>{it}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {r.follow.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10.5px] font-bold text-gray-400">이어서</span>
+            {r.follow.map((f, i) => (
+              <button
+                key={i}
+                onClick={() => onAsk?.(f.q, f.target, f.topic)}
+                className="rounded-full border border-sky-500/40 px-2.5 py-1 text-[10.5px] font-semibold text-sky-300 transition-colors hover:bg-sky-500/10 focus-visible:ring-2 focus-visible:ring-sky-500"
+              >
+                {f.q} →
+              </button>
+            ))}
+          </div>
+        )}
 
         {(
           <>

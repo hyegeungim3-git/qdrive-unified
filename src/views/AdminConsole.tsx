@@ -44,12 +44,12 @@ export default function AdminConsole({ onNavigate }: { onNavigate?: (tab: string
   /** 지금 신경 써야 할 것 — 스냅샷에서 파생한 운영 알림 */
   const alerts: { tone: 'warn' | 'info'; msg: string; go?: StepId }[] = []
   if (snap.fault)
-    alerts.push({ tone: 'warn', msg: `OBD 냉각수온 이상 감지 — 품질 룰 Q2 보류 후 고장 예측으로 회부`, go: 'quality' })
+    alerts.push({ tone: 'warn', msg: `OBD 냉각수온 이상 감지 — 품질 규칙 Q2 보류 후 고장 예측으로 회부`, go: 'quality' })
   if (failed > 0) alerts.push({ tone: 'info', msg: `격리 ${fmt(failed)}건 대기 — 원인 확인 후 재처리 가능`, go: 'quality' })
   if (recovered > 0) alerts.push({ tone: 'info', msg: `재처리 완료 ${fmt(recovered)}건 — 정제 저장소로 재적재됨`, go: 'quality' })
   if (snap.workOrders.length === 0)
     alerts.push({ tone: 'info', msg: '정비이력 오늘 신규 없음 — 이벤트 기반 원천이라 정상', go: 'ingest' })
-  alerts.push({ tone: 'info', msg: '2·3차 원천 6종 연결 대기 — 스키마·매핑은 이미 정의 완료', go: 'ingest' })
+  alerts.push({ tone: 'info', msg: '2·3차 원천 6종 연결 대기 — 데이터 형식·매핑은 이미 정의 완료', go: 'ingest' })
 
   const stepStat: Record<StepId, string> = {
     ingest: `${live.length}종 · ${fmt(totalRecords)}건`,
@@ -83,10 +83,10 @@ export default function AdminConsole({ onNavigate }: { onNavigate?: (tab: string
         {(
           [
             ['ingest', '연결 원천', `${live.length}`, `/ ${CONNECTORS.length}종`, '1차 자체·공개 데이터 전부 연결', 'text-emerald-400'],
-            ['ingest', '오늘 수집 레코드', fmt(totalRecords), '건', '엔진 실집계 · 배속 반영', 'text-sky-400'],
-            ['quality', '품질 통과율', passRate.toFixed(2), '%', `격리 ${fmt(failed)}건 — 6개 룰 검사`, passRate >= 99 ? 'text-emerald-400' : 'text-amber-400'],
-            ['ontology', '온톨로지 인스턴스', fmt(ontoTotal), '개', `${ONTO.length}개 클래스 · 운행 단위 연결`, 'text-violet-400'],
-            ['dataset', 'AI-Ready 데이터셋', `${DATASETS.length}`, '종', `학습 가능 행 ${fmt(dsRows)}건`, 'text-amber-400'],
+            ['ingest', '오늘 수집 건수', fmt(totalRecords), '건', '엔진 실집계 · 배속 반영', 'text-sky-400'],
+            ['quality', '품질 통과율', passRate.toFixed(2), '%', `격리 ${fmt(failed)}건 — 6개 규칙 검사`, passRate >= 99 ? 'text-emerald-400' : 'text-amber-400'],
+            ['ontology', '온톨로지 기록', fmt(ontoTotal), '개', `${ONTO.length}개 종류 · 운행 단위 연결`, 'text-violet-400'],
+            ['dataset', 'AI 학습용 데이터셋', `${DATASETS.length}`, '종', `학습 가능 행 ${fmt(dsRows)}건`, 'text-amber-400'],
           ] as const
         ).map(([go, label, value, unit, sub, accent]) => (
           <button key={label} onClick={() => setStep(go)} className="text-left focus-visible:ring-2 focus-visible:ring-sky-500">
@@ -148,8 +148,8 @@ export default function AdminConsole({ onNavigate }: { onNavigate?: (tab: string
       {step === 'ops' && <Operations snap={snap} total={totalRecords} failed={failed} />}
 
       <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
-        ⚙️ <b className="text-gray-300">실단말 전환 시</b> — 이 화면의 커넥터는 시뮬레이터 대신 실단말 스트림(<code className="text-gray-400">PacketSource</code>)을
-        바라보게 바꾸면 그대로 동작합니다. 품질 룰·온톨로지 스키마·데이터셋 정의는 원천이 바뀌어도 유지됩니다 —{' '}
+        ⚙️ <b className="text-gray-300">실단말 전환 시</b> — 이 화면의 연결부는 시뮬레이터 대신 실단말 수신(<code className="text-gray-400">PacketSource</code>)을
+        바라보게 바꾸면 그대로 동작합니다. 품질 규칙·온톨로지 구조·데이터셋 정의는 원천이 바뀌어도 유지됩니다 —{' '}
         <b className="text-gray-300">2·3차 데이터는 같은 중심축(운행 단위)에 꽂기만 하면 됩니다.</b>
       </div>
     </div>

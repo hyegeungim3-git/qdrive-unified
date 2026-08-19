@@ -42,7 +42,7 @@ export function Def({ k, v }: { k: string; v: ReactNode }) {
 }
 
 /** 레코드 표 — 원천 샘플·격리 샘플 공용 */
-export function RecordTable({ rows, empty = '표시할 레코드가 없습니다' }: { rows: Row[]; empty?: string }) {
+export function RecordTable({ rows, empty = '표시할 데이터가 없습니다' }: { rows: Row[]; empty?: string }) {
   if (!rows.length) return <div className="py-5 text-center text-[11.5px] text-gray-500">{empty}</div>
   const cols = Object.keys(rows[0])
   return (

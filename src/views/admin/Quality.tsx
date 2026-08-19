@@ -38,10 +38,10 @@ export default function Quality({
   return (
     <div className="space-y-3">
       <Panel
-        title="품질 검사 — 6개 룰"
+        title="품질 검사 — 6개 규칙"
         right={
           <span className="text-[11px] font-semibold text-gray-500">
-            통과 {fmt(total - liveFailed)} / 검사 {fmt(total)}건 · 행을 클릭하면 격리 레코드
+            통과 {fmt(total - liveFailed)} / 검사 {fmt(total)}건 · 행을 클릭하면 격리 기록
           </span>
         }
       >
@@ -59,7 +59,7 @@ export default function Quality({
           <table className="w-full min-w-[760px] text-left text-[12px]">
             <thead>
               <tr className="border-b border-gray-800 text-[11px] text-gray-500">
-                <th className="py-2 pr-3 font-semibold">룰</th>
+                <th className="py-2 pr-3 font-semibold">규칙</th>
                 <th className="py-2 pr-3 font-semibold">검사 내용</th>
                 <th className="py-2 pr-3 font-semibold">방식</th>
                 <th className="py-2 pr-3 text-right font-semibold">격리</th>
@@ -100,7 +100,7 @@ export default function Quality({
         </div>
       </Panel>
 
-      <Panel title="원천 × 룰 매트릭스 — 어느 원천에 어떤 검사가 걸리나" right={<span className="text-[11px] text-gray-500">● 적용 · — 해당 없음</span>}>
+      <Panel title="원천 × 규칙 대조표 — 어느 원천에 어떤 검사가 걸리나" right={<span className="text-[11px] text-gray-500">● 적용 · — 해당 없음</span>}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] text-left text-[12px]">
             <thead>
@@ -111,7 +111,7 @@ export default function Quality({
                     {r.code}
                   </th>
                 ))}
-                <th className="py-2 text-right font-semibold">적용 룰</th>
+                <th className="py-2 text-right font-semibold">적용 규칙</th>
               </tr>
             </thead>
             <tbody>
@@ -143,7 +143,7 @@ export default function Quality({
             {[
               { a: 'DTG 409', b: '1초 법정 기록', c: '오큐브 자체 자산', dot: '#34d399' },
               { a: 'RTK', b: 'cm급 초정밀', c: '단말 + 국가 무료 보정', dot: '#38bdf8' },
-              { a: 'BIS 공개 API', b: '3초 시 공개 스트림', c: '대구시 공개', dot: '#a78bfa' },
+              { a: 'BIS 공개 API', b: '3초 주기 시 공개 데이터', c: '대구시 공개', dot: '#a78bfa' },
             ].map((s) => (
               <div key={s.a} className="flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.dot }} />
@@ -163,12 +163,12 @@ export default function Quality({
         </Panel>
 
         <Panel
-          title="격리 큐 — 통과하지 못한 데이터"
+          title="격리함 — 통과하지 못한 데이터"
           right={<span className="text-[11px] font-semibold text-amber-400">{fmt(liveFailed)}건</span>}
         >
           {liveFailed === 0 ? (
             <div className="py-6 text-center text-[12px] text-gray-500">
-              {doneCount > 0 ? `재처리 완료 — 격리 0건 (${fmt(doneCount)}건 복구)` : '현재 격리된 레코드가 없습니다 — 전 룰 통과'}
+              {doneCount > 0 ? `재처리 완료 — 격리 0건 (${fmt(doneCount)}건 복구)` : '현재 격리된 기록이 없습니다 — 전 규칙 통과'}
             </div>
           ) : (
             <div className="space-y-2">
@@ -194,7 +194,7 @@ export default function Quality({
             </div>
           )}
           <div className="mt-3 rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2 text-[11px] leading-relaxed break-keep text-gray-500">
-            격리된 레코드는 <b className="text-gray-300">버리지 않고 원본 그대로 보관</b>합니다. 원인(단말 고장·통신 유실)을 고치면 재처리되고, 그 이력
+            격리된 데이터는 <b className="text-gray-300">버리지 않고 원본 그대로 보관</b>합니다. 원인(단말 고장·통신 유실)을 고치면 재처리되고, 그 이력
             자체가 단말 관리의 근거가 됩니다.
           </div>
         </Panel>
@@ -224,9 +224,9 @@ export default function Quality({
                   ))}
               </div>
             </Sec>
-            <Sec t="격리 레코드 샘플" right={<span className="text-[11px] text-gray-500">최근 {Math.min(4, failOf(open))}건</span>}>
+            <Sec t="격리 데이터 예시" right={<span className="text-[11px] text-gray-500">최근 {Math.min(4, failOf(open))}건</span>}>
               <div className="rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
-                <RecordTable rows={failOf(open) > 0 ? open.sample(snap, failOf(open)) : []} empty="격리된 레코드가 없습니다" />
+                <RecordTable rows={failOf(open) > 0 ? open.sample(snap, failOf(open)) : []} empty="격리된 데이터가 없습니다" />
               </div>
             </Sec>
             <Sec t="조치">

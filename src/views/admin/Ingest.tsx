@@ -7,8 +7,8 @@ import { Chips, Def, Dot, Drawer, LogRow, RecordTable, Search, Sec, Spark, Stat 
 
 const FILTERS = ['전체', '1차', '2차', '3차', '수집 중', '연결 대기'] as const
 type Filter = (typeof FILTERS)[number]
-type DetailTab = '개요' | '스키마·매핑' | '최근 데이터' | '수집 로그'
-const DETAIL_TABS: DetailTab[] = ['개요', '스키마·매핑', '최근 데이터', '수집 로그']
+type DetailTab = '개요' | '형식·매핑' | '최근 데이터' | '수집 로그'
+const DETAIL_TABS: DetailTab[] = ['개요', '형식·매핑', '최근 데이터', '수집 로그']
 
 const isLive = (c: Conn) => c.stage === '1차'
 
@@ -57,9 +57,9 @@ export default function Ingest({ snap, total }: { snap: SimSnapshot; total: numb
                 <th className="py-2 pr-3 font-semibold">보유 주체</th>
                 <th className="py-2 pr-3 font-semibold">주기</th>
                 <th className="py-2 pr-3 text-right font-semibold">오늘 수집</th>
-                <th className="py-2 pr-3 text-right font-semibold">지연 p50/p95</th>
+                <th className="py-2 pr-3 text-right font-semibold">지연 중앙/상위5%</th>
                 <th className="py-2 pr-3 font-semibold">24h 추이</th>
-                <th className="py-2 pr-3 font-semibold">스키마</th>
+                <th className="py-2 pr-3 font-semibold">데이터 형식</th>
                 <th className="py-2 font-semibold">상태</th>
               </tr>
             </thead>
@@ -118,8 +118,8 @@ export default function Ingest({ snap, total }: { snap: SimSnapshot; total: numb
             {[
               ['차량번호', 'vehicleId', 'DTG 409 · DTG 521 · OBD/CAN · RTK · BIS · 정비이력 · 단말 상태', '표기가 제각각이라 정규화 후 결합 — 통합의 1차 키'],
               ['운행 단위', 'Trip (start~end)', 'DTG 521이 정의 · 나머지 원천이 시각으로 귀속', '"언제의 데이터인가"를 운행 단위로 묶는 축'],
-              ['시각', 'simTime (1초)', 'DTG · OBD · RTK 3소스 교차 · BIS 3초', '단말 시계 오차를 3소스로 보정 (품질 룰 Q4)'],
-              ['정류장', 'stopName', 'BIS 정류소명 ↔ 노선 정류장 사전', '미매칭은 보류 큐 — 임의 매칭 금지'],
+              ['시각', 'simTime (1초)', 'DTG · OBD · RTK 3소스 교차 · BIS 3초', '단말 시계 오차를 3소스로 보정 (품질 규칙 Q4)'],
+              ['정류장', 'stopName', 'BIS 정류소명 ↔ 노선 정류장 사전', '미매칭은 보류함으로 — 임의 매칭 금지'],
             ].map(([k, key, srcs, why]) => (
               <div key={k} className="rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
                 <div className="flex flex-wrap items-baseline gap-2">
@@ -137,8 +137,8 @@ export default function Ingest({ snap, total }: { snap: SimSnapshot; total: numb
           <div className="space-y-1.5">
             {[
               ['차내 단말', 'DTG·OBD·RTK 통합 수집', `${snap.vehicles.length}대 연결`],
-              ['전송', 'LTE 스트림 · 유실 시 재전송', '지연 중앙값 0.8초'],
-              ['수신 게이트', '스키마 검증 · 중복 제거 · 표기 정규화', `${fmt(total)}건 수신`],
+              ['전송', 'LTE 실시간 전송 · 유실 시 재전송', '지연 중앙값 0.8초'],
+              ['수신 관문', '형식 검증 · 중복 제거 · 표기 정규화', `${fmt(total)}건 수신`],
               ['원본 보관', '변경 불가 원본(raw) 보존', '감사·분쟁 대응 근거'],
               ['정제 적재', '품질 통과분만 분석 저장소로', '다음 단계 ②'],
             ].map(([t, d, m], i) => (
@@ -209,7 +209,7 @@ function ConnDetail({
               <Stat label="오늘 수집" value={live ? `${fmt(n)}건` : '—'} tone={live ? 'text-sky-300' : 'text-gray-600'} />
             </div>
             <div className="rounded-lg border border-gray-800 bg-gray-900/60 px-3 py-2">
-              <Stat label="지연 p50 / p95" value={live ? `${conn.latency[0]} / ${conn.latency[1]}ms` : '—'} />
+              <Stat label="지연 중앙 / 상위5%" value={live ? `${conn.latency[0]} / ${conn.latency[1]}ms` : '—'} />
             </div>
             <div className="rounded-lg border border-gray-800 bg-gray-900/60 px-3 py-2">
               <Stat label="필드 수" value={`${conn.fields.length}개 정의`} />
@@ -233,7 +233,7 @@ function ConnDetail({
             <>
               <Sec t="연동 설정">
                 <div className="rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-1">
-                  <Def k="엔드포인트" v={<code className="break-all text-[11px] text-sky-300">{integ.endpoint}</code>} />
+                  <Def k="접속 주소" v={<code className="break-all text-[11px] text-sky-300">{integ.endpoint}</code>} />
                   <Def k="인증" v={integ.auth} />
                   <Def k="재시도" v={integ.retry} />
                   <Def k="중복 제거 키" v={<code className="text-[11px] text-gray-300">{integ.dedupKey}</code>} />
@@ -261,7 +261,7 @@ function ConnDetail({
                 </ol>
               </Sec>
 
-              <Sec t="스키마 버전 이력">
+              <Sec t="데이터 형식 버전 이력">
                 <div className="space-y-1.5">
                   {integ.history.map((h) => (
                     <div key={h.ver} className="flex gap-2.5 rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-1.5">
@@ -292,22 +292,22 @@ function ConnDetail({
                 </div>
               </div>
               <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
-                스키마와 매핑은 이미 정의돼 있어, 협약·승인이 나면 <b className="text-gray-300">커넥터만 켜면 됩니다.</b> 구조 변경은 없습니다.
+                데이터 형식과 매핑은 이미 정의돼 있어, 협약·승인이 나면 <b className="text-gray-300">연결만 켜면 됩니다.</b> 구조 변경은 없습니다.
               </div>
             </Sec>
           ) : null}
         </>
       )}
 
-      {tab === '스키마·매핑' && (
+      {tab === '형식·매핑' && (
         <>
-          <Sec t="스키마 필드" right={<span className="text-[11px] text-gray-500">{conn.fields.length}개</span>}>
+          <Sec t="데이터 항목 정의" right={<span className="text-[11px] text-gray-500">{conn.fields.length}개</span>}>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[11.5px]">
                 <thead>
                   <tr className="border-b border-gray-800 text-[10.5px] text-gray-500">
-                    <th className="py-1.5 pr-3 font-semibold">필드</th>
-                    <th className="py-1.5 pr-3 font-semibold">타입</th>
+                    <th className="py-1.5 pr-3 font-semibold">항목</th>
+                    <th className="py-1.5 pr-3 font-semibold">형식</th>
                     <th className="py-1.5 font-semibold">설명</th>
                   </tr>
                 </thead>
@@ -349,15 +349,15 @@ function ConnDetail({
       )}
 
       {tab === '최근 데이터' && (
-        <Sec t="최근 수신 레코드" right={<span className="text-[11px] text-gray-500">엔진 실데이터</span>}>
+        <Sec t="최근 수신 데이터" right={<span className="text-[11px] text-gray-500">엔진 실데이터</span>}>
           <div className="rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
             <RecordTable
               rows={conn.sample(snap)}
-              empty={live ? '아직 수신된 레코드가 없습니다 — 이벤트 기반 원천입니다' : '연결 대기 중인 원천입니다'}
+              empty={live ? '아직 수신된 데이터가 없습니다 — 이벤트 기반 원천입니다' : '연결 대기 중인 원천입니다'}
             />
           </div>
           <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
-            표시되는 값은 지금 돌아가는 엔진의 실제 레코드입니다. 실단말 전환 시 이 자리에 실차 패킷이 그대로 들어옵니다.
+            표시되는 값은 지금 돌아가는 엔진의 실제 데이터입니다. 실단말 전환 시 이 자리에 실차 패킷이 그대로 들어옵니다.
           </div>
         </Sec>
       )}

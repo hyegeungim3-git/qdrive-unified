@@ -24,7 +24,7 @@ const TABS = [
   { id: 'carbon', label: '🌱 탄소중립 분석', sub: '탄소·연료·안전·전환' },
   { id: 'proof', label: '🔬 성과 검증', sub: '신뢰도·성과 증명' },
   { id: 'report', label: '실증 리포트', sub: '도입 전 → 후 비교' },
-  { id: 'admin', label: '🔗 데이터 관리자', sub: 'AX 데이터 체계' },
+  { id: 'admin', label: '🔗 데이터 관리자', sub: 'AI 전환(AX) 데이터 체계' },
   { id: 'roadmap', label: '로드맵', sub: '플랫폼 확장' },
 ] as const
 
@@ -64,7 +64,7 @@ export default function App() {
             </div>
             <div
               className="text-[10px] text-gray-500"
-              title="공단 표준 DTG 패킷(409 위험운전 / 521 운행기록) 스키마 기반 실증 데모"
+              title="공단 표준 DTG 기록(409 위험운전 / 521 운행기록) 형식 기반 실증 데모"
             >
               안전운전 · 연료절감 · 탄소중립을 한 화면에서
             </div>

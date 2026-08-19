@@ -32,9 +32,9 @@ export default function Explorer({ snap }: { snap: SimSnapshot }) {
 
   if (!hood) {
     return (
-      <Panel title="인스턴스 탐색 — 실제 레코드 사이의 연결">
+      <Panel title="기록 탐색 — 실제 기록 사이의 연결">
         <div className="py-8 text-center text-[12px] text-gray-500">
-          아직 걸어볼 레코드가 없습니다 — 배속을 올려 운행이 쌓이면 여기서 연결을 따라갈 수 있습니다.
+          아직 걸어볼 기록이 없습니다 — 배속을 올려 운행이 쌓이면 여기서 연결을 따라갈 수 있습니다.
         </div>
       </Panel>
     )
@@ -67,8 +67,8 @@ export default function Explorer({ snap }: { snap: SimSnapshot }) {
 
   return (
     <Panel
-      title="인스턴스 탐색 — 실제 레코드 사이의 연결"
-      right={<span className="text-[11px] text-gray-500">노드를 누르면 그 레코드가 중심이 됩니다</span>}
+      title="기록 탐색 — 실제 기록 사이의 연결"
+      right={<span className="text-[11px] text-gray-500">동그라미를 누르면 그 기록이 중심이 됩니다</span>}
     >
       {/* 시작점 + 경로 */}
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
@@ -204,7 +204,7 @@ export default function Explorer({ snap }: { snap: SimSnapshot }) {
       </div>
 
       <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
-        이것이 온톨로지가 실제로 하는 일입니다 — <b className="text-gray-300">한 레코드에서 옆 레코드로 계속 걸어갈 수 있다</b>는 것. 급감속 하나에서
+        이것이 온톨로지가 실제로 하는 일입니다 — <b className="text-gray-300">한 기록에서 옆 기록으로 계속 걸어갈 수 있다</b>는 것. 급감속 하나에서
         차량 → 기사 → 그날 날씨 → 상황 설명까지 이어지기 때문에 "왜 그랬나"에 근거를 대며 답할 수 있습니다.
       </div>
     </Panel>

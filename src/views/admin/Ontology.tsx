@@ -208,7 +208,7 @@ export default function Ontology({ snap }: { snap: SimSnapshot }) {
       >
         {open && (
           <>
-            <Sec t="속성 · 관계 스키마">
+            <Sec t="속성 · 관계 정의">
               <div className="overflow-x-auto rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
                 <table className="w-full text-left text-[11.5px]">
                   <thead>

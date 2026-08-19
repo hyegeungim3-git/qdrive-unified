@@ -12,15 +12,15 @@ export default function Operations({ snap, total, failed }: { snap: SimSnapshot;
   const mb = (bytes: number) => (bytes / 1024 / 1024).toFixed(1)
 
   const jobs = [
-    { name: '스트림 수집', kind: '상시', last: clock(Math.max(0, t - 2)), next: '연속', done: total, state: '정상' as const,
-      note: 'DTG·OBD·RTK·BIS 커넥터 → 수신 게이트' },
+    { name: '실시간 수집', kind: '상시', last: clock(Math.max(0, t - 2)), next: '연속', done: total, state: '정상' as const,
+      note: 'DTG·OBD·RTK·BIS 연결 → 수신 관문' },
     { name: '품질 검사', kind: '상시', last: clock(Math.max(0, t - 2)), next: '연속', done: total, state: '정상' as const,
-      note: '6룰 검사 → 통과분 정제 저장소 · 실패분 격리 큐' },
+      note: '6개 규칙 검사 → 통과분 정제 저장소 · 실패분 격리함' },
     { name: '온톨로지 적재', kind: '상시', last: clock(Math.max(0, t - 5)), next: '연속', done: passed, state: '정상' as const,
       note: '운행 단위에 귀속 · 인스턴스·관계 생성' },
-    { name: '피처 빌드', kind: '회차/이벤트', last: snap.trips.length ? clock(snap.trips[0].endSimTime) : '—', next: '다음 회차 종료 시',
+    { name: '학습 항목 생성', kind: '회차/이벤트', last: snap.trips.length ? clock(snap.trips[0].endSimTime) : '—', next: '다음 회차 종료 시',
       done: snap.trips.length, state: snap.trips.length ? ('정상' as const) : ('대기' as const),
-      note: '회차 종료 시 연비·탄소 피처 생성 · 이벤트 발생 시 안전 피처 갱신' },
+      note: '회차 종료 시 연비·탄소 학습 항목 생성 · 이벤트 발생 시 안전 항목 갱신' },
     { name: '일 마감 집계', kind: '일 1회', last: '전일 24:00', next: '금일 24:00', done: 0, state: '대기' as const,
       note: '정산 검증 대조셋 생성 · 탄소 실적 확정 · 보고서 에이전트 집계 기준' },
   ]
@@ -82,12 +82,12 @@ export default function Operations({ snap, total, failed }: { snap: SimSnapshot;
       </Panel>
 
       <div className="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1">
-        <Panel title="저장 현황" right={<span className="text-[11px] text-gray-500">오늘 누적 · 레코드 기반 환산</span>}>
+        <Panel title="저장 현황" right={<span className="text-[11px] text-gray-500">오늘 누적 · 건수 기반 환산</span>}>
           <div className="grid grid-cols-3 gap-2">
             {[
               ['원본 (raw)', mb(total * BYTES.raw), '변경 불가 · 5년 보존', 'text-gray-200'],
               ['정제 (curated)', mb(passed * BYTES.curated), '품질 통과분 · 3년 보존', 'text-sky-300'],
-              ['피처 (AI-Ready)', mb((snap.trips.length + snap.kpi.totalEvents) * BYTES.feature * 40), '학습셋 · 3년 보존', 'text-emerald-400'],
+              ['학습 항목 (AI-Ready)', mb((snap.trips.length + snap.kpi.totalEvents) * BYTES.feature * 40), '학습셋 · 3년 보존', 'text-emerald-400'],
             ].map(([k, v, sub, tone]) => (
               <div key={k} className="rounded-lg border border-gray-800 bg-gray-900/60 px-3 py-2.5">
                 <div className="text-[10.5px] text-gray-500">{k}</div>
@@ -103,7 +103,7 @@ export default function Operations({ snap, total, failed }: { snap: SimSnapshot;
             {[
               ['원본 보존', '법정 운행기록 5년 — 감사·분쟁 시 원본 그대로 제출'],
               ['가명 처리', '기사 식별정보는 분석셋에서 분리 — 원본에만 존재'],
-              ['격리 로그', '통과하지 못한 레코드도 1년 보관 — 단말 관리 근거'],
+              ['격리 로그', '통과하지 못한 데이터도 1년 보관 — 단말 관리 근거'],
             ].map(([k, v]) => (
               <div key={k} className="flex gap-2.5 rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-1.5">
                 <span className="w-[62px] shrink-0 text-[11px] font-bold text-gray-300">{k}</span>
@@ -126,7 +126,7 @@ export default function Operations({ snap, total, failed }: { snap: SimSnapshot;
         </Panel>
       </div>
 
-      <Panel title="원천별 운영 지표" right={<span className="text-[11px] text-gray-500">1차 8종 · SLA 기준</span>}>
+      <Panel title="원천별 운영 지표" right={<span className="text-[11px] text-gray-500">1차 8종 · 응답 목표(SLA) 기준</span>}>
         <div className="grid grid-cols-4 gap-2 max-[1100px]:grid-cols-2 max-[600px]:grid-cols-1">
           {CONNECTORS.filter((c) => c.stage === '1차').map((c) => {
             const n = c.count(snap)
@@ -136,12 +136,12 @@ export default function Operations({ snap, total, failed }: { snap: SimSnapshot;
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-[12px] font-bold text-gray-100">{c.code}</span>
                   <span className={`shrink-0 text-[10.5px] font-bold ${slaOk ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {slaOk ? 'SLA 충족' : 'SLA 주의'}
+                    {slaOk ? '목표 충족' : '목표 주의'}
                   </span>
                 </div>
                 <div className="mt-1.5 flex items-end gap-3">
                   <Stat label="수집" value={fmt(n)} tone="text-sky-300" />
-                  <Stat label="p95" value={`${c.latency[1]}ms`} />
+                  <Stat label="지연 상위5%" value={`${c.latency[1]}ms`} />
                 </div>
                 <div className="mt-1 truncate text-[10.5px] text-gray-500">{c.schemaVer}</div>
               </div>

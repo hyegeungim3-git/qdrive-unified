@@ -222,7 +222,7 @@ export default function PerformanceProof() {
       </Panel>
 
       {/* ── ⑤ 4단 검증 게이트 상태 ── */}
-      <Panel title="⑤ '유의미한 결과' 4단 검증 게이트" right={<span className="text-[11px] text-gray-500">이 4단을 통과한 성과만 인정</span>}>
+      <Panel title="⑤ '유의미한 결과' 4단 검증 관문" right={<span className="text-[11px] text-gray-500">이 4단을 통과한 성과만 인정</span>}>
         <div className="grid grid-cols-4 gap-2.5 max-[720px]:grid-cols-2">
           {GATES.map((g) => (
             <div

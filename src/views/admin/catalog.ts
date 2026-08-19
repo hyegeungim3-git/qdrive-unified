@@ -241,7 +241,7 @@ export const CONNECTORS: Conn[] = [
   },
   {
     code: '민원', name: '시민 불편 접수', owner: '대구시 민원 채널', stage: '2차',
-    hz: '이벤트', schemaVer: '데모 스키마', since: '연동 시', latency: [0, 0],
+    hz: '이벤트', schemaVer: '데모 형식', since: '연동 시', latency: [0, 0],
     note: '데모는 시뮬 접수 — 실연동은 2차',
     fields: [
       { name: 'text', type: 'string', note: '민원 원문' },
@@ -280,7 +280,7 @@ export const CONNECTORS: Conn[] = [
   },
   {
     code: 'DVR', name: '차량 영상기록', owner: '대구시·운수사', stage: '3차',
-    hz: '스트림', schemaVer: '—', since: '협조 시', latency: [0, 0],
+    hz: '연속', schemaVer: '—', since: '협조 시', latency: [0, 0],
     note: '영상 기반 안전 분석 (비식별 전제)',
     fields: [
       { name: 'clipRef', type: 'uri', note: '원본은 이관하지 않고 참조만' },
@@ -308,7 +308,7 @@ const qSample = (s: SimSnapshot, n: number, rule: string, detail: (i: number) =>
     return {
       시각: clock(Math.max(0, s.simTime - i * 137)),
       차량: v ? shortId(v.id) : '—',
-      룰: rule,
+      규칙: rule,
       내용: detail(i),
       조치: '격리 · 원인 추적',
     }
@@ -329,7 +329,7 @@ export const RULES: Rule[] = [
     fail: (s) => s.vehicles.filter((v) => v.rpm < 50 && v.speedKmh > 3).length + (s.fault ? 1 : 0),
     sample: (s, n) =>
       s.fault && n > 0
-        ? [{ 시각: clock(s.fault.startedAt), 차량: shortId(s.fault.vehicleId), 룰: 'Q2', 내용: `냉각수온 ${s.fault.coolantTemp.toFixed(1)}℃ — 정상범위(88~95) 이탈`, 조치: '고장 예측 발화 · 검사 통과 보류' }]
+        ? [{ 시각: clock(s.fault.startedAt), 차량: shortId(s.fault.vehicleId), 규칙: 'Q2', 내용: `냉각수온 ${s.fault.coolantTemp.toFixed(1)}℃ — 정상범위(88~95) 이탈`, 조치: '고장 예측 발화 · 검사 통과 보류' }]
         : qSample(s, n, 'Q2', () => 'RPM 0 · 속도 5km/h — 센서 불일치'),
   },
   {
@@ -355,7 +355,7 @@ export const RULES: Rule[] = [
   },
   {
     code: 'Q6', name: '중복 패킷', kind: '표본 비율',
-    desc: '통신 재전송으로 같은 시각 레코드가 두 번 들어온 경우',
+    desc: '통신 재전송으로 같은 시각 데이터가 두 번 들어온 경우',
     action: '최초 수신분만 채택 · 중복분 폐기 기록',
     fail: (_s, t) => Math.floor(t * 0.0003),
     sample: (s, n) => qSample(s, n, 'Q6', () => '동일 (차량, 시각) 키 2회 수신 — 재전송'),
@@ -609,7 +609,7 @@ export type Dataset = {
 
 export const DATASETS: Dataset[] = [
   {
-    key: 'safety', featureCount: 18, name: '안전운전 이벤트 피처', purpose: '위험운전 판정·코칭 효과 학습', ready: 96, missing: 0.4,
+    key: 'safety', featureCount: 18, name: '안전운전 이벤트 학습셋', purpose: '위험운전 판정·코칭 효과 학습', ready: 96, missing: 0.4,
     label: '관제 판정 + 기사 상황 설명 결과 (사람 확인 기준)', refresh: '실시간',
     services: [{ name: '기사 앱 코칭', tab: 'driver' }, { name: '운수사 승인 루프', tab: 'operator' }, { name: '시티 위험 히트맵', tab: 'city' }],
     features: [
@@ -633,7 +633,7 @@ export const DATASETS: Dataset[] = [
       })),
   },
   {
-    key: 'fuel', featureCount: 22, name: '회차 연비·탄소 피처', purpose: '연비 예측 · CO₂ 산정 · 크레딧 검증', ready: 98, missing: 0.1,
+    key: 'fuel', featureCount: 22, name: '회차 연비·탄소 학습셋', purpose: '연비 예측 · CO₂ 산정 · 크레딧 검증', ready: 98, missing: 0.1,
     label: '실측 연료(OBD) — 라벨 자동 확보', refresh: '회차 종료 시',
     services: [{ name: '탄소중립 분석', tab: 'carbon' }, { name: '성과 검증', tab: 'proof' }, { name: '경영·투자', tab: 'operator' }],
     features: [
@@ -656,7 +656,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     key: 'fault', featureCount: 21, name: '고장 예측 시계열', purpose: '부품별 이상 징후 → 잔여수명 예측', ready: 91, missing: 1.2,
-    label: '정비이력 (작업지시 완료 기록)', refresh: '1초 스트림',
+    label: '정비이력 (작업지시 완료 기록)', refresh: '1초 실시간',
     services: [{ name: '진단 스캐너', tab: 'operator' }, { name: '예지정비 작업지시', tab: 'operator' }],
     features: [
       { name: 'coolant_temp', type: 'float' },
@@ -676,7 +676,7 @@ export const DATASETS: Dataset[] = [
       })),
   },
   {
-    key: 'headway', featureCount: 14, name: '배차·정시성 피처', purpose: '배차 간격 몰림 예측 · 도착 예측 보정', ready: 88, missing: 2.1,
+    key: 'headway', featureCount: 14, name: '배차·정시성 학습셋', purpose: '배차 간격 몰림 예측 · 도착 예측 보정', ready: 88, missing: 2.1,
     label: '정류장 통과 실적 (RTK·BIS 교차)', refresh: '3초',
     services: [{ name: '승객 앱 ETA', tab: 'passenger' }, { name: '배차 권고', tab: 'operator' }, { name: '노선 관리', tab: 'operator' }],
     features: [
@@ -738,19 +738,19 @@ export const DATASETS: Dataset[] = [
 
 /* ═══════════ 계보 ═══════════ */
 export const LINEAGE: { src: string[]; ds: string; svc: { name: string; tab: string }[]; stage: Stage }[] = [
-  { src: ['DTG 409', '날씨·돌발'], ds: '안전운전 이벤트 피처', stage: '1차',
+  { src: ['DTG 409', '날씨·돌발'], ds: '안전운전 이벤트 학습셋', stage: '1차',
     svc: [{ name: '기사 앱 코칭', tab: 'driver' }, { name: '운수사 승인 루프', tab: 'operator' }, { name: '시티 히트맵', tab: 'city' }] },
-  { src: ['DTG 521', 'OBD/CAN'], ds: '회차 연비·탄소 피처', stage: '1차',
+  { src: ['DTG 521', 'OBD/CAN'], ds: '회차 연비·탄소 학습셋', stage: '1차',
     svc: [{ name: '탄소중립 분석', tab: 'carbon' }, { name: '성과 검증', tab: 'proof' }, { name: '경영·투자', tab: 'operator' }] },
   { src: ['OBD/CAN', '정비이력'], ds: '고장 예측 시계열', stage: '1차',
     svc: [{ name: '진단 스캐너', tab: 'operator' }, { name: '예지정비', tab: 'operator' }] },
-  { src: ['RTK', 'BIS 공개 API'], ds: '배차·정시성 피처', stage: '1차',
+  { src: ['RTK', 'BIS 공개 API'], ds: '배차·정시성 학습셋', stage: '1차',
     svc: [{ name: '승객 앱 ETA', tab: 'passenger' }, { name: '배차 권고', tab: 'operator' }] },
   { src: ['DTG 521', 'RTK'], ds: '정산 검증 대조셋', stage: '1차',
     svc: [{ name: '시티 정산 검증', tab: 'city' }, { name: '정책 보고서 에이전트', tab: 'policy' }] },
   { src: ['민원', 'DTG 409', 'RTK'], ds: '민원-증빙 매칭셋', stage: '2차',
     svc: [{ name: '민원 증빙 자동매칭', tab: 'city' }, { name: '승객 앱 민원 추적', tab: 'passenger' }] },
-  { src: ['AFC', 'APC'], ds: '수요·혼잡 피처 (예정)', stage: '2차',
+  { src: ['AFC', 'APC'], ds: '수요·혼잡 학습셋 (예정)', stage: '2차',
     svc: [{ name: '배차 최적화', tab: 'operator' }, { name: '혼잡 안내', tab: 'passenger' }] },
   { src: ['BMS 배차원장', 'ITS', 'DVR'], ds: '계획-실적 대조셋 (예정)', stage: '3차',
     svc: [{ name: '정산 고도화', tab: 'city' }, { name: '신호 예측 에코코칭', tab: 'driver' }] },

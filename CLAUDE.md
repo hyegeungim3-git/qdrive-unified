@@ -25,7 +25,9 @@ AI 업무센터·에이전트 플랫폼은 최상위 탭에서 해체돼 각 소
 ## 배포 (2026-08-19 Cloudflare Pages 전환 — 최신)
 - **라이브(정본)**: https://qdrive-unified.pages.dev/ — Cloudflare Pages, 계정 hyegeungim3@gmail.com
 - **시민 공개**: https://qdrive-unified.pages.dev/#citizen
-- **재배포**: `npm run build` 후 `npx wrangler pages deploy dist --project-name=qdrive-unified --branch=main --commit-dirty=true`
+- **재배포(수동)**: `npm run build` 후 `npx wrangler pages deploy dist --project-name=qdrive-unified --branch=main --commit-dirty=true`
+- **재배포(자동)**: `.github/workflows/cloudflare-deploy.yml` — main push 시 Actions가 빌드→업로드. **GitHub Secret `CLOUDFLARE_API_TOKEN`(권한 Account/Cloudflare Pages/Edit) 등록이 전제**이며, 미등록이면 이 워크플로만 실패하고 수동 배포는 계속 가능.
+- **저장소 공개 여부와 배포는 무관**: Pages 프로젝트가 Direct Upload 모드(`Git Provider: No`)라 Cloudflare가 저장소를 조회하지 않는다. 저장소를 비공개로 바꿔도 pages.dev는 그대로 동작하고, 자동배포 워크플로도 비공개 저장소에서 동작한다(Actions가 저장소 내부에서 빌드·업로드). 단 **GitHub Pages는 비공개 전환 시 내려간다**(Pro/Team 이상만 서빙).
 - **저장소(공개)**: https://github.com/hyegeungim3-git/qdrive-unified
 - **GitHub Pages(보조·유지)**: https://hyegeungim3-git.github.io/qdrive-unified/ — main push 시 Actions 자동 배포. 기존 공유 링크 보호용으로 살려 둠.
 - **base 경로 이원화**: vite base 기본값은 `'/'`(Cloudflare Pages는 루트 서빙). GitHub Pages는 저장소 하위경로라 `.github/workflows/deploy.yml`이 `BASE_PATH=/qdrive-unified/`를 넘겨 오버라이드. **vite.config.ts의 base를 직접 하드코딩하지 말 것** — 두 배포처가 갈라진다.

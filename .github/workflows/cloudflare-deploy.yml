@@ -1,0 +1,42 @@
+name: Deploy to Cloudflare Pages
+
+# 정본 배포처. main push 시 Cloudflare Pages(qdrive-unified.pages.dev)로 자동 배포.
+# 저장소 공개/비공개와 무관하게 동작한다 — Cloudflare가 저장소를 보지 않고,
+# 이 워크플로가 저장소 안에서 빌드한 dist를 토큰으로 업로드하는 구조.
+#
+# 사전 준비 (1회, 사용자가 직접):
+#   1) Cloudflare 대시보드 → My Profile → API Tokens → Create Token
+#      권한: Account / Cloudflare Pages / Edit
+#   2) GitHub 저장소 → Settings → Secrets and variables → Actions
+#      New repository secret: CLOUDFLARE_API_TOKEN = 위에서 만든 토큰
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Windows에서 생성된 lockfile 대비 — npm ci 대신 install (기존 Pages 워크플로 선례)
+      - run: npm install --no-audit --no-fund
+      # BASE_PATH를 주지 않는다 → vite base '/' (Cloudflare Pages는 루트 서빙)
+      - run: npm run build
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # 계정 ID는 비밀이 아니다 (토큰 없이는 아무것도 못 함)
+          CLOUDFLARE_ACCOUNT_ID: f44e0d7e8009a556ea2cbca976dafcfb
+        run: npx --yes wrangler@4 pages deploy dist --project-name=qdrive-unified --branch=main

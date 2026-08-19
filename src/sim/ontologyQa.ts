@@ -381,8 +381,11 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
   const trip = s.trips.find((t) => t.vehicleId === decel.vehicleId && decel.simTime >= t.startSimTime && decel.simTime <= t.endSimTime)
   const sameCtx = s.events.filter((e) => e.routeName === decel.routeName && e.weather === decel.weather).length
   const plea = s.pleas.find((p) => p.vehicleId === decel.vehicleId && p.eventType === decel.eventType)
-  const myPleas = s.pleas.filter((p) => p.vehicleId === decel.vehicleId).slice(0, 4)
-  const otherPleas = s.pleas.length - myPleas.length
+  /** 이 이벤트에 대한 설명 — 차량과 «유형»이 둘 다 맞아야 이 건의 설명이다 */
+  const evPleas = s.pleas.filter((p) => p.vehicleId === decel.vehicleId && p.eventType === decel.eventType)
+  /** 같은 차량이지만 다른 이벤트에 대한 설명 — 참고로만 쓰고 답의 근거로 쓰지 않는다 */
+  const otherTypePleas = s.pleas.filter((p) => p.vehicleId === decel.vehicleId && p.eventType !== decel.eventType)
+  const otherVehPleas = s.pleas.filter((p) => p.vehicleId !== decel.vehicleId).length
   return {
     id, q, path, sources,
     walk: walkOf(s, `evt:${decel.vehicleId}:${Math.round(decel.simTime)}`, `${decel.eventType} ${mmss(decel.simTime)}`),
@@ -430,19 +433,27 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
           : ['현재 감점 처리', plea ? `기사 상황 설명 ${plea.method} 접수 (${plea.status})` : '이 이벤트에 대한 기사 상황 설명 없음 — 인정되면 복원됨'],
       },
       {
-        h: `이 차량의 상황 설명 (소명) — ${short(decel.vehicleId)}`,
+        /*
+         * 물은 것은 «이 이벤트»다. 차량만 맞고 유형이 다른 설명을 같은 자리에 실으면
+         * 급출발을 물었는데 급진로변경 설명이 답으로 읽힌다 — 실제로 그렇게 보였다.
+         * 그래서 절 제목부터 이벤트로 좁히고, 다른 건은 «근거로 쓰지 않았다»고 못 박는다.
+         */
+        h: `이 이벤트의 상황 설명 (소명) — ${short(decel.vehicleId)} ${decel.eventType}`,
         src: ['기사 소명'],
-        /* 소명은 «그 차량의 기사»가 낸 것이다. 전체 목록을 실으면 한 대의 상황에
-           다른 차량 기사의 말이 섞여 «두 사람이 같은 건에 답한» 것처럼 읽힌다. */
-        items: myPleas.length
-          ? myPleas.map(
-              (p) =>
-                `${p.driverName} 기사 · ${p.eventType} — “${p.note}” (${p.method} · ${p.status})` +
-                (p.eventType === decel.eventType ? ' ← 이 이벤트 유형' : ''),
-            )
+        items: evPleas.length
+          ? evPleas.map((p) => {
+              const gap = Math.abs(p.simTime - decel.simTime)
+              const tag = gap > 300 ? ' · 같은 차량·같은 유형의 이전 접수 건' : ''
+              return `${p.driverName} 기사 · ${p.eventType} — “${p.note}” (${p.method} · ${p.status}) · 접수 ${mmss(p.simTime)}${tag}`
+            })
           : [
-              `${short(decel.vehicleId)}에 접수된 상황 설명 없음`,
-              ...(otherPleas > 0 ? [`다른 차량 ${otherPleas}건은 기사 앱에서 확인 — 이 답에는 섞지 않는다`] : []),
+              `${mmss(decel.simTime)} ${decel.eventType}에 대한 기사 설명은 아직 접수되지 않았습니다`,
+              ...(otherTypePleas.length
+                ? [
+                    `이 차량의 다른 이벤트 설명 ${otherTypePleas.length}건 있음 (${[...new Set(otherTypePleas.map((p) => p.eventType))].join('·')}) — 다른 건이라 이 답의 근거로 쓰지 않았습니다`,
+                  ]
+                : []),
+              ...(otherVehPleas > 0 ? [`다른 차량 ${otherVehPleas}건은 기사 앱에서 확인 — 이 답에는 섞지 않습니다`] : []),
             ],
       },
       {
@@ -484,10 +495,10 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
         }
       })(),
       /* 대조할 짝이 없으면 항목을 만들지 않는다 — 소명이 없는 것은 결함이 아니라 그냥 없는 것 */
-      ...(myPleas.some((p) => p.eventType === decel.eventType)
+      ...(evPleas.length
         ? [
             (() => {
-              const hit = myPleas.find((p) => p.eventType === decel.eventType)!
+              const hit = evPleas[0]
               return {
                 a: 'DTG 409 (이벤트 유형)',
                 b: '기사 소명 (음성·버튼)',
@@ -702,7 +713,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
   /* 후속은 «지금 보고 있는 차량»의 기록으로 이어져야 한다 — 목적어 없는 후속이 동문서답의 통로다 */
   const myEvent = one ? s.events.find((e) => e.vehicleId === one.id) : null
   const myDepot = one ? s.trips.find((t) => t.vehicleId === one.id)?.depot : undefined
-  const waste = s.vehicles.reduce(
+  const waste = scope.reduce(
     (a, v) => ({ idle: a.idle + v.fuelWaste.idle, harsh: a.harsh + v.fuelWaste.harsh, habit: a.habit + v.fuelWaste.habit, ac: a.ac + v.fuelWaste.ac }),
     { idle: 0, harsh: 0, habit: 0, ac: 0 },
   )
@@ -765,7 +776,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
         })(),
       },
       {
-        h: '낭비 요인 분해',
+        h: one ? `낭비 요인 분해 — ${short(one.id)}` : `낭비 요인 분해 — 실증 ${s.vehicles.length}대 합계`,
         src: ['DTG 409'],
         items: [
           `운전 습관 ${waste.habit.toFixed(2)}m³ · 급조작 ${waste.harsh.toFixed(2)}m³`,

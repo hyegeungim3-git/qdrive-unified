@@ -1,5 +1,9 @@
 /**
- * 💬 온톨로지 질의 — 제안서 「맥락이 붙으면 비로소 답할 수 있는 질문」 4종에 실제로 답하는 채팅 화면.
+ * 💬 AI 채팅 — 제안서 「맥락이 붙으면 비로소 답할 수 있는 질문」 4종에 실제로 답하는 화면.
+ *
+ * 이름은 «AI 채팅»이지만 **LLM이 온톨로지로 만들어지는 것은 아니다.** 모델은 이미 학습된 범용
+ * Claude이고, 온톨로지는 그 답에 **근거를 대는 데이터 구조**다. 아래 4개 질문은 애초에 LLM을
+ * 거치지 않고 엔진에서 계산한다 — 그래서 네트워크가 끊겨도 답이 나온다.
  *
  * 다른 탭과 성격이 다르다. ⓪~⑨는 «온톨로지가 무엇을 담고 있나»를 보여주고,
  * 여기는 «그 위에서 도는 서비스»다 — 발주처가 실제로 쓰게 될 모습.
@@ -106,8 +110,8 @@ export default function OntologyChat() {
       {/* 헤더 */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[11px] font-bold tracking-[0.2em] text-violet-400">ONTOLOGY QUERY</div>
-          <h2 className="mt-0.5 text-lg font-black tracking-tight text-gray-50">💬 온톨로지 질의</h2>
+          <div className="text-[11px] font-bold tracking-[0.2em] text-violet-400">ONTOLOGY-GROUNDED AI</div>
+          <h2 className="mt-0.5 text-lg font-black tracking-tight text-gray-50">💬 AI 채팅</h2>
           <p className="mt-1 max-w-3xl break-keep text-[12.5px] leading-relaxed text-gray-400">
             거리·연료 같은 <b className="text-gray-300">숫자만 있는 표</b>로는 답할 수 없고, 운행 단위에 의미가 붙어 있어야 답이 나오는 질문들입니다. 아래
             네 질문은 <b className="text-violet-300">지금 돌아가는 엔진에서 실제로 계산</b>해 답하며, 어떤 클래스를 어떤 관계로 걸어서 나온 답인지 함께

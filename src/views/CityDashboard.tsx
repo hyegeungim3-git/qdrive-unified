@@ -838,7 +838,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
             </div>
             {snap.weather.condition === '폭우' && (
               <div className="mt-2 rounded-md border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-[10px] leading-relaxed text-red-300/80">
-                ⚠ 사고위험 예측: 18~20시 급행1 반월당~범어 구간 — 사유: 강우 + 정체 + 과거 급감속 빈도.
+                ⚠ 사고위험 예측: 18~20시 급행1 아양교~불로 구간 — 사유: 강우 + 정체 + 과거 급감속 빈도.
                 해당 구간 기사 태블릿에 감속 지침 자동 표출 · 차고지 예비차 선배정 권고 (예측 예시)
               </div>
             )}

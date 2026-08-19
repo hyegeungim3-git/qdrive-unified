@@ -273,7 +273,7 @@ export class SimEngine {
         driverName: v.driverName,
         aiScore: Math.min(94, 62 + harshCount * 4),
         timeline: [
-          { label: 'GPS 주행 경로 매칭', detail: '민원 시각 ±10분, 반월당~범어 구간 접근 차량 1대 식별' },
+          { label: 'GPS 주행 경로 매칭', detail: '민원 시각 ±10분, 아양교~불로 구간 접근 차량 1대 식별' },
           { label: '차량속도 확인', detail: `구간 진입속도 ${Math.max(28, Math.round(v.speedKmh))}km/h → 급제동 패턴` },
           { label: 'DTG 409 패킷', detail: `급감속 ${v.eventCounts['급감속']}건 · 급정지 ${v.eventCounts['급정지']}건 검출`, warn: true },
           { label: '문 개폐 로그', detail: '정류장 정차 11초 — 무정차 아님 확인' },

@@ -6,14 +6,26 @@ import { indexPolyline } from '../sim/geo'
 import type { SimSnapshot, VehicleState } from '../sim/types'
 import { simClock } from '../components/ui'
 
-/** 반월당 — 3개 노선이 모두 지나는 데모 기준 정류장 */
-const STOP_NAME = '반월당'
 const ROUTE_IDX = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points)]))
+
+/**
+ * 기준 정류장 — 노선이 실제 좌표로 바뀌면서 «세 노선이 모두 지나는 정류장»은 없어졌다.
+ * 실제 대구 노선은 도심에서 스치듯 만나고 정류장 이름이 저마다 다르다.
+ * 그래서 **가장 많은 노선이 서는 정류장**을 골라 기준으로 삼고, 그 이름을 화면에 그대로 쓴다.
+ * 없는 정류장을 있다고 적는 것보다, 실제로 여러 노선이 서는 곳을 고르는 편이 맞다.
+ */
+const STOP_NAME = (() => {
+  const count = new Map<string, number>()
+  ROUTES.forEach((r) => r.stops.forEach((s) => count.set(s.name, (count.get(s.name) ?? 0) + 1)))
+  return [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? ROUTES[0].stops[0].name
+})()
+
+/** 그 정류장이 없는 노선은 «중간 지점»을 기준으로 — 노선마다 대기 지점이 있어야 도착 예정이 계산된다 */
 const STOP_M = new Map(
   ROUTES.map((r) => {
     const idx = ROUTE_IDX.get(r.id)!
-    const stop = r.stops.find((s) => s.name === STOP_NAME)!
-    return [r.id, stop.at * idx.totalM]
+    const stop = r.stops.find((s) => s.name === STOP_NAME) ?? r.stops[Math.floor(r.stops.length / 2)]
+    return [r.id, (stop?.at ?? 0.5) * idx.totalM]
   }),
 )
 
@@ -114,7 +126,7 @@ export default function PassengerApp() {
     const route = ROUTES.find((r) => r.id === pickRoute)!
     const idx = ROUTE_IDX.get(pickRoute)!
     // 급행1은 데모 주인공 차량(3742)에 탑승 — 하차벨이 기사 태블릿 시연으로 이어지도록.
-    // 그 외 노선은 반월당에 가장 먼저 도착하는 버스.
+    // 그 외 노선은 기준 정류장에 가장 먼저 도착하는 버스.
     const bus =
       pickRoute === 'R1'
         ? snap.vehicles.find((v) => v.id === DEMO_VEHICLE_ID)
@@ -156,7 +168,10 @@ export default function PassengerApp() {
               <span className="text-lg">🚏</span>
               <div>
                 <div className="text-base font-bold text-gray-100">{STOP_NAME}</div>
-                <div className="text-[10px] text-gray-500">00420 · 도시철도 1·2호선 환승</div>
+                {/* 정류장 부가정보는 기준 정류장이 바뀌면 같이 틀어진다 — 노선 수처럼 데이터에서 나오는 것만 적는다 */}
+                <div className="text-[10px] text-gray-500">
+                  이 정류장에 서는 노선 {ROUTES.filter((r) => r.stops.some((x) => x.name === STOP_NAME)).length}개 · 실증 {ROUTES.length}개 노선 도착 예정
+                </div>
               </div>
             </div>
           </div>

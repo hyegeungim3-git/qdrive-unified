@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTheme } from '../theme'
-import { DAEGU_CENTER, ROUTES } from '../sim/routes'
+import { DAEGU_CENTER, EXTRA_ROUTES, ROUTES } from '../sim/routes'
+import type { BusRoute } from '../sim/routes'
 import { indexPolyline, pointAt } from '../sim/geo'
 import type { RealBus } from '../sim/bis'
 import type { Incident, Packet409, VehicleState } from '../sim/types'
@@ -54,8 +55,74 @@ function FlyTo({ target }: { target: { lat: number; lng: number; label?: string;
 
 const ROUTE_IDX = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points)]))
 
+/** 지금 줌 단계 — 정류장 핀을 언제 보여줄지 정하는 데 쓴다 */
+function useZoom(): number {
+  const map = useMap()
+  const [z, setZ] = useState(() => map.getZoom())
+  useEffect(() => {
+    const on = () => setZ(map.getZoom())
+    map.on('zoomend', on)
+    return () => {
+      map.off('zoomend', on)
+    }
+  }, [map])
+  return z
+}
+
+/**
+ * 정류장 핀 — 노선 선형 위 실제 위치에 찍는다.
+ * 축소 상태(z<13)에서는 기점·종점만, 확대하면 전 정류장을 연다.
+ * 전부 다 켜 두면 핀이 노선을 덮어 «어디를 지나는가»가 오히려 안 보인다.
+ */
+function StopPins({ routes, dimmed }: { routes: BusRoute[]; dimmed: (id: string) => boolean }) {
+  const z = useZoom()
+  return (
+    <>
+      {routes.flatMap((r) => {
+        const idx = ROUTE_IDX.get(r.id) ?? indexPolyline(r.points)
+        const dim = dimmed(r.id)
+        const list =
+          z >= 14 ? r.stops : z >= 13 ? r.stops.filter((_, i) => i % 3 === 0 || i === r.stops.length - 1) : [r.stops[0], r.stops[r.stops.length - 1]].filter(Boolean)
+        return list.map((st) => {
+          const { pos } = pointAt(idx, st.at * idx.totalM)
+          return (
+            <CircleMarker
+              key={`${r.id}-${st.name}-${st.at}`}
+              center={pos}
+              radius={z >= 15 ? 4 : 3}
+              pathOptions={{
+                color: r.color,
+                fillColor: '#0b0f16',
+                fillOpacity: 1,
+                weight: 1.8,
+                opacity: dim ? 0.2 : 0.95,
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -4]}>
+                <b>{st.name}</b> · {r.name}
+              </Tooltip>
+            </CircleMarker>
+          )
+        })
+      })}
+    </>
+  )
+}
+
 /** 지도 HUD — LIVE 배지(좌상단) · 줌 컨트롤(우하단 44px) · 히트맵 범례(줌 위). 지도 위 절대배치. */
-function MapHud({ showHeat }: { showHeat: boolean }) {
+function MapHud({
+  showHeat,
+  hidden,
+  onToggle,
+  showExtra,
+  onToggleExtra,
+}: {
+  showHeat: boolean
+  hidden: Set<string>
+  onToggle: (id: string) => void
+  showExtra: boolean
+  onToggleExtra: () => void
+}) {
   const map = useMap()
   // 스크롤 휠만 지도로 전파 차단(지도 줌 방지). 클릭 전파는 막지 않는다 —
   // L.DomEvent.disableClickPropagation은 stopPropagation을 걸어 React 19의
@@ -76,6 +143,38 @@ function MapHud({ showHeat }: { showHeat: boolean }) {
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
         </span>
         LIVE
+      </div>
+
+      {/* 노선 선택 — 실증 3개는 개별 토글, 나머지 주요 노선은 한 번에 */}
+      <div
+        ref={stop}
+        className="pointer-events-auto absolute left-3 top-[74px] z-[1000] flex max-w-[calc(100%-6rem)] flex-wrap items-center gap-1"
+      >
+        {ROUTES.map((r) => {
+          const off = hidden.has(r.id)
+          return (
+            <button
+              key={r.id}
+              onClick={() => onToggle(r.id)}
+              title={`${r.name} · ${r.ends ?? ''}${r.lengthKm ? ` · ${r.lengthKm}km` : ''} — 눌러서 켜고 끄기`}
+              className={`flex items-center gap-1 rounded-full border px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                off ? 'border-gray-700 bg-gray-900/85 text-gray-500' : 'border-gray-600 bg-gray-900/90 text-gray-100'
+              }`}
+            >
+              <span className="h-[3px] w-3 rounded-full" style={{ background: off ? '#4b5563' : r.color }} />
+              {r.name}
+            </button>
+          )
+        })}
+        <button
+          onClick={onToggleExtra}
+          title="대구 주요 버스 노선을 지도에 함께 깝니다 (실증 차량은 이 노선을 달리지 않습니다)"
+          className={`rounded-full border px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+            showExtra ? 'border-sky-500/50 bg-sky-500/15 text-sky-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
+          }`}
+        >
+          + 주요 노선 {EXTRA_ROUTES.length}
+        </button>
       </div>
 
       {/* 히트맵 범례 — 히트맵 ON 시에만, 줌 컨트롤 위 */}
@@ -200,6 +299,11 @@ export default function MapView({
   focusTarget?: { lat: number; lng: number; label?: string; nonce: number } | null
 }) {
   const cells = useMemo(() => (showHeat ? heatCells(events) : []), [events, showHeat])
+  /* 노선 표시 상태 — 지도가 정보로 꽉 차면 정작 «어디를 지나는가»가 안 보인다 */
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set())
+  const [showExtra, setShowExtra] = useState(false)
+  const visibleRoutes = useMemo(() => ROUTES.filter((r) => !hidden.has(r.id)), [hidden])
+
   const theme = useTheme()
 
   return (
@@ -215,7 +319,21 @@ export default function MapView({
         attribution='&copy; OpenStreetMap &copy; CARTO'
       />
 
-      {ROUTES.map((r) => {
+      {/* 주요 노선 — 표시 전용. 실증 노선보다 얇고 흐리게 깔아 주인공을 가리지 않는다 */}
+      {showExtra &&
+        EXTRA_ROUTES.map((r) => (
+          <Polyline
+            key={r.id}
+            positions={r.points}
+            pathOptions={{ color: r.color, weight: 2, opacity: 0.42, dashArray: '5 5' }}
+          >
+            <Tooltip sticky>
+              <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''}
+            </Tooltip>
+          </Polyline>
+        ))}
+
+      {visibleRoutes.map((r) => {
         const dim = highlightRouteId != null && highlightRouteId !== r.id
         return (
           <Polyline
@@ -226,29 +344,16 @@ export default function MapView({
               weight: highlightRouteId === r.id ? 6 : 3.5,
               opacity: dim ? 0.15 : 0.75,
             }}
-          />
+          >
+            <Tooltip sticky>
+              <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''} · 정류장 {r.stops.length}
+            </Tooltip>
+          </Polyline>
         )
       })}
 
-      {/* 정류장 */}
-      {ROUTES.flatMap((r) => {
-        const idx = ROUTE_IDX.get(r.id)!
-        return r.stops.map((s) => {
-          const { pos } = pointAt(idx, s.at * idx.totalM)
-          return (
-            <CircleMarker
-              key={`${r.id}-${s.name}`}
-              center={pos}
-              radius={3}
-              pathOptions={{ color: '#6b7280', fillColor: '#111827', fillOpacity: 1, weight: 1.5 }}
-            >
-              <Tooltip direction="top" offset={[0, -4]}>
-                {s.name}
-              </Tooltip>
-            </CircleMarker>
-          )
-        })
-      })}
+      {/* 정류장 핀 */}
+      <StopPins routes={visibleRoutes} dimmed={(id) => highlightRouteId != null && highlightRouteId !== id} />
 
       {/* 위험운전 히트맵 */}
       {cells.map((c, i) => (
@@ -263,7 +368,20 @@ export default function MapView({
       ))}
 
       <FlyTo target={focusTarget} />
-      <MapHud showHeat={showHeat} />
+      <MapHud
+        showHeat={showHeat}
+        hidden={hidden}
+        onToggle={(id) =>
+          setHidden((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+          })
+        }
+        showExtra={showExtra}
+        onToggleExtra={() => setShowExtra((v) => !v)}
+      />
 
       {/* 돌발정보 — 영향 반경 서클 + 배지 마커 */}
       {incidents

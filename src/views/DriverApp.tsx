@@ -829,7 +829,7 @@ const WEEKLY_FUEL_TREND = ['월', '화', '수', '목', '금', '토', '일'].map(
 const COACHING_TIPS = [
   { tag: '공회전', title: '대기 중 시동 끄기', desc: '동대구역 회차 대기 시 공회전이 하루 평균 22분이에요. 5분 이상 대기 시 시동을 꺼 보세요.', effect: '월 14L 연료 절감', accent: 'text-amber-400', badge: 'bg-amber-500/12 text-amber-400' },
   { tag: '정속', title: '신천대로 정속 유지', desc: '70km/h 정속 구간에서 가감속이 잦아요. 페달을 일정하게 유지해 보세요.', effect: '연비 +0.2km/L 기대', accent: 'text-sky-400', badge: 'bg-sky-500/12 text-sky-400' },
-  { tag: '예측', title: '신호 예측 감속', desc: '반월당 네거리 진입 300m 전부터 서서히 감속하면 급감속을 줄일 수 있어요.', effect: '안전점수 +1.5점 기대', accent: 'text-emerald-400', badge: 'bg-emerald-500/12 text-emerald-400' },
+  { tag: '예측', title: '신호 예측 감속', desc: '아양교네거리 진입 300m 전부터 서서히 감속하면 급감속을 줄일 수 있어요.', effect: '안전점수 +1.5점 기대', accent: 'text-emerald-400', badge: 'bg-emerald-500/12 text-emerald-400' },
 ]
 
 /** 리포트 화면 — 좌측 레일 '리포트' 탭의 콘텐츠. 탄소 플랫폼 원본 「내 운행 리포트」 전 구성을 프레임 안에서 재현. */

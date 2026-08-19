@@ -92,7 +92,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
       text: '현재 배차 몰림 없이 고른 간격을 유지 중입니다. 필요 시 배차 권고를 생성해 시뮬레이션할 수 있습니다.',
       evidence: [`운행 ${vehicles.length}대 · 몰림 0`],
       action: {
-        label: '배차 권고 생성(시연)',
+        label: '배차 권고 생성',
         run: () =>
           engine.forceRecommendation() === 'created'
             ? '✓ 배차 권고를 생성했습니다 — 운수사 관제에서 승인해 주세요.'
@@ -171,7 +171,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
     return {
       text: '현재 맑음(정상 운행). 폭우 전환 시 지연·사고위험 예측과 예비차 권고가 자동 연동됩니다. 지금 시뮬레이션할까요?',
       evidence: ['날씨 맑음 24°C'],
-      action: { label: '폭우로 전환(시연)', run: () => engine.cycleWeather() },
+      action: { label: '폭우로 전환', run: () => engine.cycleWeather() },
     }
   }
 
@@ -185,7 +185,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
         nav: { tab: 'city', label: '시티 대시보드' },
       }
     }
-    return { text: '아직 다발 구간으로 집계될 만한 이벤트가 없습니다. 배속을 올리면 데이터가 쌓입니다.' }
+    return { text: '아직 다발 구간으로 집계될 만한 이벤트가 없습니다.' }
   }
 
   // 탄소중립 / 전환 / V2G — 대통합 탄소중립 분석 탭 연동
@@ -321,7 +321,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
       {/* 플로팅 버튼 */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-5 right-5 z-[2500] flex items-center gap-2 rounded-full bg-gradient-to-tr from-violet-600 to-sky-500 px-4 py-3 text-sm font-bold text-white shadow-2xl hover:from-violet-500 hover:to-sky-400"
+        className="fixed bottom-5 right-5 z-[2500] flex items-center gap-2 rounded-full bg-gradient-to-tr from-sky-600 to-sky-400 px-4 py-3 text-sm font-bold text-white shadow-2xl hover:from-sky-500 hover:to-sky-300"
         title="AI Q — 무엇이든 물어보세요"
       >
         <span className="text-lg leading-none">{open ? '✕' : '✨'}</span>
@@ -333,7 +333,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
       {open && (
         <div className="fixed bottom-20 right-5 z-[2500] flex h-[520px] max-h-[calc(100dvh-6rem)] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-950 shadow-2xl">
           <div className="flex items-center gap-2 border-b border-gray-800 bg-gray-900 px-4 py-3">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-tr from-violet-500 to-sky-400 text-xs">✨</span>
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-tr from-sky-500 to-sky-300 text-xs">✨</span>
             <div className="flex-1">
               <div className="text-sm font-bold text-gray-100">AI Q</div>
               <div className="flex items-center gap-1 text-[10px] text-gray-500">
@@ -396,7 +396,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
                 </div>
               ) : (
                 <div key={i} className="flex gap-2">
-                  <span className="mt-1 h-5 w-5 shrink-0 rounded-full bg-gradient-to-tr from-violet-500 to-sky-400" />
+                  <span className="mt-1 h-5 w-5 shrink-0 rounded-full bg-gradient-to-tr from-sky-500 to-sky-300" />
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="rounded-2xl rounded-tl-sm border border-gray-800 bg-gray-900/70 px-3 py-2 text-xs leading-relaxed text-gray-300">
                       {m.loading ? (

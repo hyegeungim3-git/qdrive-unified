@@ -295,10 +295,6 @@ export default function Lineage({ onNavigate }: { onNavigate?: (tab: string) => 
                 <div className="mt-1 break-keep text-[11px] leading-relaxed text-gray-500">{d}</div>
               </div>
             ))}
-            <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2.5 break-keep text-[11.5px] leading-relaxed text-gray-300">
-              <b className="text-emerald-400">구조를 바꾸지 않습니다.</b> 새 원천은 노드를 하나 추가하고 같은 중심축(운행 단위)에 연결하면 끝 — 품질
-              규칙·온톨로지·데이터셋 정의는 그대로 재사용됩니다. 이것이 지금 1차만으로도 시작할 수 있는 이유입니다.
-            </div>
           </div>
         </Panel>
       </div>

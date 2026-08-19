@@ -422,33 +422,8 @@ export default function PassengerApp() {
       {/* 설명 패널 */}
       <div className="w-full max-w-md space-y-4 px-2 pt-2 xl:px-0 xl:pt-6">
         <h2 className="text-lg font-bold text-gray-100">승객 앱 — 시민이 체감하는 데이터</h2>
-        <ul className="space-y-3 text-sm leading-relaxed text-gray-400">
-          <li>
-            <b className="text-gray-200">도착예측 + 신뢰도 표시</b> — "3분 후"가 얼마나 믿을 만한지까지
-            보여줌. 차량속도·운행상태 기반 (국제 대중교통 데이터 표준 GTFS 지향)
-          </li>
-          <li>
-            <b className="text-gray-200">실시간 혼잡도 (여유/보통/혼잡)</b> — 재차율 기반. 휠체어·유모차
-            공간 이용 가능 여부 표시 (교통약자 배려)
-          </li>
-          <li>
-            <b className="text-gray-200">시민안내 에이전트</b> — 정비·배차조정 등 운영 데이터를 시민용
-            문장으로 자동 변환. "왜 늦는지"를 알려주는 투명한 안내
-          </li>
-          <li>
-            <b className="text-gray-200">하차 예약</b> — 목적지를 정해두면 도착 직전 진동·소리로 깨워주고,{' '}
-            <b className="text-gray-200">하차벨은 자동으로 기사님께 전달</b>(예약 모드). 기사 태블릿에는
-            하차 예약이 미리 표시되어 무정차 통과도 예방 (졸음·하차 놓침 방지 + 교통약자 배려)
-          </li>
-          <li>
-            <b className="text-gray-200">민원 접수 → 처리 추적</b> — 여기서 접수한 민원이 시티
-            대시보드의 증빙 자동매칭으로 이어짐 (승객 → 대구시 → 버스회사 → 운전자 순환 시연)
-          </li>
-        </ul>
-        <div className="rounded-lg border border-gray-800 bg-gray-900/60 px-4 py-3 text-[11px] leading-relaxed text-gray-500">
-          💡 데모 동선: 여기서 <b className="text-violet-400">불편사항 접수</b> → 시티 대시보드에서 증빙
-          자동매칭 → 운수사에서 코칭 → 기사 앱에 경고 → 다시 이 화면에서 처리 현황 확인
-        </div>
+        
+        
       </div>
     </div>
   )

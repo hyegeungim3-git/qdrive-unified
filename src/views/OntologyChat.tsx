@@ -1,40 +1,39 @@
 /**
  * 💬 AI Q — 제안서 「맥락이 붙으면 비로소 답할 수 있는 질문」 4종에 실제로 답하는 화면.
  *
- * 플로팅 오버레이 `components/Copilot.tsx`도 «✨ AI Q»다. 같은 브랜드의 두 진입점 —
- * 오버레이는 어느 탭에서든 부르는 빠른 조회, 이 탭은 온톨로지 근거를 펼쳐 보는 본 화면이다.
+ * **LLM이 온톨로지로 만들어지는 것은 아니다.** 모델은 이미 학습된 범용 Claude이고,
+ * 온톨로지는 그 답에 **근거를 대는 데이터 구조**다. 아래 4개 질문은 애초에 LLM을 거치지 않고
+ * 엔진에서 계산한다 — 그래서 네트워크가 끊겨도 답이 나온다.
  *
- * 이름은 «AI 채팅»이지만 **LLM이 온톨로지로 만들어지는 것은 아니다.** 모델은 이미 학습된 범용
- * Claude이고, 온톨로지는 그 답에 **근거를 대는 데이터 구조**다. 아래 4개 질문은 애초에 LLM을
- * 거치지 않고 엔진에서 계산한다 — 그래서 네트워크가 끊겨도 답이 나온다.
+ * UI는 실제 AI 채팅 서비스의 문법을 따른다: 사이드바 · 사고 단계 표시 · 타이핑 스트리밍 ·
+ * 출처 각주 · 접히는 근거 · 복사. 다만 **꾸밈이 아니라 신뢰 장치**로 쓴다 —
+ * 사고 단계는 실제로 거친 단계이고, 출처 칩은 데이터 관리자 ①수집의 원천 코드와 같은 문자열이다.
  *
- * 다른 탭과 성격이 다르다. ⓪~⑨는 «온톨로지가 무엇을 담고 있나»를 보여주고,
- * 여기는 «그 위에서 도는 서비스»다 — 발주처가 실제로 쓰게 될 모습.
- *
- * 답을 만드는 방식이 이 화면의 핵심이다.
- *  1. 질문을 라우팅해 **스냅샷에서 계산**한다 (`sim/ontologyQa.ts`). 숫자는 지어내지 않는다.
- *  2. 답과 함께 **순회한 클래스·관계**를 보여준다 — 표 조회로는 못 하고 온톨로지라야 되는 이유.
- *  3. 못 알아들으면 **답할 수 없다고 답한다.** 라이브 Claude 키가 있으면 자유 대화로 넘기되,
- *     그 답에는 「계산이 아니라 설명」이라는 꼬리표를 붙인다.
- *
- * 규칙 기반 경로는 네트워크 없이도 동작한다 — 시연 중 인터넷이 죽어도 4개 질문은 답이 나와야 한다.
+ * 색: 브랜드 sky만 쓴다(로고 Q**drive**의 그 색). 이전 판은 말풍선을 `text-violet-100`으로 뒀는데
+ * `index.css`의 html.light가 violet은 200~400만 반전하고 **100은 반전하지 않아** 라이트 모드에서
+ * 흰 배경에 흰 글씨가 됐다. sky는 100~400이 모두 반전되므로 같은 사고가 나지 않는다.
+ * **액센트 색을 고를 때는 그 번호대에 라이트 오버라이드가 있는지부터 확인할 것.**
  */
 import { useEffect, useRef, useState } from 'react'
-import { Panel } from '../components/ui'
 import { useSim } from '../sim/store'
-import { QA_TOPICS, UNANSWERABLE, answerQuestion, type QaResult } from '../sim/ontologyQa'
+import { QA_TOPICS, UNANSWERABLE, answerQuestion, type QaResult, type QaSource } from '../sim/ontologyQa'
 import type { SimSnapshot } from '../sim/types'
 
 const KEY_LS = 'qdrive-anthropic-key'
 
-type Msg =
-  | { role: 'user'; text: string }
-  | { role: 'qa'; res: QaResult }
-  | { role: 'live'; text: string }
-  | { role: 'none' }
-  | { role: 'pending' }
+/** 사고 단계 — 실제로 거치는 순서다. 마지막 단계만 남기지 않고 전부 보여 준다 */
+const STEPS = ['질문 해석', '온톨로지 순회', '원천 데이터 집계', '답 작성'] as const
 
-/** 라이브 Claude에 넘길 때 붙이는 현재 운영 상태 — 엔진이 진짜 근거다 */
+type Msg =
+  | { id: number; role: 'user'; text: string }
+  | { id: number; role: 'thinking'; step: number }
+  | { id: number; role: 'qa'; res: QaResult }
+  | { id: number; role: 'live'; text: string }
+  | { id: number; role: 'none' }
+
+let seq = 1
+
+/** 라이브 Claude에 넘길 현재 운영 상태 — 엔진이 진짜 근거다 */
 function buildSystem(s: SimSnapshot): string {
   const dh = s.deadheads.reduce((a, t) => a + t.distanceKm, 0)
   const rev = s.trips.reduce((a, t) => a + t.distanceKm, 0)
@@ -48,8 +47,8 @@ function buildSystem(s: SimSnapshot): string {
     `- 위험운전 누적 ${s.kpi.totalEvents}건 · 평균 안전점수 ${s.kpi.avgScore.toFixed(1)}점`,
     `- 연료 절감률 ${s.kpi.fuelSavedPct.toFixed(2)}% · CO₂ 절감 ${s.kpi.totalCo2SavedKg.toFixed(1)}kg`,
     `- 현재 날씨 ${s.weather.condition}`,
-    `- 연결된 1차 데이터: DTG(운행기록계)·OBD/CAN(자가진단)·RTK(정밀위치)·BIS(공개 API)·차고지 출입고`,
-    `- 아직 연결되지 않은 축: 교통카드 정산(AFC)·승객계수(APC)·신호(ITS)·영상(DVR)`,
+    '- 연결된 1차 데이터: DTG(운행기록계)·OBD/CAN(자가진단)·RTK(정밀위치)·BIS(공개 API)·차고지 출입고',
+    '- 아직 연결되지 않은 축: 교통카드 정산(AFC)·승객계수(APC)·신호(ITS)·영상(DVR)',
   ].join('\n')
 }
 
@@ -59,38 +58,74 @@ export default function OntologyChat() {
   snapRef.current = snap
 
   const [msgs, setMsgs] = useState<Msg[]>([])
+  const msgsRef = useRef(msgs)
+  msgsRef.current = msgs
+
   const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
   const [hasKey, setHasKey] = useState(() => !!localStorage.getItem(KEY_LS))
   const [showKey, setShowKey] = useState(false)
   const [keyDraft, setKeyDraft] = useState('')
+  /** 타이핑 스트리밍 — 계산이 끝난 답을 흘려보낸다(지어내는 게 아니라 «표시»만 점진적) */
+  const [stream, setStream] = useState<{ id: number; n: number } | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [msgs])
+  }, [msgs, stream?.n])
 
-  /** 규칙 경로 — 스냅샷에서 계산해 즉시 답한다 */
-  const askTopic = (q: string) => {
-    const res = answerQuestion(snapRef.current, q)
-    setMsgs((m) => [...m, { role: 'user', text: q }, res ? { role: 'qa', res } : { role: 'none' }])
-  }
+  /* 스트리밍 — id가 바뀔 때만 타이머를 새로 건다. 엔진이 250ms마다 리렌더해도 끊기지 않게 */
+  useEffect(() => {
+    if (!stream) return
+    const id = stream.id
+    const m = msgsRef.current.find((x) => x.id === id)
+    const full = m?.role === 'qa' ? m.res.detail : m?.role === 'live' ? m.text : ''
+    if (!full) return
+    const t = window.setInterval(() => {
+      setStream((s) => {
+        if (!s || s.id !== id) return s
+        const next = s.n + 4
+        return next >= full.length ? null : { id, n: next }
+      })
+    }, 16)
+    return () => window.clearInterval(t)
+  }, [stream?.id])
 
-  const submit = async () => {
-    const q = input.trim()
-    if (!q) return
+  const push = (m: Msg) => setMsgs((prev) => [...prev, m])
+
+  const ask = async (q: string) => {
+    const text = q.trim()
+    if (!text || busy) return
     setInput('')
-    const res = answerQuestion(snapRef.current, q)
+    setBusy(true)
+    push({ id: seq++, role: 'user', text })
+
+    const thinkId = seq++
+    push({ id: thinkId, role: 'thinking', step: 0 })
+    for (let i = 1; i < STEPS.length; i++) {
+      await wait(140)
+      setMsgs((prev) => prev.map((m) => (m.id === thinkId && m.role === 'thinking' ? { ...m, step: i } : m)))
+    }
+    await wait(160)
+
+    const res = answerQuestion(snapRef.current, text)
     if (res) {
-      setMsgs((m) => [...m, { role: 'user', text: q }, { role: 'qa', res }])
+      const id = seq++
+      setMsgs((prev) => [...prev.filter((m) => m.id !== thinkId), { id, role: 'qa', res }])
+      setStream({ id, n: 0 })
+      setBusy(false)
       return
     }
     if (!hasKey) {
-      setMsgs((m) => [...m, { role: 'user', text: q }, { role: 'none' }])
+      setMsgs((prev) => [...prev.filter((m) => m.id !== thinkId), { id: seq++, role: 'none' }])
+      setBusy(false)
       return
     }
-    setMsgs((m) => [...m, { role: 'user', text: q }, { role: 'pending' }])
-    const text = await askClaude(q, snapRef.current)
-    setMsgs((m) => [...m.slice(0, -1), { role: 'live', text }])
+    const answer = await askClaude(text, snapRef.current)
+    const id = seq++
+    setMsgs((prev) => [...prev.filter((m) => m.id !== thinkId), { id, role: 'live', text: answer }])
+    setStream({ id, n: 0 })
+    setBusy(false)
   }
 
   const saveKey = () => {
@@ -101,212 +136,354 @@ export default function OntologyChat() {
     setShowKey(false)
     setKeyDraft('')
   }
-  const clearKey = () => {
-    localStorage.removeItem(KEY_LS)
-    setHasKey(false)
-    setShowKey(false)
-    setKeyDraft('')
-  }
 
   return (
-    <div className="mx-auto flex h-full max-w-5xl flex-col gap-3 overflow-y-auto pr-1">
-      {/* 헤더 */}
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold tracking-[0.2em] text-violet-400">ONTOLOGY-GROUNDED AI</div>
-          <h2 className="mt-0.5 text-lg font-black tracking-tight text-gray-50">💬 AI Q</h2>
-          <p className="mt-1 max-w-3xl break-keep text-[12.5px] leading-relaxed text-gray-400">
-            거리·연료 같은 <b className="text-gray-300">숫자만 있는 표</b>로는 답할 수 없고, 운행 단위에 의미가 붙어 있어야 답이 나오는 질문들입니다. 아래
-            네 질문은 <b className="text-violet-300">지금 돌아가는 엔진에서 실제로 계산</b>해 답하며, 어떤 클래스를 어떤 관계로 걸어서 나온 답인지 함께
-            보여줍니다.
-          </p>
+    <div className="flex h-full gap-3 max-[900px]:flex-col">
+      {/* ── 사이드바 ── */}
+      <aside className="flex w-[240px] shrink-0 flex-col gap-2 max-[900px]:w-full">
+        <button
+          onClick={() => {
+            setMsgs([])
+            setStream(null)
+          }}
+          className="flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900 px-3 py-2.5 text-left text-[12.5px] font-bold text-gray-200 transition-colors hover:border-sky-500/50 hover:bg-sky-500/10 focus-visible:ring-2 focus-visible:ring-sky-500"
+        >
+          <span className="text-sky-400">＋</span> 새 대화
+        </button>
+
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-gray-800 bg-gray-900 p-2 max-[900px]:max-h-[168px]">
+          <div className="px-1 pb-1.5 text-[10.5px] font-bold tracking-wider text-gray-400">맥락이 있어야 답하는 질문</div>
+          <div className="space-y-1">
+            {QA_TOPICS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => ask(t.q)}
+                disabled={busy}
+                className="w-full rounded-lg border border-transparent px-2.5 py-2 text-left transition-colors hover:border-gray-800 hover:bg-gray-800/50 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+              >
+                <div className="break-keep text-[11.5px] font-semibold leading-snug text-gray-300">{t.q}</div>
+                <div className="mt-0.5 text-[10px] text-sky-300">{t.tag}</div>
+              </button>
+            ))}
+          </div>
         </div>
+
         <button
           onClick={() => setShowKey((v) => !v)}
-          className="shrink-0 rounded-md border border-gray-800 bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-gray-400 hover:text-gray-200"
+          className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-[11px] font-semibold text-sky-300 transition-colors hover:text-sky-200 focus-visible:ring-2 focus-visible:ring-sky-500"
         >
-          {hasKey ? '🔑 라이브 연결됨' : '🔑 자유 질문 설정'}
+          <span>자유 질문 (선택)</span>
+          <span className={hasKey ? 'text-emerald-400' : 'text-amber-300'}>{hasKey ? '● 연결됨' : '○ 미연결'}</span>
         </button>
-      </div>
+      </aside>
 
-      {showKey && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3">
-          <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
-            아래 <b className="text-gray-300">네 질문은 키 없이도 동작합니다</b> — 엔진에서 직접 계산하기 때문입니다. Anthropic API 키를 연결하면 그
-            밖의 자유 질문에도 실시간 운영 데이터를 근거로 답합니다.
-            <br />
-            <b className="text-gray-300">키는 이 브라우저에만 저장</b>되고 Anthropic API로만 전송됩니다.
+      {/* ── 대화 ── */}
+      <section className="flex min-w-0 flex-1 flex-col rounded-xl border border-gray-800 bg-gray-900">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <Avatar />
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-gray-100">Qdrive AI</div>
+              <div className="text-[10.5px] text-gray-400">온톨로지 근거 질의 · 답은 엔진에서 계산</div>
+            </div>
           </div>
-          <div className="mt-2 flex gap-1.5">
-            <input
-              type="password"
-              value={keyDraft}
-              onChange={(e) => setKeyDraft(e.target.value)}
-              placeholder="sk-ant-..."
-              className="min-w-0 flex-1 rounded-md border border-gray-700 bg-gray-950 px-2.5 py-1.5 text-xs text-gray-100 outline-none focus:border-violet-500"
-            />
-            <button onClick={saveKey} className="rounded-md bg-violet-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-violet-500">
-              저장
-            </button>
-            {hasKey && (
-              <button onClick={clearKey} className="rounded-md border border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-400 hover:text-gray-200">
-                해제
+          <span className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10.5px] font-bold text-sky-300">
+            1차 데이터 8종 연결됨
+          </span>
+        </header>
+
+        {showKey && (
+          <div className="border-b border-gray-800 bg-gray-900 px-4 py-3">
+            <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
+              왼쪽 <b className="text-gray-300">네 질문은 키 없이 동작합니다</b> — 엔진에서 직접 계산하기 때문입니다. Anthropic API 키를 연결하면 그
+              밖의 자유 질문에도 실시간 운영 데이터를 근거로 답합니다. <b className="text-gray-300">키는 이 브라우저에만 저장</b>됩니다.
+            </div>
+            <div className="mt-2 flex gap-1.5">
+              <input
+                type="password"
+                value={keyDraft}
+                onChange={(e) => setKeyDraft(e.target.value)}
+                placeholder="sk-ant-..."
+                className="min-w-0 flex-1 rounded-lg border border-gray-700 bg-gray-900 px-2.5 py-1.5 text-xs text-gray-100 outline-none focus:border-sky-500"
+              />
+              <button onClick={saveKey} className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-sky-500">
+                저장
               </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 대표 질문 4종 */}
-      <Panel title="맥락이 붙으면 비로소 답할 수 있는 질문" right={<span className="text-[11px] text-gray-500">누르면 지금 데이터로 계산합니다</span>}>
-        <div className="grid grid-cols-2 gap-2 max-[820px]:grid-cols-1">
-          {QA_TOPICS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => askTopic(t.q)}
-              className="rounded-lg border border-gray-800 bg-gray-900/60 px-3.5 py-2.5 text-left transition-colors hover:border-violet-500/50 hover:bg-violet-500/5 focus-visible:ring-2 focus-visible:ring-violet-500"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="break-keep text-[12.5px] font-bold text-gray-100">“{t.q}”</span>
-                <span className="shrink-0 rounded border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-bold text-violet-300">
-                  {t.tag}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </Panel>
-
-      {/* 대화 */}
-      <Panel title="답변" right={<span className="text-[11px] text-gray-500">{msgs.length === 0 ? '질문을 눌러 보세요' : `${msgs.filter((m) => m.role === 'user').length}건`}</span>}>
-        {msgs.length === 0 ? (
-          <div className="py-10 text-center text-[12px] leading-relaxed text-gray-500">
-            <div className="mb-1.5 text-2xl">💬</div>
-            위 네 질문 중 하나를 누르거나, 아래에 직접 물어보세요.
-            <br />
-            답은 지어내지 않고 <b className="text-gray-400">지금 엔진에 쌓인 데이터에서 계산</b>합니다.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {msgs.map((m, i) => (
-              <MsgView key={i} m={m} />
-            ))}
-            <div ref={endRef} />
+              {hasKey && (
+                <button
+                  onClick={() => {
+                    localStorage.removeItem(KEY_LS)
+                    setHasKey(false)
+                  }}
+                  className="rounded-lg border border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-400 transition-colors hover:text-gray-200"
+                >
+                  해제
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        <div className="mt-3 flex gap-1.5">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && submit()}
-            placeholder="예: 공차가 가장 많은 차고지는? / 이번 감축은 무엇 때문인가?"
-            className="min-w-0 flex-1 rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-[12.5px] text-gray-100 outline-none focus:border-violet-500"
-          />
-          <button
-            onClick={submit}
-            className="shrink-0 rounded-md bg-violet-600 px-4 py-2 text-[12.5px] font-bold text-white hover:bg-violet-500"
-          >
-            묻기
-          </button>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+          {msgs.length === 0 ? (
+            <Welcome onPick={ask} busy={busy} />
+          ) : (
+            msgs.map((m) => <MsgView key={m.id} m={m} stream={stream} />)
+          )}
+          <div ref={endRef} />
         </div>
-      </Panel>
+
+        {/* ── 입력 ── */}
+        <div className="border-t border-gray-800 p-3">
+          <div className="flex items-end gap-2 rounded-xl border border-gray-700 bg-gray-900 px-3 py-2 transition-colors focus-within:border-sky-500">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && ask(input)}
+              placeholder="운행·공차·차고지·감축에 대해 물어보세요"
+              className="min-w-0 flex-1 bg-transparent py-1 text-[12.5px] text-gray-100 outline-none placeholder:text-gray-500"
+            />
+            <button
+              onClick={() => ask(input)}
+              disabled={busy || !input.trim()}
+              title={busy ? '답을 만드는 중입니다' : !input.trim() ? '질문을 입력하세요' : '보내기'}
+              className="shrink-0 rounded-lg bg-sky-600 px-3 py-1.5 text-[12px] font-bold text-white transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {busy ? '…' : '↑'}
+            </button>
+          </div>
+          <div className="mt-1.5 px-1 text-[10.5px] text-gray-400">
+            답의 숫자는 지어내지 않고 지금 돌아가는 엔진에서 계산합니다 · 출처는 답마다 함께 표시됩니다
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
 
-/* ═══════════ 메시지 렌더 ═══════════ */
+/* ═══════════ 빈 상태 ═══════════ */
 
-function MsgView({ m }: { m: Msg }) {
+function Welcome({ onPick, busy }: { onPick: (q: string) => void; busy: boolean }) {
+  return (
+    <div className="mx-auto max-w-2xl py-6 text-center">
+      <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-sky-500 to-sky-300 text-lg">💬</div>
+      <h3 className="text-base font-black text-gray-100">무엇을 물어볼까요?</h3>
+      <div className="mt-4 grid grid-cols-2 gap-2 text-left max-[620px]:grid-cols-1">
+        {QA_TOPICS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onPick(t.q)}
+            disabled={busy}
+            className="rounded-xl border border-gray-800 bg-gray-900 px-3.5 py-3 transition-colors hover:border-sky-500/50 hover:bg-sky-500/5 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+          >
+            <div className="text-[10px] font-bold text-sky-400">{t.tag}</div>
+            <div className="mt-1 break-keep text-[12.5px] font-semibold leading-snug text-gray-200">{t.q}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════ 메시지 ═══════════ */
+
+function MsgView({ m, stream }: { m: Msg; stream: { id: number; n: number } | null }) {
+  const [openEvidence, setOpenEvidence] = useState(false)
+  const [openSrc, setOpenSrc] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
   if (m.role === 'user')
     return (
       <div className="flex justify-end">
-        <div className="max-w-[80%] break-keep rounded-2xl rounded-tr-sm bg-violet-600/25 px-3.5 py-2 text-[12.5px] text-violet-100">{m.text}</div>
+        <div className="max-w-[80%] break-keep rounded-2xl rounded-tr-sm bg-sky-600/20 px-3.5 py-2 text-[12.5px] leading-relaxed text-sky-100">{m.text}</div>
       </div>
     )
 
-  if (m.role === 'pending')
+  if (m.role === 'thinking')
     return (
-      <div className="flex gap-2">
-        <Avatar />
-        <div className="pt-1 text-[12px] text-gray-500">엔진 데이터를 근거로 답을 만들고 있습니다…</div>
-      </div>
-    )
-
-  if (m.role === 'live')
-    return (
-      <div className="flex gap-2">
-        <Avatar />
-        <div className="min-w-0 flex-1">
-          <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-3.5 py-2.5 break-keep text-[12.5px] leading-relaxed whitespace-pre-wrap text-gray-200">
-            {m.text}
-          </div>
-          <div className="mt-1 text-[10.5px] text-amber-400/80">
-            ⚠ 이 답은 라이브 AI가 <b>설명</b>한 것입니다 — 위 네 질문처럼 엔진에서 계산한 값이 아닙니다.
+      <Row>
+        <div className="rounded-xl border border-gray-800 bg-gray-900 px-3.5 py-2.5">
+          <div className="space-y-1">
+            {STEPS.map((s, i) => (
+              <div key={s} className={`flex items-center gap-2 text-[11.5px] ${i <= m.step ? 'text-gray-300' : 'text-gray-600'}`}>
+                <span className={i < m.step ? 'text-emerald-400' : i === m.step ? 'animate-pulse text-sky-400' : 'text-gray-700'}>
+                  {i < m.step ? '✓' : '●'}
+                </span>
+                {s}
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </Row>
     )
 
   if (m.role === 'none')
     return (
-      <div className="flex gap-2">
-        <Avatar />
-        <div className="min-w-0 flex-1 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-2.5">
+      <Row>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5">
           <div className="text-[12.5px] font-bold text-amber-300">{UNANSWERABLE.headline}</div>
           <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-400">{UNANSWERABLE.detail}</div>
         </div>
-      </div>
+      </Row>
     )
 
+  if (m.role === 'live') {
+    const shown = stream?.id === m.id ? m.text.slice(0, stream.n) : m.text
+    return (
+      <Row>
+        <div className="rounded-xl border border-gray-800 bg-gray-900 px-3.5 py-2.5">
+          <div className="break-keep whitespace-pre-wrap text-[12.5px] leading-relaxed text-gray-200">
+            {shown}
+            {stream?.id === m.id && <Caret />}
+          </div>
+          <div className="mt-2 text-[10.5px] text-amber-400/90">
+            ⚠ 이 답은 라이브 AI가 <b>설명</b>한 것입니다 — 왼쪽 네 질문처럼 엔진에서 계산한 값이 아닙니다.
+          </div>
+        </div>
+      </Row>
+    )
+  }
+
   const r = m.res
+  const detail = (stream?.id === m.id ? r.detail.slice(0, stream.n) : r.detail).replace(/\*\*/g, '')
+  const done = stream?.id !== m.id
+
   return (
-    <div className="flex gap-2">
-      <Avatar />
-      <div className="min-w-0 flex-1 space-y-2">
-        {/* 근거 사슬 */}
-        <div className="flex flex-wrap items-center gap-1">
-          <span className="text-[10.5px] font-semibold text-gray-500">근거 사슬</span>
-          {r.path.map((p, i) => (
-            <span key={i} className="rounded border border-violet-500/25 bg-violet-500/10 px-1.5 py-0.5 text-[10.5px] font-semibold text-violet-300">
-              {p}
-            </span>
-          ))}
-        </div>
-
+    <Row>
+      <div className="min-w-0 space-y-2">
         {/* 답 */}
-        <div className={`rounded-xl border px-3.5 py-2.5 ${r.empty ? 'border-gray-800 bg-gray-900/60' : 'border-emerald-500/25 bg-emerald-500/10'}`}>
-          <div className={`break-keep text-[13px] font-bold ${r.empty ? 'text-gray-300' : 'text-emerald-300'}`}>{r.headline}</div>
-          <div className="mt-1.5 break-keep text-[12px] leading-relaxed text-gray-300">{r.detail.replace(/\*\*/g, '')}</div>
+        <div className={`rounded-xl border px-3.5 py-3 ${r.empty ? 'border-gray-800 bg-gray-900' : 'border-sky-500/30 bg-sky-500/10'}`}>
+          <div className={`break-keep text-[13.5px] font-bold leading-snug ${r.empty ? 'text-gray-200' : 'text-sky-200'}`}>{r.headline}</div>
+          <div className="mt-1.5 break-keep text-[12.5px] leading-relaxed text-gray-300">
+            {detail}
+            {!done && <Caret />}
+          </div>
         </div>
 
-        {/* 근거 수치 */}
-        {r.evidence.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-1.5">
-            <table className="w-full text-left text-[11.5px]">
-              <tbody>
-                {r.evidence.map((e, i) => (
-                  <tr key={i} className="border-b border-gray-800/50 last:border-0">
-                    <td className="w-[42%] py-1.5 pr-3 break-keep align-top text-gray-500">{e.k}</td>
-                    <td className="py-1.5 break-keep font-semibold text-gray-200">{e.v}</td>
-                  </tr>
+        {done && (
+          <>
+            {/* 출처 — 이 답이 어느 원천을 썼나 */}
+            <div>
+              <div className="mb-1 text-[10.5px] font-bold tracking-wider text-gray-400">출처</div>
+              <div className="flex flex-wrap gap-1.5">
+                {r.sources.map((s, i) => (
+                  <button
+                    key={s.code}
+                    onClick={() => setOpenSrc(openSrc === s.code ? null : s.code)}
+                    className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10.5px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                      openSrc === s.code ? 'border-sky-500/50 bg-sky-500/15 text-sky-200' : 'border-sky-500/30 bg-sky-500/10 text-sky-300 hover:border-sky-500/60'
+                    }`}
+                  >
+                    <span className="text-sky-300">[{i + 1}]</span>
+                    <span>{s.code}</span>
+                    <span className={s.live ? 'text-emerald-400' : 'text-amber-400'} title={s.live ? '엔진 실집계' : '예시 상수 · 실증 시 실측으로 교체'}>
+                      ●
+                    </span>
+                  </button>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </div>
+              {openSrc && <SourceCard s={r.sources.find((x) => x.code === openSrc)!} />}
+            </div>
 
-        {r.caveat && (
-          <div className="rounded-lg border border-gray-800 bg-gray-900/40 px-3 py-2 break-keep text-[11px] leading-relaxed text-gray-500">
-            ※ {r.caveat}
-          </div>
+            {/* 액션 */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Action
+                onClick={() => setOpenEvidence((v) => !v)}
+                label={openEvidence ? '근거 접기' : `근거 ${r.evidence.length}항목 보기`}
+              />
+              <Action
+                onClick={async () => {
+                  const txt = [r.headline, r.detail.replace(/\*\*/g, ''), '', ...r.evidence.map((e) => `${e.k}: ${e.v}${e.src ? ` [${e.src}]` : ''}`)].join('\n')
+                  await navigator.clipboard?.writeText(txt).catch(() => {})
+                  setCopied(true)
+                  window.setTimeout(() => setCopied(false), 1600)
+                }}
+                label={copied ? '복사됨 ✓' : '복사'}
+              />
+            </div>
+
+            {openEvidence && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="text-[10.5px] font-bold tracking-wider text-gray-400">근거 사슬</span>
+                  {r.path.map((p, i) => (
+                    <span key={i} className="rounded border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[10.5px] font-semibold text-sky-300">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+                {r.evidence.length > 0 && (
+                  <div className="overflow-x-auto rounded-lg border border-gray-800 bg-gray-900 px-3 py-1.5">
+                    <table className="w-full text-left text-[11.5px]">
+                      <tbody>
+                        {r.evidence.map((e, i) => (
+                          <tr key={i} className="border-b border-gray-800/50 last:border-0">
+                            <td className="w-[38%] py-1.5 pr-3 break-keep align-top text-gray-500">{e.k}</td>
+                            <td className="py-1.5 break-keep font-semibold text-gray-200">
+                              {e.v}
+                              {e.src && <span className="ml-1.5 whitespace-nowrap text-[10px] font-normal text-sky-400">[{e.src}]</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {r.caveat && <div className="break-keep text-[11px] leading-relaxed text-amber-200/80">※ {r.caveat}</div>}
+              </div>
+            )}
+          </>
         )}
+      </div>
+    </Row>
+  )
+}
+
+function SourceCard({ s }: { s: QaSource }) {
+  return (
+    <div className="mt-1.5 rounded-lg border border-gray-800 bg-gray-900 px-3 py-2">
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <span className="text-[12px] font-bold text-gray-100">{s.code}</span>
+        <span className="text-[11px] text-gray-400">{s.name}</span>
+        <span className={`ml-auto text-[10px] font-bold ${s.live ? 'text-emerald-400' : 'text-amber-400'}`}>
+          {s.live ? '엔진 실집계' : '예시 상수 · 실증 시 실측 교체'}
+        </span>
+      </div>
+      <div className="mt-1 grid gap-0.5 text-[11px]">
+        <div className="flex gap-2">
+          <span className="w-[52px] shrink-0 text-gray-500">보유 주체</span>
+          <span className="break-keep text-gray-300">{s.owner}</span>
+        </div>
+        <div className="flex gap-2">
+          <span className="w-[52px] shrink-0 text-gray-500">기여</span>
+          <span className="break-keep text-gray-300">{s.role}</span>
+        </div>
       </div>
     </div>
   )
 }
 
-const Avatar = () => <span className="mt-1 h-5 w-5 shrink-0 rounded-full bg-gradient-to-tr from-violet-500 to-sky-400" />
+const Row = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex gap-2.5">
+    <Avatar />
+    <div className="min-w-0 flex-1">{children}</div>
+  </div>
+)
+
+const Avatar = () => <span className="mt-0.5 h-6 w-6 shrink-0 rounded-lg bg-gradient-to-tr from-sky-500 to-sky-300" />
+
+const Caret = () => <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-sky-400 align-middle" />
+
+const Action = ({ onClick, label }: { onClick: () => void; label: string }) => (
+  <button
+    onClick={onClick}
+    className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-[10.5px] font-semibold text-sky-300 transition-colors hover:border-sky-500/60 focus-visible:ring-2 focus-visible:ring-sky-500"
+  >
+    {label}
+  </button>
+)
+
+const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms))
 
 /* ═══════════ 라이브 Claude (자유 질문 전용) ═══════════ */
 
@@ -324,7 +501,7 @@ async function askClaude(q: string, snap: SimSnapshot): Promise<string> {
       body: JSON.stringify({
         model: 'claude-opus-5',
         max_tokens: 4096,
-        // 시연 중 응답이 길어지면 안 되므로 낮은 effort — 사고는 켜 둔 채로 비용·지연만 낮춘다
+        // 시연 중 지연이 길면 안 되므로 낮은 effort — 사고는 켜 둔 채로 비용·지연만 낮춘다
         output_config: { effort: 'low' },
         fallbacks: 'default',
         system: buildSystem(snap),
@@ -333,7 +510,7 @@ async function askClaude(q: string, snap: SimSnapshot): Promise<string> {
     })
     const data = await res.json().catch(() => null)
     if (!res.ok) {
-      if (res.status === 401) return 'API 키가 유효하지 않습니다 — 우상단 설정에서 키를 다시 확인해 주세요.'
+      if (res.status === 401) return 'API 키가 유효하지 않습니다 — 왼쪽 «자유 질문»에서 키를 다시 확인해 주세요.'
       if (res.status === 429) return '요청이 많아 잠시 제한됐습니다 — 잠시 후 다시 시도해 주세요.'
       return `요청이 실패했습니다: ${data?.error?.message ?? `HTTP ${res.status}`}`
     }

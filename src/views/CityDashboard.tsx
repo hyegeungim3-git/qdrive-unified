@@ -408,7 +408,6 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                 <div className="text-[9px] text-gray-500">현금·기타</div>
               </div>
             </div>
-            <div className="mt-1.5 text-[9px] text-gray-600">* 전일 대비는 데모 추정치 · 실증 시 교통카드 정산(AFC) 연동</div>
           </Panel>
         )}
 
@@ -580,7 +579,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                   ) : (
                     <div className="flex h-full flex-col items-center justify-center gap-1.5">
                       <div className="h-1.5 w-2/3 animate-pulse rounded-full bg-gray-800" />
-                      <div className="text-[10px] text-gray-600">수집 중 — 30초 간격 평균 재차율 (배속을 올리면 빨라져요)</div>
+                      <div className="text-[10px] text-gray-600">수집 중 — 30초 간격 평균 재차율 </div>
                     </div>
                   )}
                 </div>
@@ -960,7 +959,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
             )}
             <div className="mt-1.5 text-[9px] leading-relaxed text-gray-600">
               정산검증은 <b className="text-gray-500">DTG 실주행 이력(1차 · 오큐브 자산)</b>만으로 인가노선 준수를 증명해요 —
-              배차기록(BMS) 실연동은 3차(대구시 소관)에서 고도화. 현재는 로직 시연.
+              배차기록(BMS) 연동은 3차(대구시 소관)에서 고도화합니다.
             </div>
           </Panel>
         )}
@@ -999,7 +998,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
               })}
               {snap.events.length === 0 && (
                 <div className="py-6 text-center text-xs text-gray-600">
-                  아직 위험운전 이벤트가 없어요 — 배속을 올리면 쌓입니다
+                  아직 위험운전 이벤트가 없습니다
                 </div>
               )}
             </div>

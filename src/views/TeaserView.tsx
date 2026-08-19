@@ -50,7 +50,7 @@ const PHASES: {
     items: [
       { source: 'DVR/CCTV', desc: '차량 영상기록 — 사고·승객 이상행동·문 끼임·차선이탈·보행자 위험 탐지' },
       { source: 'BIS 심층 연동', desc: '도착예측 고도화 협업 · 정류소 안내 인프라 양방향 연계 — 공개 API 조회는 1차 데모부터 사용 중' },
-      { source: 'BMS', desc: '버스관리시스템 — 배차 최적화, 회차·우회·예비차 투입 추천 · 정산검증(배차기록 대조)은 1차 데모에서 DTG로 이미 로직 시연' },
+      { source: 'BMS', desc: '버스관리시스템 — 배차 최적화, 회차·우회·예비차 투입 추천 · 정산검증(배차기록 대조)은 1차에서 DTG로 이미 동작' },
       { source: 'ITS', desc: '지능형 교통체계 — 도로 정체, 신호, 사고, 공사 반영 운행 예측' },
     ],
   },
@@ -79,11 +79,6 @@ export default function TeaserView() {
     <div className="mx-auto flex h-full max-w-6xl flex-col gap-4 overflow-y-auto pr-1">
       <div className="px-1 pt-1">
         <h2 className="text-xl font-bold text-gray-100">데이터 통합 로드맵 — 버스 한 대가 도시 데이터 플랫폼이 된다</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          단계 기준은 기술 난이도가 아니라 <b className="text-gray-300">데이터 접근성</b> — 자체 자산(1차) →
-          컨소 자산(2차) → 도시 협조(3차). 단계가 쌓일수록 통합 데이터의 가치가 커지고, 대구시와의 협력
-          영역도 함께 넓어진다.
-        </p>
       </div>
 
       {/* 4-이해관계자 총괄 커버리지 */}

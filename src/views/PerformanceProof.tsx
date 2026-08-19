@@ -78,10 +78,6 @@ export default function PerformanceProof() {
         <div>
           <div className="text-[11px] font-semibold tracking-widest text-amber-400">PERFORMANCE VERIFICATION</div>
           <h2 className="mt-0.5 text-xl font-bold text-gray-100">🔬 성과 검증</h2>
-          <div className="mt-0.5 text-xs text-gray-500">
-            "좋아졌다"가 아니라 <b className="text-gray-300">"이 서비스 덕분임을 방어할 수 있는" 성과</b>를 데이터로 증명해요 —
-            신뢰받는 서비스의 조건.
-          </div>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />

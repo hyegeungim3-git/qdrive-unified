@@ -779,12 +779,8 @@ export default function PolicyAgent() {
       {/* 헤더 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold tracking-widest text-violet-400">POLICY REPORT AGENT</div>
+          <div className="text-[11px] font-semibold tracking-widest text-sky-400">POLICY REPORT AGENT</div>
           <h2 className="mt-0.5 text-xl font-bold text-gray-100">📑 정책 보고서 에이전트</h2>
-          <div className="mt-0.5 text-xs text-gray-500">
-            운행 데이터를 모아 <b className="text-gray-300">공문서 서식 그대로</b> 작성합니다 — 통계표·붙임·결재란까지
-            갖춘 문서를 복사·저장·인쇄해 바로 쓰세요.
-          </div>
         </div>
         <select
           value={periodId}

@@ -81,6 +81,8 @@ html.light {
   --color-red-200: #991b1b;
   --color-red-300: #b91c1c;
   --color-red-400: #dc2626;
+  /* violet-100은 오래 비어 있었다 — text-violet-100을 쓰면 라이트 모드에서 흰 배경에 흰 글씨가 된다 */
+  --color-violet-100: #4c1d95;
   --color-violet-200: #5b21b6;
   --color-violet-300: #6d28d9;
   --color-violet-400: #7c3aed;

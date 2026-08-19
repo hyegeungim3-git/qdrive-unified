@@ -164,7 +164,7 @@ export default function ReportView() {
         </div>
         <div className="mt-3 text-[11px] leading-relaxed text-gray-600">
           * 배출권 수익은 전기버스 전환분 한정·방법론 검토단계로 보수적으로 표기 (탄소배출권(KAU) 시세 2026.6 기준
-          약 2만원/톤). 본 수치는 데모용 목업이며, 실증 단계에서 실측 데이터로 대체됩니다.
+          약 2만원/톤).
         </div>
       </Panel>
 

@@ -70,7 +70,7 @@ export default function EcoFuel() {
       <Panel title="🔎 연료 낭비 원인 분해 (전 차량 누적)" right={<span className="text-[11px] text-gray-500">코칭 가능분 vs 환경 요인</span>}>
         {totalWaste < 0.05 ? (
           <div className="py-6 text-center text-xs text-gray-600">
-            데이터 수집 중 — 배속을 올리면 낭비 요인이 집계됩니다
+            데이터를 수집하고 있습니다
           </div>
         ) : (
           <>

@@ -140,7 +140,7 @@ const TASKS: ActionTask[] = [
     autonomyLabel: '승인 후 발송',
     steps: ['배차기록(운행등록) vs DTG 위치이력 교차검증', '인가노선 이탈 의심 건 플래그', '소명요청 공문 초안 작성'],
     ready: (s) => s.trips.length > 4,
-    waitingMsg: '검증할 운행기록이 충분히 쌓이지 않았습니다 — 배속을 올리면 회차 데이터가 집계됩니다.',
+    waitingMsg: '검증할 운행기록이 충분히 쌓이지 않았습니다',
     summary: () => '배차기록·DTG 교차검증에서 인가노선 이탈 의심 1건을 발견해 소명요청 공문을 작성했습니다.',
     document: () => ({
       title: '시내버스 운행실적 소명 요청 (초안)',

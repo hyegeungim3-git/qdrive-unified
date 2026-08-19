@@ -67,10 +67,6 @@ export default function AdminConsole({ onNavigate }: { onNavigate?: (tab: string
         <div className="min-w-0">
           <div className="text-[11px] font-bold tracking-[0.2em] text-sky-400">AX DATA PLATFORM</div>
           <h2 className="mt-0.5 text-lg font-black tracking-tight text-gray-50">🔗 데이터 관리자</h2>
-          <p className="mt-1 max-w-3xl break-keep text-[12.5px] leading-relaxed text-gray-400">
-            시스템마다 흩어져 있던 버스 데이터를 <b className="text-gray-200">모으고 · 걸러내고 · 운행 단위로 엮어</b>, AI가 바로 쓸 수 있는 형태로
-            만들어 서비스 화면에 연결합니다. 아래 수치는 전부 지금 돌아가는 엔진에서 집계된 값입니다 — 배속을 올리면 실제로 늘어납니다.
-          </p>
         </div>
         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
@@ -147,11 +143,6 @@ export default function AdminConsole({ onNavigate }: { onNavigate?: (tab: string
       {step === 'lineage' && <Lineage onNavigate={onNavigate} />}
       {step === 'ops' && <Operations snap={snap} total={totalRecords} failed={failed} />}
 
-      <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
-        ⚙️ <b className="text-gray-300">실단말 전환 시</b> — 이 화면의 연결부는 시뮬레이터 대신 실단말 수신(<code className="text-gray-400">PacketSource</code>)을
-        바라보게 바꾸면 그대로 동작합니다. 품질 규칙·온톨로지 구조·데이터셋 정의는 원천이 바뀌어도 유지됩니다 —{' '}
-        <b className="text-gray-300">2·3차 데이터는 같은 중심축(운행 단위)에 꽂기만 하면 됩니다.</b>
-      </div>
     </div>
   )
 }

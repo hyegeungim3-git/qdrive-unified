@@ -78,10 +78,6 @@ export default function Datasets({ snap, onNavigate }: { snap: SimSnapshot; onNa
             </span>
           ))}
         </div>
-        <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
-          법정 표준 코드를 그대로 씁니다 — 자체 정의를 만들지 않으므로{' '}
-          <b className="text-gray-300">다른 도시·다른 사업자 데이터와도 그대로 합쳐집니다.</b> 표준을 지키는 것이 곧 확장성입니다.
-        </div>
       </Panel>
 
       <div className="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1">

@@ -173,9 +173,6 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
         <div>
           <div className="text-[11px] font-semibold tracking-widest text-emerald-400">CARBON NEUTRALITY ANALYTICS</div>
           <h2 className="mt-0.5 text-xl font-bold text-gray-100">🌱 탄소중립 분석</h2>
-          <div className="mt-0.5 text-xs text-gray-500">
-            안전운전 → 연비 → 연료 → CO₂ 연결 고리를 실측·엔진 집계로 증명해요 (전환·V2G 투자는 경영·투자 탭)
-          </div>
         </div>
         <nav className="flex gap-1 rounded-lg bg-gray-900/60 p-1">
           {SUBTABS.map((t) => (
@@ -246,7 +243,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
             <div className="mt-3 rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-4 py-2.5 text-[11px] leading-relaxed text-gray-400">
               {isLive ? (
                 <>
-                  <b className="text-emerald-400">일간 = 엔진 실시간 집계</b> — 시뮬레이터 9대의 실제 코칭 적용/미적용(baseline) 연료 차이로 산출. 배속을 올리면 값이 빠르게 쌓여요.
+                  <b className="text-emerald-400">일간 = 엔진 실시간 집계</b> — 실증 9대의 코칭 적용/미적용(baseline) 연료 차이로 산출. 배속을 올리면 값이 빠르게 쌓여요.
                 </>
               ) : (
                 <>산정 기준 — 경유 배출계수 2.68 kgCO₂/L · 도입 전 12개월 노선별 연비 기준선 대비, 실측 방식(OBD·DTG 교차 검증)은 실증 시 적용</>
@@ -429,7 +426,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
           <div className="grid grid-cols-[240px_1fr] gap-3 max-[720px]:grid-cols-1">
             <Panel title="평균 운전점수" right={<span className="rounded-full bg-emerald-500/12 px-2 py-0.5 text-[10px] font-bold text-emerald-400">LIVE</span>}>
               <Gauge value={avgScore} />
-              <div className="mt-1 text-center text-[11px] text-gray-500">시뮬레이터 9대 실시간 평균 (감점·회복 반영)</div>
+              <div className="mt-1 text-center text-[11px] text-gray-500">실증 9대 실시간 평균 (감점·회복 반영)</div>
             </Panel>
             <Panel title="위험운전 이벤트 (엔진 실집계)">
               <div className="h-40">

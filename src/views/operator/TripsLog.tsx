@@ -134,7 +134,7 @@ export default function TripsLog() {
         </table>
         {trips.length === 0 && (
           <div className="py-6 text-center text-xs text-gray-600">
-            아직 완료된 회차가 없습니다 — 배속을 올리면 운행기록이 쌓입니다
+            아직 완료된 회차가 없습니다
           </div>
         )}
       </Panel>

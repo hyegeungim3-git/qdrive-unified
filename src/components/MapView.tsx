@@ -5,6 +5,7 @@ import { useTheme } from '../theme'
 import { DAEGU_CENTER, EXTRA_ROUTES, ROUTES } from '../sim/routes'
 import type { BusRoute } from '../sim/routes'
 import { MAJOR_ROADS } from '../sim/roads'
+import { backgroundBuses } from '../sim/traffic'
 import { indexPolyline, pointAt } from '../sim/geo'
 import type { RealBus } from '../sim/bis'
 import type { Incident, Packet409, VehicleState } from '../sim/types'
@@ -76,7 +77,10 @@ const ROUTE_IDX = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points)]))
  * 간선도로 배경 — 도로는 변하지 않는다. memo로 묶지 않으면 엔진이 250ms마다 스냅샷을
  * 갈아끼울 때마다 폴리라인 수백 개가 다시 조정돼 지도가 눈에 띄게 느려진다.
  */
-const RoadLayer = memo(function RoadLayer() {
+const RoadLayer = memo(function RoadLayer({ light }: { light: boolean }) {
+  /* 밝은 타일 위에서는 같은 앰버가 흰 종이에 노란 형광펜처럼 날아간다 — 라이트 모드는 진한 색으로 */
+  const color = light ? '#b45309' : '#fbbf24'
+  const opacity = light ? 0.5 : 0.42
   return (
     <>
       {MAJOR_ROADS.flatMap((rd) =>
@@ -84,7 +88,7 @@ const RoadLayer = memo(function RoadLayer() {
           <Polyline
             key={`${rd.name}-${i}`}
             positions={seg}
-            pathOptions={{ color: '#fbbf24', weight: 5, opacity: 0.28, lineCap: 'round' }}
+            pathOptions={{ color, weight: 6, opacity, lineCap: 'round' }}
           >
             <Tooltip sticky>
               <b>{rd.name}</b> · {rd.note}
@@ -181,10 +185,13 @@ function MapHud({
   }
   return (
     <>
-      {/* 좌상단 스택 — LIVE 배지와 노선 칩. 한 흐름에 넣어야 배지 크기가 바뀌어도 겹치지 않는다 */}
+      {/*
+        좌상단 스택 — LIVE 배지와 노선 칩. 한 흐름에 넣어야 배지 크기가 바뀌어도 겹치지 않는다.
+        지도 밖 헤더 줄(날씨+LIVE)은 좁은 화면에서 두 줄로 접히므로 그때만 칩 줄을 내린다.
+        주의: 여는 태그 «안»에는 블록 주석을 두지 말 것 — esbuild가 파일 전체를 못 읽어 dev 서버가 500을 낸다.
+      */}
       <div
         ref={stop}
-        /* 지도 밖 헤더 줄(날씨+LIVE)은 좁은 화면에서 두 줄로 접힌다 — 그때만 칩 줄을 내려 겹치지 않게 */
         className={`pointer-events-auto absolute left-3 z-[1000] flex max-w-[calc(100%-6rem)] flex-col items-start gap-1.5 ${
           showLive ? 'top-14' : 'top-14 max-[900px]:top-[88px]'
         }`}
@@ -343,6 +350,7 @@ export default function MapView({
   incidents = [],
   focusTarget = null,
   showLive = true,
+  simTime = 0,
 }: {
   vehicles: VehicleState[]
   events: Packet409[]
@@ -353,6 +361,8 @@ export default function MapView({
   focusTarget?: { lat: number; lng: number; label?: string; nonce: number } | null
   /** 지도 밖에 LIVE 배지를 따로 두는 화면은 false — HUD에서 빼고 칩 줄이 그만큼 올라간다 */
   showLive?: boolean
+  /** 배경 교통을 움직이는 시뮬 시각(초). 0이면 정지한 채로 놓인다 */
+  simTime?: number
 }) {
   const cells = useMemo(() => (showHeat ? heatCells(events) : []), [events, showHeat])
   /* 노선 표시 상태 — 지도가 정보로 꽉 차면 정작 «어디를 지나는가»가 안 보인다 */
@@ -361,6 +371,17 @@ export default function MapView({
   const [showExtra, setShowExtra] = useState(true)
   const [showRoads, setShowRoads] = useState(true)
   const visibleRoutes = useMemo(() => ROUTES.filter((r) => !hidden.has(r.id)), [hidden])
+  /*
+   * 배경 교통 — 켜 둔 레이어 위에만 달린다. 노선을 껐는데 그 위에 버스가 남아 있으면
+   * 「저 버스는 무엇을 타고 있나」가 설명되지 않는다.
+   */
+  const bgBuses = useMemo(() => {
+    // simTime 을 안 넘기는 화면(운행 이력의 단일 회차 지도 등)에는 배경 교통을 두지 않는다 —
+    // 멈춰 선 점들이 «고장난 것»처럼 보이고, 한 회차를 보는 지도에 남의 버스는 방해다
+    if (simTime <= 0) return []
+    const all = backgroundBuses(simTime)
+    return all.filter((b) => (b.kind === '주요 노선' ? showExtra : showRoads))
+  }, [simTime, showExtra, showRoads])
 
   const theme = useTheme()
 
@@ -378,7 +399,7 @@ export default function MapView({
       />
 
       {/* 간선도로 — 노선보다 먼저 그린다. 나중에 그리면 도로가 노선을 덮어 «어디서 가로지르는지»가 안 보인다 */}
-      {showRoads && <RoadLayer />}
+      {showRoads && <RoadLayer light={theme === 'light'} />}
 
       {/* 주요 노선 — 표시 전용. 실증 노선보다 얇고 흐리게 깔아 주인공을 가리지 않는다 */}
       {showExtra &&
@@ -386,7 +407,7 @@ export default function MapView({
           <Polyline
             key={r.id}
             positions={r.points}
-            pathOptions={{ color: r.color, weight: 2, opacity: 0.42, dashArray: '5 5' }}
+            pathOptions={{ color: r.color, weight: 3, opacity: 0.8 }}
           >
             <Tooltip sticky>
               <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''}
@@ -415,6 +436,20 @@ export default function MapView({
 
       {/* 정류장 핀 */}
       <StopPins routes={visibleRoutes} dimmed={(id) => highlightRouteId != null && highlightRouteId !== id} />
+
+      {/* 배경 교통 — 주요 노선·간선도로 위를 달리는 표시용 버스 (실증 집계에 들어가지 않는다) */}
+      {bgBuses.map((b) => (
+        <CircleMarker
+          key={b.id}
+          center={b.pos}
+          radius={3.4}
+          pathOptions={{ color: b.color, weight: 2, opacity: 0.9, fillColor: '#0b0f16', fillOpacity: 0.9 }}
+        >
+          <Tooltip direction="top" offset={[0, -4]}>
+            {b.on} · {b.kind} 표시용 — 실증 집계에 포함되지 않습니다
+          </Tooltip>
+        </CircleMarker>
+      ))}
 
       {/* 위험운전 히트맵 */}
       {cells.map((c, i) => (

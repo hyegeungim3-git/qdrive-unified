@@ -15,7 +15,7 @@ OUT = r'C:\Users\TOTTEN~1\AppData\Local\Temp\claude\C--Qdrive---\4b8ea4ed-1b36-4
 
 ROLE = {'급행1': 'forward'}
 EPS = 12      # 형상 단순화 허용 오차(m) — 12m면 도로 곡선이 눈에 띄게 뭉개지지 않는다
-TOL = 70      # 정류장 노드는 인도 쪽에 찍혀 도로 중심선에서 수십 m 떨어진다 — 넉넉히 잡는다
+TOL = 120     # 정류장 노드는 인도·건물 쪽에 찍혀 도로 중심선에서 멀다. 120m까지 넓혀 실제 정차지를 더 건진다
 
 
 def load(p):
@@ -53,7 +53,7 @@ def build(rel, stops, role_filter=None):
 
     out = []
     for r in raw:
-        if out and (r['base'] == out[-1]['base'] or r['m'] - out[-1]['m'] < 200):
+        if out and (r['base'] == out[-1]['base'] or r['m'] - out[-1]['m'] < 120):   # 도심은 정류장 간격이 짧다
             if r['d'] < out[-1]['d']:
                 out[-1] = r
             continue

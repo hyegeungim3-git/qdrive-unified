@@ -21,6 +21,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { useSim } from '../sim/store'
+import { focusMap } from '../sim/mapFocus'
 import { QA_TOPICS, UNANSWERABLE, answerQuestion, runTopic, type QaResult, type QaSource, type QaTopic } from '../sim/ontologyQa'
 import { setOperatorSubtabIntent } from '../sim/navIntent'
 import type { SimSnapshot } from '../sim/types'
@@ -591,6 +592,16 @@ function MsgView({
                 label={copied ? '복사됨 ✓' : '복사'}
               />
               <Action onClick={() => onExport?.(m.id)} label="📄 이 답만" />
+              {/* 답이 «어디»를 말할 때만 — 지도로 건너가 그 지점을 찍는다. 말로 설명하던 구간이 사라진다 */}
+              {r.focus && (
+                <Action
+                  onClick={() => {
+                    focusMap(r.focus!.lat, r.focus!.lng, r.focus!.label)
+                    onNavigate?.('city')
+                  }}
+                  label="🗺 지도에서 보기"
+                />
+              )}
             </div>
 
             {openRec && r.record && (

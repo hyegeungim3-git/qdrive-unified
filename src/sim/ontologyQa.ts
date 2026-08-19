@@ -125,6 +125,11 @@ export type QaResult = {
   /** 이 답이 «말할 수 없는» 것 — 없으면 그 자체가 의심스럽다 */
   limits?: QaLimit[]
   /** 예시 데이터·모델 한계 고지 */
+  /**
+   * 지도에서 짚을 수 있는 지점 — 답이 «어디»를 말할 때만 채운다.
+   * 좌표가 있는 답(위험운전 이벤트)만 해당하고, 차고지·회차처럼 한 점으로 찍을 수 없는 답은 비워 둔다.
+   */
+  focus?: { lat: number; lng: number; label: string }
   caveat?: string
   /** 아직 계산할 데이터가 없다 */
   empty?: boolean
@@ -390,6 +395,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
     id, q, path, sources,
     walk: walkOf(s, `evt:${decel.vehicleId}:${Math.round(decel.simTime)}`, `${decel.eventType} ${mmss(decel.simTime)}`),
     subject: `${decel.vehicleId} · ${decel.eventType} @ ${mmss(decel.simTime)}`,
+    focus: { lat: decel.lat, lng: decel.lng, label: `${decel.eventType} ${mmss(decel.simTime)} · ${decel.segment}` },
     record: {
       title: `DTG 409 위험운전 패킷 — ${decel.vehicleId}`,
       fields: [

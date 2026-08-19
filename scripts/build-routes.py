@@ -138,12 +138,20 @@ def project(pt, line, cums):
 
 
 def disp_name(n):
-    """화면에 쓸 이름 — «건너»는 반대편 표기라 뗀다. 숫자는 지운다(2.28기념중앙공원처럼 이름의 일부다)"""
-    n = n.strip()
-    for suf in ('건너', '(하)', '(상)'):
-        if n.endswith(suf):
-            n = n[: -len(suf)]
-    return n.strip()
+    """
+    화면에 쓸 이름. 끝의 «건너»·«앞»과 방향 구분용 꼬리 숫자를 뗀다 —
+    「섬유회관건너1」·「2.28기념공원중앙건너2」처럼 남으면 사람이 읽는 정류장 이름이 아니다.
+    앞쪽 숫자는 이름의 일부이므로(2.28기념중앙공원) 건드리지 않는다.
+    """
+    n = n.strip().replace('건너', '')   # «건너»는 이름 중간에도 온다(약령시건너(동성로입구))
+    for _ in range(2):
+        while n and n[-1].isdigit():
+            n = n[:-1]
+        for suf in ('건너', '(하)', '(상)'):
+            if n.endswith(suf):
+                n = n[: -len(suf)]
+        n = n.strip()
+    return n
 
 
 def dedupe_key(n):

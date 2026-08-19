@@ -618,6 +618,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
           incidents={snap.incidents}
           focusTarget={focusTarget}
           showLive={false}
+          simTime={snap.simTime}
         />
         {/* 날씨 칩 + LIVE — 한 줄에 둔다. 지도 HUD 안에 따로 띄우면 아래 노선 칩 줄과 겹친다 */}
         <div className="absolute left-3 top-3 z-[1000] flex max-w-[calc(100%-7rem)] flex-wrap items-center gap-2">

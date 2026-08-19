@@ -1,5 +1,8 @@
 /**
- * 💬 AI 채팅 — 제안서 「맥락이 붙으면 비로소 답할 수 있는 질문」 4종에 실제로 답하는 화면.
+ * 💬 AI Q — 제안서 「맥락이 붙으면 비로소 답할 수 있는 질문」 4종에 실제로 답하는 화면.
+ *
+ * 플로팅 오버레이 `components/Copilot.tsx`도 «✨ AI Q»다. 같은 브랜드의 두 진입점 —
+ * 오버레이는 어느 탭에서든 부르는 빠른 조회, 이 탭은 온톨로지 근거를 펼쳐 보는 본 화면이다.
  *
  * 이름은 «AI 채팅»이지만 **LLM이 온톨로지로 만들어지는 것은 아니다.** 모델은 이미 학습된 범용
  * Claude이고, 온톨로지는 그 답에 **근거를 대는 데이터 구조**다. 아래 4개 질문은 애초에 LLM을
@@ -111,7 +114,7 @@ export default function OntologyChat() {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-[11px] font-bold tracking-[0.2em] text-violet-400">ONTOLOGY-GROUNDED AI</div>
-          <h2 className="mt-0.5 text-lg font-black tracking-tight text-gray-50">💬 AI 채팅</h2>
+          <h2 className="mt-0.5 text-lg font-black tracking-tight text-gray-50">💬 AI Q</h2>
           <p className="mt-1 max-w-3xl break-keep text-[12.5px] leading-relaxed text-gray-400">
             거리·연료 같은 <b className="text-gray-300">숫자만 있는 표</b>로는 답할 수 없고, 운행 단위에 의미가 붙어 있어야 답이 나오는 질문들입니다. 아래
             네 질문은 <b className="text-violet-300">지금 돌아가는 엔진에서 실제로 계산</b>해 답하며, 어떤 클래스를 어떤 관계로 걸어서 나온 답인지 함께

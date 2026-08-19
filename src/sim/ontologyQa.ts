@@ -126,6 +126,14 @@ const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${St
 const short = (id: string) => id.slice(-4) + '호'
 const km = (n: number) => `${n.toFixed(1)}km`
 
+/** 지목한 대상을 못 찾았을 때 — 다른 레코드로 슬쩍 바꿔 답하지 않는다 */
+const notFound = (id: string, q: string, targetId: string, path: string[], sources: QaSource[]): QaResult => ({
+  id, q, path, sources, sections: [], follow: [], empty: true,
+  headline: '지목한 대상을 찾지 못했습니다',
+  detail: `«${targetId}»에 해당하는 기록이 지금 스냅샷에 없습니다. 다른 기록으로 바꿔 답하지 않습니다 — 대상을 다시 골라 주세요.`,
+  evidence: [{ k: '요청한 대상', v: targetId }],
+})
+
 /** 순회 결과를 답에 담을 형태로 — 걸을 수 없으면 undefined라서 화면이 «못 걸었다»를 말할 수 있다 */
 const walkOf = (s: SimSnapshot, startId: string, startLabel: string) => {
   const w: Walk = walkFrom(s, startId)
@@ -158,9 +166,11 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
     const [kind, vid, t0] = targetId.split(':')
     const pool = kind === 'd' ? dh : s.trips
     const key = kind === 'd' ? (x: Packet521) => Math.round(x.endSimTime) : (x: Packet521) => Math.round(x.startSimTime)
-    return pool.find((x) => x.vehicleId === vid && String(key(x)) === t0) ?? s.trips[0]
+    return pool.find((x) => x.vehicleId === vid && String(key(x)) === t0) ?? null
   }
-  const latest = pickTrip()
+  const picked = pickTrip()
+  if (targetId && !picked) return notFound(id, q, targetId, path, sources)
+  const latest = picked ?? s.trips[0]
   if (!latest) {
     return {
       id, q, path, sources, sections: [], follow: [], empty: true,
@@ -265,6 +275,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
     src(SRC.plea, '기사 상황 설명(있을 때)'),
   ]
   const byId = targetId ? s.events.find((e) => `${e.vehicleId}:${Math.round(e.simTime)}` === targetId) : null
+  if (targetId && !byId) return notFound(id, q, targetId, path, sources)
   const decel = byId ?? s.events.find((e) => e.eventType === '급감속' || e.eventType === '급정지') ?? s.events[0]
   if (!decel) {
     return {
@@ -346,7 +357,9 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
     ],
     follow: [
       { q: `${short(decel.vehicleId)}의 감축은 코칭 때문인가 유가 때문인가`, topic: 'attribution', target: decel.vehicleId },
-      { q: '이 주행은 영업인가 공차인가', topic: 'tripKind' },
+      ...(trip
+        ? [{ q: `${short(trip.vehicleId)} ${trip.seq}회차는 영업인가 공차인가`, topic: 'tripKind', target: `t:${trip.vehicleId}:${Math.round(trip.startSimTime)}` }]
+        : []),
     ],
     detail:
       `${v?.driverName ?? '기사'} 기사, ${decel.speedKmh}km/h에서 발생했습니다. 발생 시점 날씨는 **${decel.weather}**이고 노선은 **${decel.routeName}**입니다. ` +
@@ -391,7 +404,9 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
       oneWay: d.deadheadKm,
     }
   }).sort((a, b) => b.km - a.km)
-  const top = (targetId ? rows.find((r) => r.depot === targetId) : null) ?? rows[0]
+  const byName = targetId ? rows.find((r) => r.depot === targetId) : null
+  if (targetId && !byName) return notFound(id, q, targetId, path, sources)
+  const top = byName ?? rows[0]
   if (!top || top.n === 0) {
     return {
       id, q, path, sources, sections: [], follow: [], empty: true,
@@ -400,6 +415,8 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
       evidence: [],
     }
   }
+  /* 후속 질문이 «이 차고지»의 회차를 가리키게 — 목적어 없는 후속은 다른 레코드로 새어 동문서답이 된다 */
+  const depTrip = s.trips.find((t) => t.depot === top.depot)
   const totKm = rows.reduce((a, r) => a + r.km, 0)
   const totFuel = rows.reduce((a, r) => a + r.fuel, 0)
   const revKm = s.trips.reduce((n, t) => n + t.distanceKm, 0)
@@ -439,7 +456,9 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
       },
     ],
     follow: [
-      { q: '이 주행은 영업인가 공차인가', topic: 'tripKind' },
+      ...(depTrip
+        ? [{ q: `${short(depTrip.vehicleId)} ${depTrip.seq}회차는 영업인가 공차인가`, topic: 'tripKind', target: `t:${depTrip.vehicleId}:${Math.round(depTrip.startSimTime)}` }]
+        : []),
       { q: '실증 9대 전체의 감축은 코칭 때문인가 유가 때문인가', topic: 'attribution', target: 'all' },
     ],
     detail:
@@ -476,6 +495,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
     src(SRC.dtg409, '급조작 낭비 분해'),
   ]
   const one = targetId && targetId !== 'all' ? s.vehicles.find((v) => v.id === targetId) : null
+  if (targetId && targetId !== 'all' && !one) return notFound(id, q, targetId, path, sources)
   const scope = one ? [one] : s.vehicles
   const base = scope.reduce((a, v) => a + v.baselineFuelM3, 0)
   const act = scope.reduce((a, v) => a + v.fuelM3, 0)
@@ -496,6 +516,9 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
     return { p, label: PERSONA_LABEL[p], pct: b > 0 ? ((b - a2) / b) * 100 : 0, n: vs.length }
   })
   const ordered = byPersona[0].pct < byPersona[1].pct && byPersona[1].pct < byPersona[2].pct
+  /* 후속은 «지금 보고 있는 차량»의 기록으로 이어져야 한다 — 목적어 없는 후속이 동문서답의 통로다 */
+  const myEvent = one ? s.events.find((e) => e.vehicleId === one.id) : null
+  const myDepot = one ? s.trips.find((t) => t.vehicleId === one.id)?.depot : undefined
   const waste = s.vehicles.reduce(
     (a, v) => ({ idle: a.idle + v.fuelWaste.idle, harsh: a.harsh + v.fuelWaste.harsh, habit: a.habit + v.fuelWaste.habit, ac: a.ac + v.fuelWaste.ac }),
     { idle: 0, harsh: 0, habit: 0, ac: 0 },
@@ -552,10 +575,16 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
         ],
       },
     ],
-    follow: [
-      { q: '이 급감속은 어떤 노선·날씨에서 났나', topic: 'eventContext' },
-      { q: '이 차고지가 만든 공차는 얼마인가', topic: 'depotDeadhead' },
-    ],
+    follow: one
+      ? [
+          ...(myEvent
+            ? [{ q: `${short(one.id)} ${myEvent.eventType}(${mmss(myEvent.simTime)})은 어떤 노선·날씨에서 났나`, topic: 'eventContext', target: `${myEvent.vehicleId}:${Math.round(myEvent.simTime)}` }]
+            : []),
+          ...(myDepot ? [{ q: `${myDepot}가 만든 공차는 얼마인가`, topic: 'depotDeadhead', target: myDepot }] : []),
+        ]
+      : [
+          { q: '이 차고지가 만든 공차는 얼마인가', topic: 'depotDeadhead' },
+        ],
     detail:
       `비교 대상은 금액이 아니라 **연료량**입니다. 코칭을 하지 않았다고 가정한 기준선 ${base.toFixed(1)}m³ 대비 실측 ${act.toFixed(1)}m³로 ` +
       `${saved.toFixed(1)}m³ 적게 썼습니다. 유가는 같은 양의 연료 «가격»만 바꾸므로 이 차이를 만들 수 없습니다. ` +

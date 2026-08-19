@@ -399,7 +399,26 @@ function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: numbe
               대상 · {r.subject}
             </div>
           )}
-          <div className="break-keep text-[13.5px] font-bold leading-snug text-gray-50">{r.headline}</div>
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="break-keep text-[13.5px] font-bold leading-snug text-gray-50">{r.headline}</span>
+            {r.confidence && (
+              <span
+                title={r.confidence.why}
+                className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold ${
+                  r.confidence.level === '실측'
+                    ? 'border-emerald-500/40 text-emerald-300'
+                    : 'border-amber-500/40 text-amber-300'
+                }`}
+              >
+                {r.confidence.level} · 신뢰도 상한 {r.confidence.pct}%
+              </span>
+            )}
+          </div>
+          {r.basis && (
+            <div className="mt-1 text-[10.5px] text-gray-400">
+              집계 구간 {r.basis.window} · 표본 {r.basis.records}
+            </div>
+          )}
           <div className="mt-1.5 break-keep text-[12.5px] leading-relaxed text-gray-300">
             {detail}
             {typing && <Caret />}
@@ -441,6 +460,20 @@ function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: numbe
             </div>
           )}
         </div>
+
+        {r.limits && r.limits.length > 0 && (
+          <div className="rounded-lg border border-amber-500/25 bg-gray-900 px-3 py-2">
+            <div className="text-[10.5px] font-bold text-amber-300">이 답이 말할 수 없는 것</div>
+            <ul className="mt-1 space-y-0.5">
+              {r.limits.map((l, i) => (
+                <li key={i} className="flex gap-1.5 break-keep text-[11.5px] leading-relaxed text-gray-300">
+                  <span className="mt-[1px] shrink-0 text-gray-500">·</span>
+                  <span>{l}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {r.follow.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">

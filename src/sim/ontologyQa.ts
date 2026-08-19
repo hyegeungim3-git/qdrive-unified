@@ -75,6 +75,15 @@ export type QaSection = {
 /** 이어서 물을 질문 — 대화가 한 번에 끝나지 않게 다음 수를 놓아 준다 */
 export type QaFollow = { q: string; topic: string; target?: string }
 
+/**
+ * 신뢰도 — **근거 유형이 상한을 정한다.** 예시 상수가 섞이면 아무리 계산이 정교해도
+ * 실측이라고 말할 수 없다. 모르는 것을 아는 척하지 않게 막는 장치.
+ */
+export type QaConfidence = { level: '실측' | '환산' | '추정'; pct: number; why: string }
+
+/** 집계 근거 — 어느 구간의 몇 건을 셌는가. 이것이 없으면 숫자는 떠 있는 값이다 */
+export type QaBasis = { window: string; records: string }
+
 export type QaResult = {
   id: string
   /** 질문 원문 */
@@ -98,6 +107,12 @@ export type QaResult = {
   subject?: string
   /** 원본 레코드 — 답의 근거가 된 패킷/기록 그 자체. 화면에서 펼쳐 대조한다 */
   record?: { title: string; fields: { k: string; v: string }[] }
+  /** 신뢰도 — 근거 유형이 정하는 상한 */
+  confidence?: QaConfidence
+  /** 집계 구간·표본 */
+  basis?: QaBasis
+  /** 이 답이 «말할 수 없는» 것 — 없으면 그 자체가 의심스럽다 */
+  limits?: string[]
   /** 예시 데이터·모델 한계 고지 */
   caveat?: string
   /** 아직 계산할 데이터가 없다 */
@@ -125,6 +140,20 @@ export type QaTopic = {
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`
 const short = (id: string) => id.slice(-4) + '호'
 const km = (n: number) => `${n.toFixed(1)}km`
+
+/**
+ * 답의 신뢰도를 출처에서 계산한다. 전부 엔진 실집계면 실측(95),
+ * 예시 상수가 하나라도 섞이면 환산(85)으로 낮춘다 — 손으로 올려 적지 않는다.
+ */
+const confOf = (sources: QaSource[]): QaConfidence => {
+  const stub = sources.filter((x) => !x.live)
+  return stub.length === 0
+    ? { level: '실측', pct: 95, why: `쓰인 원천 ${sources.length}종이 모두 엔진 실집계입니다` }
+    : { level: '환산', pct: 85, why: `${stub.map((x) => x.code).join('·')}이(가) 예시 상수라 실측으로 올리지 않습니다` }
+}
+
+/** 집계 구간 — 지금까지 흐른 시뮬 시각과 표본 수 */
+const basisOf = (s: SimSnapshot, records: string): QaBasis => ({ window: `00:00~${mmss(s.simTime)} (시뮬 시각)`, records })
 
 /** 지목한 대상을 못 찾았을 때 — 다른 레코드로 슬쩍 바꿔 답하지 않는다 */
 const notFound = (id: string, q: string, targetId: string, path: string[], sources: QaSource[]): QaResult => ({
@@ -222,6 +251,26 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
         ],
       },
       {
+        h: '같은 노선과 비교',
+        src: ['DTG 521'],
+        items: (() => {
+          const same = s.trips.filter((t) => t.routeName === latest.routeName)
+          const avgKm = same.reduce((a, t) => a + t.distanceKm, 0) / Math.max(1, same.length)
+          const eff = latest.fuelM3 > 0 ? latest.distanceKm / latest.fuelM3 : 0
+          const avgEff = (() => {
+            const f = same.reduce((a, t) => a + t.fuelM3, 0)
+            const d = same.reduce((a, t) => a + t.distanceKm, 0)
+            return f > 0 ? d / f : 0
+          })()
+          return [
+            `${latest.routeName} 회차 ${same.length}건 평균 ${avgKm.toFixed(1)}km — 이 회차는 ${latest.distanceKm.toFixed(1)}km (${latest.distanceKm >= avgKm ? '+' : ''}${(latest.distanceKm - avgKm).toFixed(1)}km)`,
+            avgEff > 0
+              ? `연비 ${eff.toFixed(2)} km/m³ · 같은 노선 평균 ${avgEff.toFixed(2)} km/m³ (${eff >= avgEff ? '평균 이상' : '평균 이하'})`
+              : '연비 비교는 같은 노선 회차가 더 쌓여야 가능합니다',
+          ]
+        })(),
+      },
+      {
         h: '오늘 전체에서 차지하는 몫',
         src: ['DTG 521', '차고지 출입고'],
         items: [
@@ -230,6 +279,12 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
           `이 차량의 회송만 ${sameVehDh.length}건`,
         ],
       },
+    ],
+    confidence: confOf(sources),
+    basis: basisOf(s, `영업 ${s.trips.length}건 · 공차 ${dh.length}건`),
+    limits: [
+      '이 회차의 «승객 수»는 말할 수 없습니다 — 교통카드 정산(AFC)·승객계수(APC)가 아직 연결되지 않았습니다',
+      '계획 대비 정시 여부도 아직입니다 — 운수사 배차 계획(BMS)이 붙어야 판단할 수 있습니다',
     ],
     follow: [
       { q: `${latest.depot}가 만든 공차는 얼마인가`, topic: 'depotDeadhead', target: latest.depot },
@@ -353,7 +408,28 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
               ...(otherPleas > 0 ? [`다른 차량 ${otherPleas}건은 기사 앱에서 확인 — 이 답에는 섞지 않는다`] : []),
             ],
       },
+      {
+        h: '이 기사·이 노선과 비교',
+        src: ['DTG 409'],
+        items: (() => {
+          const mine = s.events.filter((e) => e.vehicleId === decel.vehicleId).length
+          const onRoute = s.events.filter((e) => e.routeName === decel.routeName).length
+          const veh = s.vehicles.find((x) => x.id === decel.vehicleId)
+          const avg = s.kpi.avgScore
+          return [
+            `이 차량 누적 위험운전 ${mine}건 · ${decel.routeName} 전체 ${onRoute}건`,
+            veh ? `이 차량 안전점수 ${Math.round(veh.score)}점 · 실증 9대 평균 ${avg.toFixed(1)}점 (${veh.score >= avg ? '평균 이상' : '평균 이하'})` : '',
+            veh ? `방어운전 크레딧 ${veh.defenseCredits}건 — 정당 인정·소명 인정이 쌓인 수` : '',
+          ].filter(Boolean)
+        })(),
+      },
       { h: '같은 맥락 누적', src: ['DTG 409'], items: [`${decel.routeName} · ${decel.weather} 조건에서 ${sameCtx}건`] },
+    ],
+    confidence: confOf(sources),
+    basis: basisOf(s, `위험운전 ${s.events.length}건 · 소명 ${s.pleas.length}건`),
+    limits: [
+      '실제 상황 영상은 확인할 수 없습니다 — 차량 영상(DVR)은 비식별 협의가 필요한 3차 원천입니다',
+      '앞차와의 실제 간격은 추정입니다 — 전방 레이더가 없어 DTG·위치로 역산합니다',
     ],
     follow: [
       { q: `${short(decel.vehicleId)}의 감축은 코칭 때문인가 유가 때문인가`, topic: 'attribution', target: decel.vehicleId },
@@ -454,6 +530,12 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
           '공차는 수입이 없는 주행 — 차고지 배치와 교대 주기를 바꾸면 그대로 줄어드는 비용',
         ],
       },
+    ],
+    confidence: confOf(sources),
+    basis: basisOf(s, `공차 ${s.deadheads.length}건 · 차고지 ${rows.length}곳`),
+    limits: [
+      '실제 출·입고 시각은 아직 연동 전입니다 — 지금은 편도 회송거리를 상수로 둡니다',
+      '교대·급유로 인한 차고지 체류 시간은 셀 수 없습니다 — 출입고 기록이 붙어야 합니다',
     ],
     follow: [
       ...(depTrip
@@ -567,6 +649,21 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
         ),
       },
       {
+        h: '전체와 비교',
+        src: ['OBD/CAN'],
+        items: (() => {
+          const allBase = s.vehicles.reduce((a, v) => a + v.baselineFuelM3, 0)
+          const allAct = s.vehicles.reduce((a, v) => a + v.fuelM3, 0)
+          const allPct = allBase > 0 ? ((allBase - allAct) / allBase) * 100 : 0
+          return one
+            ? [
+                `이 차량 −${pct.toFixed(2)}% · 실증 9대 전체 −${allPct.toFixed(2)}% (${pct >= allPct ? '전체보다 큼' : '전체보다 작음'})`,
+                `같은 기사군(${PERSONA_LABEL[one.persona]}) 기준 −${(byPersona.find((g) => g.p === one.persona)?.pct ?? 0).toFixed(2)}%`,
+              ]
+            : [`실증 ${s.vehicles.length}대 합산 −${allPct.toFixed(2)}%`, '기사군별 차등이 코칭 효과의 인과 지문입니다']
+        })(),
+      },
+      {
         h: '낭비 요인 분해',
         src: ['DTG 409'],
         items: [
@@ -575,6 +672,13 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
         ],
       },
     ],
+    confidence: confOf(sources),
+    basis: basisOf(s, one ? `${short(one.id)} 1대` : `실증 ${s.vehicles.length}대 · 회차 ${s.trips.length}건`),
+    limits: [
+      '연료 «가격»은 다루지 않습니다 — 이 비교는 연료 양이며, 유가 데이터는 연결돼 있지 않습니다',
+      '정비 상태로 인한 연비 차이는 분리하지 못합니다 — 정비이력이 회차 단위로 붙어야 가능합니다',
+      one ? '' : '기사군 평균은 실증 9대 표본입니다 — 회사 전체로 일반화할 수 없습니다',
+    ].filter(Boolean),
     follow: one
       ? [
           ...(myEvent

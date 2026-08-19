@@ -23,7 +23,7 @@ const STEPS = [
   { id: 'ontology', n: '③', label: '온톨로지', desc: '운행 단위로 의미를 연결' },
   { id: 'dataset', n: '④', label: 'AI-Ready', desc: 'AI가 바로 쓰는 형태로' },
   { id: 'lineage', n: '⑤', label: '서비스 연결', desc: '어느 화면이 무엇을 쓰는가' },
-  { id: 'ops', n: '⑥', label: '운영', desc: '잡·저장·감사 관리' },
+  { id: 'ops', n: '⑥', label: '운영', desc: '처리 작업·저장·감사 관리' },
 ] as const
 type StepId = (typeof STEPS)[number]['id']
 
@@ -57,7 +57,7 @@ export default function AdminConsole({ onNavigate }: { onNavigate?: (tab: string
     ontology: `${fmt(ontoTotal)} 인스턴스`,
     dataset: `${DATASETS.length}종 · ${fmt(dsRows)}행`,
     lineage: `${CONNECTORS.length}원천 → 서비스`,
-    ops: '잡 5 · 정상',
+    ops: '처리 작업 5 · 정상',
   }
 
   return (

@@ -44,12 +44,12 @@ export default function Operations({ snap, total, failed }: { snap: SimSnapshot;
 
   return (
     <div className="space-y-3">
-      <Panel title="파이프라인 잡" right={<span className="text-[11px] text-gray-500">상시 3 · 이벤트 1 · 배치 1</span>}>
+      <Panel title="데이터 처리 작업" right={<span className="text-[11px] text-gray-500">상시 3 · 이벤트 1 · 일 1회 1</span>}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-[12px]">
             <thead>
               <tr className="border-b border-gray-800 text-[11px] text-gray-500">
-                <th className="py-2 pr-3 font-semibold">잡</th>
+                <th className="py-2 pr-3 font-semibold">처리 작업</th>
                 <th className="py-2 pr-3 font-semibold">주기</th>
                 <th className="py-2 pr-3 font-semibold">마지막 실행</th>
                 <th className="py-2 pr-3 font-semibold">다음 실행</th>

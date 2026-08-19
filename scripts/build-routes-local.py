@@ -75,8 +75,8 @@ print('정류장 풀', len(stops))
 res = []
 for rel in load(GEO)['elements']:
     ref = rel['tags'].get('ref')
-    if ref == '급행2':      # 관계에 도로가 3개뿐 — 형상이 안 나온다
-        continue
+    if len([m for m in rel['members'] if m.get('geometry')]) < 20:
+        continue    # 도로가 몇 개뿐인 관계는 형상이 안 나온다 — 잘린 선을 노선이라 그리면 지도가 거짓말을 한다
     r = build(rel, stops, ROLE.get(ref))
     res.append(r)
     a = r['stops'][0]['name'] if r['stops'] else '—'

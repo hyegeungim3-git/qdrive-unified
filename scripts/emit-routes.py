@@ -14,9 +14,13 @@ DRIVEN = {
 # 표시 전용 — 지도에만 깔린다
 # 급행5는 OSM에 이어진 도로가 4.4km뿐이라 뺐다 — 짧게 잘린 선을 «주요 노선»이라 깔면 지도가 거짓말을 한다
 EXTRA = {
-    '급행4':   dict(id='X4', road='앞산순환로·달서로', color='#f59e0b'),
+    # 중구 도심·달구벌대로·신천대로·앞산을 지나는 노선을 우선으로 골랐다 — 지도에서 그 축이 보이게
+    '급행2':   dict(id='X2', road='달구벌대로·신천대로', color='#fb7185'),
+    '순환3':   dict(id='X3', road='신천대로·앞산순환로', color='#c084fc'),
+    '순환3-1': dict(id='X31', road='앞산순환로·달구벌대로(역방향)', color='#a3e635'),
     '급행6':   dict(id='X6', road='칠곡중앙대로·성서로', color='#14b8a6'),
     '순환2-1': dict(id='X21', road='도심 순환로(역방향)', color='#60a5fa'),
+    '급행4':   dict(id='X4', road='앞산순환로·달서로', color='#f59e0b'),
 }
 
 
@@ -114,6 +118,10 @@ export const EXTRA_ROUTES: BusRoute[] = [
 """
 
 out = head + '\n'.join(driven) + '\n' + tail + '\n'.join(extra) + '\n]\n'
+out += '
+/** 지도 초기 중심 — 반월당네거리 부근 */
+export const DAEGU_CENTER: LatLng = [35.868, 128.585]
+'
 io.open(DST, 'w', encoding='utf-8', newline='').write(out)
 
 print('운행', [data[k]['ref'] for k in DRIVEN if k in data])

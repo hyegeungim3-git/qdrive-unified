@@ -301,7 +301,8 @@ export default function MapView({
   const cells = useMemo(() => (showHeat ? heatCells(events) : []), [events, showHeat])
   /* 노선 표시 상태 — 지도가 정보로 꽉 차면 정작 «어디를 지나는가»가 안 보인다 */
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
-  const [showExtra, setShowExtra] = useState(false)
+  // 기본 ON — «대구의 주요 버스»가 첫 화면에서 보여야 한다. 복잡하면 칩 한 번으로 끈다
+  const [showExtra, setShowExtra] = useState(true)
   const visibleRoutes = useMemo(() => ROUTES.filter((r) => !hidden.has(r.id)), [hidden])
 
   const theme = useTheme()

@@ -21,6 +21,8 @@ EXTRA = {
     '급행6':   dict(id='X6', road='칠곡중앙대로·성서로', color='#14b8a6'),
     '순환2-1': dict(id='X21', road='도심 순환로(역방향)', color='#60a5fa'),
     '급행4':   dict(id='X4', road='앞산순환로·달서로', color='#f59e0b'),
+    # 달구벌대로를 실제로 가로지르는 노선 중 지도에 없던 마지막 하나(교차 판정으로 확인)
+    '급행7':   dict(id='X7', road='대구대로·달구벌대로 교차', color='#f472b6'),
 }
 
 
@@ -64,6 +66,9 @@ def block(r, meta, loop):
     ],
   }},"""
 
+
+CENTER = (chr(10) + '/** 지도 초기 중심 — 반월당네거리 부근 */' + chr(10)
+          + 'export const DAEGU_CENTER: LatLng = [35.868, 128.585]' + chr(10))
 
 data = {r['ref']: r for r in json.load(io.open(SRC, encoding='utf-8'))}
 
@@ -117,11 +122,7 @@ tail = """]
 export const EXTRA_ROUTES: BusRoute[] = [
 """
 
-out = head + '\n'.join(driven) + '\n' + tail + '\n'.join(extra) + '\n]\n'
-out += '
-/** 지도 초기 중심 — 반월당네거리 부근 */
-export const DAEGU_CENTER: LatLng = [35.868, 128.585]
-'
+out = head + '\n'.join(driven) + '\n' + tail + '\n'.join(extra) + '\n]\n' + CENTER
 io.open(DST, 'w', encoding='utf-8', newline='').write(out)
 
 print('운행', [data[k]['ref'] for k in DRIVEN if k in data])

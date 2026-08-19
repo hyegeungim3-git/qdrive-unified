@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTheme } from '../theme'
 import { DAEGU_CENTER, EXTRA_ROUTES, ROUTES } from '../sim/routes'
 import type { BusRoute } from '../sim/routes'
+import { MAJOR_ROADS } from '../sim/roads'
 import { indexPolyline, pointAt } from '../sim/geo'
 import type { RealBus } from '../sim/bis'
 import type { Incident, Packet409, VehicleState } from '../sim/types'
@@ -54,6 +55,30 @@ function FlyTo({ target }: { target: { lat: number; lng: number; label?: string;
 }
 
 const ROUTE_IDX = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points)]))
+
+/**
+ * 간선도로 배경 — 도로는 변하지 않는다. memo로 묶지 않으면 엔진이 250ms마다 스냅샷을
+ * 갈아끼울 때마다 폴리라인 수백 개가 다시 조정돼 지도가 눈에 띄게 느려진다.
+ */
+const RoadLayer = memo(function RoadLayer() {
+  return (
+    <>
+      {MAJOR_ROADS.flatMap((rd) =>
+        rd.segments.map((seg, i) => (
+          <Polyline
+            key={`${rd.name}-${i}`}
+            positions={seg}
+            pathOptions={{ color: '#fbbf24', weight: 5, opacity: 0.28, lineCap: 'round' }}
+          >
+            <Tooltip sticky>
+              <b>{rd.name}</b> · {rd.note}
+            </Tooltip>
+          </Polyline>
+        )),
+      )}
+    </>
+  )
+})
 
 /** 지금 줌 단계 — 정류장 핀을 언제 보여줄지 정하는 데 쓴다 */
 function useZoom(): number {
@@ -116,12 +141,16 @@ function MapHud({
   onToggle,
   showExtra,
   onToggleExtra,
+  showRoads,
+  onToggleRoads,
 }: {
   showHeat: boolean
   hidden: Set<string>
   onToggle: (id: string) => void
   showExtra: boolean
   onToggleExtra: () => void
+  showRoads: boolean
+  onToggleRoads: () => void
 }) {
   const map = useMap()
   // 스크롤 휠만 지도로 전파 차단(지도 줌 방지). 클릭 전파는 막지 않는다 —
@@ -174,6 +203,15 @@ function MapHud({
           }`}
         >
           + 주요 노선 {EXTRA_ROUTES.length}
+        </button>
+        <button
+          onClick={onToggleRoads}
+          title="달구벌대로·신천대로·앞산순환로·중앙대로를 깔아 노선이 어느 도로를 타고 어디서 가로지르는지 보이게 합니다"
+          className={`rounded-full border px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+            showRoads ? 'border-amber-500/50 bg-amber-500/15 text-amber-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
+          }`}
+        >
+          간선도로 {MAJOR_ROADS.length}
         </button>
       </div>
 
@@ -303,6 +341,7 @@ export default function MapView({
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   // 기본 ON — «대구의 주요 버스»가 첫 화면에서 보여야 한다. 복잡하면 칩 한 번으로 끈다
   const [showExtra, setShowExtra] = useState(true)
+  const [showRoads, setShowRoads] = useState(true)
   const visibleRoutes = useMemo(() => ROUTES.filter((r) => !hidden.has(r.id)), [hidden])
 
   const theme = useTheme()
@@ -319,6 +358,9 @@ export default function MapView({
         url={`https://{s}.basemaps.cartocdn.com/${theme === 'dark' ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`}
         attribution='&copy; OpenStreetMap &copy; CARTO'
       />
+
+      {/* 간선도로 — 노선보다 먼저 그린다. 나중에 그리면 도로가 노선을 덮어 «어디서 가로지르는지»가 안 보인다 */}
+      {showRoads && <RoadLayer />}
 
       {/* 주요 노선 — 표시 전용. 실증 노선보다 얇고 흐리게 깔아 주인공을 가리지 않는다 */}
       {showExtra &&
@@ -382,6 +424,8 @@ export default function MapView({
         }
         showExtra={showExtra}
         onToggleExtra={() => setShowExtra((v) => !v)}
+        showRoads={showRoads}
+        onToggleRoads={() => setShowRoads((v) => !v)}
       />
 
       {/* 돌발정보 — 영향 반경 서클 + 배지 마커 */}

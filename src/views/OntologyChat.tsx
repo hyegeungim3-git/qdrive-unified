@@ -9,7 +9,12 @@
  * 출처 각주 · 접히는 근거 · 복사. 다만 **꾸밈이 아니라 신뢰 장치**로 쓴다 —
  * 사고 단계는 실제로 거친 단계이고, 출처 칩은 데이터 관리자 ①수집의 원천 코드와 같은 문자열이다.
  *
- * 색: 브랜드 sky만 쓴다(로고 Q**drive**의 그 색). 이전 판은 말풍선을 `text-violet-100`으로 뒀는데
+ * 색 규칙 — **파랑은 배경을 칠하지 않는다.**
+ *  · 질문(사용자): 오른쪽 정렬 + 채운 중성 표면(gray-800). 답변과 갈리는 축은 색이 아니라 정렬·채움이다.
+ *  · 답변: 중성 카드 + **왼쪽 액센트 선 하나**. 카드를 통째로 물들이면 위계가 사라진다.
+ *  · sky는 셋에만 — ①선택된 상태 ②누를 수 있는 것 ③아바타. 그래서 파란 것이 곧 «행동»이다.
+ *
+ * 브랜드 sky는 로고 Q**drive**의 그 색이다. 이전 판은 말풍선을 `text-violet-100`으로 뒀는데
  * `index.css`의 html.light가 violet은 200~400만 반전하고 **100은 반전하지 않아** 라이트 모드에서
  * 흰 배경에 흰 글씨가 됐다. sky는 100~400이 모두 반전되므로 같은 사고가 나지 않는다.
  * **액센트 색을 고를 때는 그 번호대에 라이트 오버라이드가 있는지부터 확인할 것.**
@@ -180,7 +185,7 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
               <div className="text-[10.5px] text-gray-400">온톨로지 근거 질의 · 답은 엔진에서 계산</div>
             </div>
           </div>
-          <span className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10.5px] font-bold text-sky-300">
+          <span className="rounded-md border border-gray-800 bg-gray-950 px-2 py-0.5 text-[10.5px] font-bold text-gray-400">
             1차 데이터 8종 연결됨
           </span>
         </header>
@@ -286,7 +291,7 @@ function TopicCard({ topic, snap, busy, onAsk }: { topic: QaTopic; snap: SimSnap
       <button
         onClick={() => onAsk(q, sel || undefined)}
         disabled={busy}
-        className="mt-1.5 w-full rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[10.5px] font-bold text-sky-300 transition-colors hover:bg-sky-500/20 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+        className="mt-1.5 w-full rounded-md border border-sky-500/40 px-2 py-1 text-[10.5px] font-bold text-sky-300 transition-colors hover:bg-sky-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
       >
         묻기
       </button>
@@ -329,7 +334,7 @@ function MsgView({ m, stream, onNavigate }: { m: Msg; stream: { id: number; n: n
   if (m.role === 'user')
     return (
       <div className="flex justify-end">
-        <div className="max-w-[80%] break-keep rounded-2xl rounded-tr-sm bg-sky-600/20 px-3.5 py-2 text-[12.5px] leading-relaxed text-sky-100">{m.text}</div>
+        <div className="max-w-[80%] break-keep rounded-2xl rounded-tr-sm bg-gray-800 px-3.5 py-2 text-[12.5px] leading-relaxed text-gray-100">{m.text}</div>
       </div>
     )
 
@@ -388,13 +393,13 @@ function MsgView({ m, stream, onNavigate }: { m: Msg; stream: { id: number; n: n
     <Row>
       <div className="min-w-0 space-y-2">
         {/* 답 */}
-        <div className={`rounded-xl border px-3.5 py-3 ${r.empty ? 'border-gray-800 bg-gray-900' : 'border-sky-500/30 bg-sky-500/10'}`}>
+        <div className={`rounded-xl border border-l-2 bg-gray-900 px-3.5 py-3 ${r.empty ? 'border-gray-800 border-l-gray-700' : 'border-gray-800 border-l-sky-500'}`}>
           {r.subject && (
-            <div className="mb-1.5 inline-block rounded border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-300">
+            <div className="mb-1.5 inline-block rounded border border-gray-700 bg-gray-950 px-1.5 py-0.5 text-[10px] font-bold text-sky-300">
               대상 · {r.subject}
             </div>
           )}
-          <div className={`break-keep text-[13.5px] font-bold leading-snug ${r.empty ? 'text-gray-200' : 'text-sky-200'}`}>{r.headline}</div>
+          <div className="break-keep text-[13.5px] font-bold leading-snug text-gray-50">{r.headline}</div>
           <div className="mt-1.5 break-keep text-[12.5px] leading-relaxed text-gray-300">
             {detail}
             {typing && <Caret />}
@@ -412,7 +417,7 @@ function MsgView({ m, stream, onNavigate }: { m: Msg; stream: { id: number; n: n
                     key={s.code}
                     onClick={() => setOpenSrc(openSrc === s.code ? null : s.code)}
                     className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10.5px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
-                      openSrc === s.code ? 'border-sky-500/50 bg-sky-500/15 text-sky-200' : 'border-sky-500/30 bg-sky-500/10 text-sky-300 hover:border-sky-500/60'
+                      openSrc === s.code ? 'border-sky-500/50 bg-sky-500/10 text-sky-200' : 'border-gray-800 bg-gray-950 text-gray-300 hover:border-gray-700 hover:text-gray-100'
                     }`}
                   >
                     <span className="text-sky-300">[{i + 1}]</span>
@@ -465,7 +470,7 @@ function MsgView({ m, stream, onNavigate }: { m: Msg; stream: { id: number; n: n
                 <div className="flex flex-wrap items-center gap-1">
                   <span className="text-[10.5px] font-bold tracking-wider text-gray-400">근거 사슬</span>
                   {r.path.map((p, i) => (
-                    <span key={i} className="rounded border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[10.5px] font-semibold text-sky-300">
+                    <span key={i} className="rounded border border-gray-800 bg-gray-950 px-1.5 py-0.5 text-[10.5px] font-semibold text-gray-300">
                       {p}
                     </span>
                   ))}
@@ -503,7 +508,7 @@ function SourceCard({ s, onNavigate }: { s: QaSource; onNavigate?: (tab: string)
       <div className="flex flex-wrap items-baseline gap-x-2">
         <span className="text-[12px] font-bold text-gray-100">{s.code}</span>
         <span className="text-[11px] text-gray-400">{s.name}</span>
-        <span className={`ml-auto text-[10px] font-bold ${s.live ? 'text-emerald-400' : 'text-amber-400'}`}>
+        <span className={`ml-auto text-[10px] font-bold ${s.live ? 'text-emerald-300' : 'text-amber-300'}`}>
           {s.live ? '엔진 실집계' : '예시 상수 · 실증 시 실측 교체'}
         </span>
       </div>
@@ -523,7 +528,7 @@ function SourceCard({ s, onNavigate }: { s: QaSource; onNavigate?: (tab: string)
             if (s.see?.sub) setOperatorSubtabIntent(s.see.sub)
             onNavigate?.(s.see!.tab)
           }}
-          className="mt-1.5 w-full rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[10.5px] font-bold text-sky-300 transition-colors hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="mt-1.5 w-full rounded-md border border-sky-500/40 px-2 py-1 text-[10.5px] font-bold text-sky-300 transition-colors hover:bg-sky-500/10 focus-visible:ring-2 focus-visible:ring-sky-500"
         >
           원본 확인 → {s.see.label}
         </button>
@@ -546,7 +551,7 @@ const Caret = () => <span className="ml-0.5 inline-block h-3 w-[2px] animate-pul
 const Action = ({ onClick, label }: { onClick: () => void; label: string }) => (
   <button
     onClick={onClick}
-    className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-[10.5px] font-semibold text-sky-300 transition-colors hover:border-sky-500/60 focus-visible:ring-2 focus-visible:ring-sky-500"
+    className="rounded-lg border border-gray-800 bg-gray-950 px-2 py-1 text-[10.5px] font-semibold text-gray-300 transition-colors hover:border-gray-700 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
   >
     {label}
   </button>

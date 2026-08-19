@@ -54,6 +54,22 @@ function FlyTo({ target }: { target: { lat: number; lng: number; label?: string;
   )
 }
 
+/**
+ * LIVE 배지 — 지도가 실제 실시간임을 알리는 신호.
+ * 지도 HUD 안에도, 지도 밖 헤더 줄에도 같은 모양으로 놓을 수 있게 밖으로 뺐다.
+ */
+export function LiveBadge() {
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-gray-900/90 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-lg">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+      </span>
+      LIVE
+    </div>
+  )
+}
+
 const ROUTE_IDX = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points)]))
 
 /**
@@ -143,6 +159,7 @@ function MapHud({
   onToggleExtra,
   showRoads,
   onToggleRoads,
+  showLive,
 }: {
   showHeat: boolean
   hidden: Set<string>
@@ -151,6 +168,8 @@ function MapHud({
   onToggleExtra: () => void
   showRoads: boolean
   onToggleRoads: () => void
+  /** 지도 밖에 이미 LIVE 배지가 있으면 HUD에서는 빼고 칩 줄을 그만큼 올린다 */
+  showLive: boolean
 }) {
   const map = useMap()
   // 스크롤 휠만 지도로 전파 차단(지도 줌 방지). 클릭 전파는 막지 않는다 —
@@ -165,15 +184,12 @@ function MapHud({
       {/* 좌상단 스택 — LIVE 배지와 노선 칩. 한 흐름에 넣어야 배지 크기가 바뀌어도 겹치지 않는다 */}
       <div
         ref={stop}
-        className="pointer-events-auto absolute left-3 top-14 z-[1000] flex max-w-[calc(100%-6rem)] flex-col items-start gap-1.5"
+        /* 지도 밖 헤더 줄(날씨+LIVE)은 좁은 화면에서 두 줄로 접힌다 — 그때만 칩 줄을 내려 겹치지 않게 */
+        className={`pointer-events-auto absolute left-3 z-[1000] flex max-w-[calc(100%-6rem)] flex-col items-start gap-1.5 ${
+          showLive ? 'top-14' : 'top-14 max-[900px]:top-[88px]'
+        }`}
       >
-        <div className="flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-gray-900/90 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-lg">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-          </span>
-          LIVE
-        </div>
+        {showLive && <LiveBadge />}
 
         {/* 노선 선택 — 실증 3개는 개별 토글, 나머지 주요 노선은 한 번에 */}
         <div className="flex flex-wrap items-center gap-1">
@@ -326,6 +342,7 @@ export default function MapView({
   realBuses = [],
   incidents = [],
   focusTarget = null,
+  showLive = true,
 }: {
   vehicles: VehicleState[]
   events: Packet409[]
@@ -334,6 +351,8 @@ export default function MapView({
   realBuses?: RealBus[]
   incidents?: Incident[]
   focusTarget?: { lat: number; lng: number; label?: string; nonce: number } | null
+  /** 지도 밖에 LIVE 배지를 따로 두는 화면은 false — HUD에서 빼고 칩 줄이 그만큼 올라간다 */
+  showLive?: boolean
 }) {
   const cells = useMemo(() => (showHeat ? heatCells(events) : []), [events, showHeat])
   /* 노선 표시 상태 — 지도가 정보로 꽉 차면 정작 «어디를 지나는가»가 안 보인다 */
@@ -425,6 +444,7 @@ export default function MapView({
         onToggleExtra={() => setShowExtra((v) => !v)}
         showRoads={showRoads}
         onToggleRoads={() => setShowRoads((v) => !v)}
+        showLive={showLive}
       />
 
       {/* 돌발정보 — 영향 반경 서클 + 배지 마커 */}

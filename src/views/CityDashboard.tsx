@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import MapView from '../components/MapView'
+import MapView, { LiveBadge } from '../components/MapView'
 import { KpiCard, Panel, simClock } from '../components/ui'
 import { engine, useSim } from '../sim/store'
 import { DEFAULT_ROUTES, getBisKey, setBisKey, startBis, stopBis, useBis } from '../sim/bis'
@@ -617,12 +617,16 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
           realBuses={filteredReal}
           incidents={snap.incidents}
           focusTarget={focusTarget}
+          showLive={false}
         />
-        {/* 날씨 칩 */}
-        <div className="absolute left-3 top-3 z-[1000] flex items-center gap-2 rounded-md border border-gray-800 bg-gray-900/90 px-3 py-1.5 text-xs text-gray-300">
-          {WEATHER_ICON[snap.weather.condition]} {snap.weather.tempC}°C
-          <span className="text-gray-600">|</span>
-          <span className="text-gray-500">대구광역시 · {simClock(snap.simTime)}</span>
+        {/* 날씨 칩 + LIVE — 한 줄에 둔다. 지도 HUD 안에 따로 띄우면 아래 노선 칩 줄과 겹친다 */}
+        <div className="absolute left-3 top-3 z-[1000] flex max-w-[calc(100%-7rem)] flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 rounded-md border border-gray-800 bg-gray-900/90 px-3 py-1.5 text-xs text-gray-300">
+            {WEATHER_ICON[snap.weather.condition]} {snap.weather.tempC}°C
+            <span className="text-gray-600">|</span>
+            <span className="text-gray-500">대구광역시 · {simClock(snap.simTime)}</span>
+          </div>
+          <LiveBadge />
         </div>
         <button
           onClick={() => setShowHeat((s) => !s)}

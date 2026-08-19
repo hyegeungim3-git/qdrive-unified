@@ -567,7 +567,7 @@ function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: numbe
                 onClick={() => setOpenEvidence((v) => !v)}
                 label={openEvidence ? '근거 접기' : `근거 ${r.evidence.length}항목 보기`}
               />
-              {r.record && <Action onClick={() => setOpenRec((v) => !v)} label={openRec ? '원본 접기' : '원본 레코드'} />}
+              {r.record && <Action onClick={() => setOpenRec((v) => !v)} label={openRec ? '원본 접기' : '원본 기록'} />}
               <Action
                 onClick={async () => {
                   const txt = [r.headline, r.detail.replace(/\*\*/g, ''), '', ...r.evidence.map((e) => `${e.k}: ${e.v}${e.src ? ` [${e.src}]` : ''}`)].join('\n')
@@ -602,7 +602,7 @@ function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: numbe
                     <div className="flex flex-wrap items-baseline gap-1.5">
                       <span className="text-[10.5px] font-bold tracking-wider text-gray-400">실제로 걸은 연결</span>
                       <span className="text-[10px] text-gray-500">
-                        {r.walk.startLabel}에서 출발 · 레코드 {r.walk.nodes}개 ({r.walk.classes.join(' · ')})
+                        {r.walk.startLabel}에서 출발 · 기록 {r.walk.nodes}건 ({r.walk.classes.join(' · ')})
                       </span>
                     </div>
                     <ul className="mt-1 space-y-0.5">
@@ -714,8 +714,13 @@ const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms))
 function buildReport(msgs: Msg[], snap: SimSnapshot): string {
   const L: string[] = []
   L.push('# Qdrive AI Q — 질의응답 기록', '')
-  L.push(`- 작성 시점: 시뮬 시각 ${String(Math.floor(snap.simTime / 60)).padStart(2, '0')}:${String(Math.floor(snap.simTime % 60)).padStart(2, '0')}`)
-  L.push(`- 대상 범위: 실증 ${snap.vehicles.length}대 · 영업 ${snap.trips.length}회 · 공차 ${snap.deadheads.length}회`)
+  // 제출 문서는 «언제 뽑았나»가 실제 날짜여야 한다. 시뮬 시각은 경과 시간이므로 분·초로 풀어 쓴다
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const elapsed = `${Math.floor(snap.simTime / 60)}분 ${pad(Math.floor(snap.simTime % 60))}초`
+  L.push(`- 작성 시점: ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())} (운행 시뮬레이션 경과 ${elapsed})`)
+  L.push(`- 내보낸 시점 기준 누적: 실증 ${snap.vehicles.length}대 · 영업 ${snap.trips.length}회 · 공차 ${snap.deadheads.length}회`)
+  L.push('- 각 답의 수치는 «그 답을 낸 시점»의 집계입니다 — 절마다 적힌 집계 구간이 기준입니다.')
   L.push('- 답의 수치는 전부 운행 데이터에서 계산된 값이며, 각 절에 출처와 한계를 함께 적었습니다.', '')
 
   let n = 0
@@ -748,12 +753,12 @@ function buildReport(msgs: Msg[], snap: SimSnapshot): string {
       L.push('')
     }
     if (r.record) {
-      L.push(`### 원본 레코드 — ${r.record.title}`, '')
+      L.push(`### 원본 기록 — ${r.record.title}`, '')
       r.record.fields.forEach((f) => L.push(`- ${f.k}: ${f.v}`))
       L.push('')
     }
     if (r.walk) {
-      L.push('### 실제로 걸은 연결', '', `- 시작 ${r.walk.startLabel} · 레코드 ${r.walk.nodes}개 (${r.walk.classes.join(' · ')})`)
+      L.push('### 실제로 걸은 연결', '', `- 시작 ${r.walk.startLabel} · 기록 ${r.walk.nodes}건 (${r.walk.classes.join(' · ')})`)
       r.walk.trail.forEach((t) => L.push(`- ${t}`))
       L.push('')
     }

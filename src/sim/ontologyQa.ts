@@ -154,7 +154,7 @@ const km = (n: number) => `${n.toFixed(1)}km`
 
 /**
  * 조사 자동 선택 — 원천 이름이 데이터에서 오므로 «출입고이(가)» 같은 괄호 표기가 화면에 남는다.
- * 한글 마지막 글자의 받침 유무로 고른다. 영문·숫자로 끝나면 받침 있는 쪽(이/은/을)으로 둔다.
+ * 한글 마지막 글자의 받침 유무로 고른다. 영문·숫자로 끝나면 받침 있는 쪽(이/은/을/으로)으로 둔다.
  */
 const josa = (word: string, withBatchim: string, withoutBatchim: string): string => {
   const last = word.trim().slice(-1)
@@ -262,7 +262,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
         h: '판정 근거',
         src: ['차고지 출입고', 'DTG 521', '노선 기준정보'],
         items: [
-          `운행유형 필드가 «${latest.kind}»로 기록됨 — 거리·연료만으로는 구분되지 않는 값`,
+          `운행유형 필드가 «${latest.kind}»${josa(latest.kind, '으로', '로')} 기록됨 — 거리·연료만으로는 구분되지 않는 값`,
           `노선 ${latest.routeName} ${latest.direction} · 그날 ${latest.seq}번째 운행`,
           `소속 ${latest.depot}(${latest.company}) — 차고지 축이 붙어야 나오는 답`,
         ],

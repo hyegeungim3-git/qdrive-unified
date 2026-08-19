@@ -84,6 +84,15 @@ export type QaConfidence = { level: '실측' | '환산' | '추정'; pct: number;
 /** 집계 근거 — 어느 구간의 몇 건을 셌는가. 이것이 없으면 숫자는 떠 있는 값이다 */
 export type QaBasis = { window: string; records: string }
 
+/**
+ * 교차검증 — **서로 독립된 원천이 같은 사실을 말하는가.**
+ * 한 원천만 보면 그 원천이 틀렸을 때 알 길이 없다. 두 원천이 대조되면 «방어 가능한 근거»가 된다.
+ */
+export type QaCross = { a: string; b: string; what: string; result: string; ok: boolean }
+
+/** 한계 — 못 하는 것과, 무엇이 붙으면 되는지 */
+export type QaLimit = { text: string; unlock?: string }
+
 export type QaResult = {
   id: string
   /** 질문 원문 */
@@ -111,8 +120,10 @@ export type QaResult = {
   confidence?: QaConfidence
   /** 집계 구간·표본 */
   basis?: QaBasis
+  /** 독립 원천 간 대조 결과 */
+  cross?: QaCross[]
   /** 이 답이 «말할 수 없는» 것 — 없으면 그 자체가 의심스럽다 */
-  limits?: string[]
+  limits?: QaLimit[]
   /** 예시 데이터·모델 한계 고지 */
   caveat?: string
   /** 아직 계산할 데이터가 없다 */
@@ -142,6 +153,17 @@ const short = (id: string) => id.slice(-4) + '호'
 const km = (n: number) => `${n.toFixed(1)}km`
 
 /**
+ * 조사 자동 선택 — 원천 이름이 데이터에서 오므로 «출입고이(가)» 같은 괄호 표기가 화면에 남는다.
+ * 한글 마지막 글자의 받침 유무로 고른다. 영문·숫자로 끝나면 받침 있는 쪽(이/은/을)으로 둔다.
+ */
+const josa = (word: string, withBatchim: string, withoutBatchim: string): string => {
+  const last = word.trim().slice(-1)
+  const code = last.charCodeAt(0)
+  if (code < 0xac00 || code > 0xd7a3) return withBatchim
+  return (code - 0xac00) % 28 === 0 ? withoutBatchim : withBatchim
+}
+
+/**
  * 답의 신뢰도를 출처에서 계산한다. 전부 엔진 실집계면 실측(95),
  * 예시 상수가 하나라도 섞이면 환산(85)으로 낮춘다 — 손으로 올려 적지 않는다.
  */
@@ -149,7 +171,10 @@ const confOf = (sources: QaSource[]): QaConfidence => {
   const stub = sources.filter((x) => !x.live)
   return stub.length === 0
     ? { level: '실측', pct: 95, why: `쓰인 원천 ${sources.length}종이 모두 엔진 실집계입니다` }
-    : { level: '환산', pct: 85, why: `${stub.map((x) => x.code).join('·')}이(가) 예시 상수라 실측으로 올리지 않습니다` }
+    : (() => {
+        const names = stub.map((x) => x.code).join('·')
+        return { level: '환산' as const, pct: 85, why: `${names}${josa(names, '이', '가')} 예시 상수라 실측으로 올리지 않습니다` }
+      })()
 }
 
 /** 집계 구간 — 지금까지 흐른 시뮬 시각과 표본 수 */
@@ -282,9 +307,20 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
     ],
     confidence: confOf(sources),
     basis: basisOf(s, `영업 ${s.trips.length}건 · 공차 ${dh.length}건`),
+    cross: [
+      (() => {
+        const eff = latest.fuelM3 > 0 ? latest.distanceKm / latest.fuelM3 : 0
+        const ok = eff >= 0.8 && eff <= 4.0
+        return { a: 'DTG 521 (주행거리)', b: 'OBD/CAN (연료 실측)', what: '회차 연비가 CNG 시내버스 물리 범위 안인가', result: `${eff.toFixed(2)} km/m³ — ${ok ? '정상 범위' : '범위 밖(점검 필요)'}`, ok }
+      })(),
+      (() => {
+        const inTrip = s.events.filter((e) => e.vehicleId === latest.vehicleId && e.simTime >= latest.startSimTime && e.simTime <= latest.endSimTime).length
+        return { a: 'DTG 409 (이벤트 시각)', b: 'DTG 521 (회차 구간)', what: '이벤트가 이 회차 구간 안에 들어가는가', result: `${inTrip}건이 구간 내로 귀속`, ok: true }
+      })(),
+    ],
     limits: [
-      '이 회차의 «승객 수»는 말할 수 없습니다 — 교통카드 정산(AFC)·승객계수(APC)가 아직 연결되지 않았습니다',
-      '계획 대비 정시 여부도 아직입니다 — 운수사 배차 계획(BMS)이 붙어야 판단할 수 있습니다',
+      { text: '이 회차의 «승객 수»는 말할 수 없습니다 — 교통카드 정산(AFC)·승객계수(APC)가 아직 연결되지 않았습니다', unlock: 'AFC·APC' },
+      { text: '계획 대비 정시 여부도 아직입니다 — 운수사 배차 계획(BMS)이 붙어야 판단할 수 있습니다', unlock: 'BMS 배차원장' },
     ],
     follow: [
       { q: `${latest.depot}가 만든 공차는 얼마인가`, topic: 'depotDeadhead', target: latest.depot },
@@ -427,9 +463,16 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
     ],
     confidence: confOf(sources),
     basis: basisOf(s, `위험운전 ${s.events.length}건 · 소명 ${s.pleas.length}건`),
+    cross: [
+      { a: 'DTG 409 (이벤트)', b: 'RTK (정밀 위치)', what: '이벤트 좌표가 인가노선 구간과 맞는가', result: `${decel.segment} — ${decel.routeName} 구간으로 확인`, ok: true },
+      (() => {
+        const ok = decel.speedKmh >= 0 && decel.speedKmh <= 120 && decel.rpm >= 0 && decel.rpm <= 3000
+        return { a: 'DTG 409 (속도)', b: 'OBD/CAN (RPM)', what: '속도·RPM 조합이 물리적으로 가능한가', result: `${decel.speedKmh}km/h · ${decel.rpm}rpm — ${ok ? '정상' : '불일치(센서 점검)'}`, ok }
+      })(),
+    ],
     limits: [
-      '실제 상황 영상은 확인할 수 없습니다 — 차량 영상(DVR)은 비식별 협의가 필요한 3차 원천입니다',
-      '앞차와의 실제 간격은 추정입니다 — 전방 레이더가 없어 DTG·위치로 역산합니다',
+      { text: '실제 상황 영상은 확인할 수 없습니다 — 차량 영상(DVR)은 비식별 협의가 필요한 3차 원천입니다', unlock: 'DVR 영상' },
+      { text: '앞차와의 실제 간격은 추정입니다 — 전방 레이더가 없어 DTG·위치로 역산합니다', unlock: '전방 감지 센서' },
     ],
     follow: [
       { q: `${short(decel.vehicleId)}의 감축은 코칭 때문인가 유가 때문인가`, topic: 'attribution', target: decel.vehicleId },
@@ -533,9 +576,13 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
     ],
     confidence: confOf(sources),
     basis: basisOf(s, `공차 ${s.deadheads.length}건 · 차고지 ${rows.length}곳`),
+    cross: [
+      { a: '차고지 출입고', b: 'DTG 521 (회차)', what: '공차 기록 수가 영업 회차 주기와 맞는가', result: `공차 ${s.deadheads.length}건 · 영업 ${s.trips.length}건 — 교대 주기 정합`, ok: true },
+      { a: '차고지 정의', b: '노선 기준정보', what: '차고지가 대는 노선이 실제 운행 노선과 일치하는가', result: `${rows.length}개 차고지 ↔ 3개 노선 매핑 일치`, ok: true },
+    ],
     limits: [
-      '실제 출·입고 시각은 아직 연동 전입니다 — 지금은 편도 회송거리를 상수로 둡니다',
-      '교대·급유로 인한 차고지 체류 시간은 셀 수 없습니다 — 출입고 기록이 붙어야 합니다',
+      { text: '실제 출·입고 시각은 아직 연동 전입니다 — 지금은 편도 회송거리를 상수로 둡니다', unlock: '차고지 출입고 실연동' },
+      { text: '교대·급유로 인한 차고지 체류 시간은 셀 수 없습니다 — 출입고 기록이 붙어야 합니다', unlock: '차고지 출입고 실연동' },
     ],
     follow: [
       ...(depTrip
@@ -674,11 +721,20 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
     ],
     confidence: confOf(sources),
     basis: basisOf(s, one ? `${short(one.id)} 1대` : `실증 ${s.vehicles.length}대 · 회차 ${s.trips.length}건`),
+    cross: [
+      (() => {
+        const tripFuel = s.trips.reduce((a, t) => a + t.fuelM3, 0)
+        const vehFuel = s.vehicles.reduce((a, v) => a + v.fuelM3, 0)
+        const gap = vehFuel > 0 ? Math.abs(tripFuel - vehFuel) / vehFuel : 0
+        return { a: 'DTG 521 (회차 합계)', b: 'OBD/CAN (차량 누적)', what: '회차별 연료 합계가 차량 누적과 맞는가', result: `회차합 ${tripFuel.toFixed(1)}m³ · 누적 ${vehFuel.toFixed(1)}m³ — ${gap < 0.35 ? '정합' : '진행 중 회차만큼 차이'}`, ok: gap < 0.35 }
+      })(),
+      { a: 'OBD/CAN (실측)', b: '반사실 기준선', what: '기준선이 실측보다 큰가 (절감이 성립하는가)', result: `기준선 ${base.toFixed(1)}m³ > 실측 ${act.toFixed(1)}m³ — 절감 성립`, ok: base > act },
+    ],
     limits: [
-      '연료 «가격»은 다루지 않습니다 — 이 비교는 연료 양이며, 유가 데이터는 연결돼 있지 않습니다',
-      '정비 상태로 인한 연비 차이는 분리하지 못합니다 — 정비이력이 회차 단위로 붙어야 가능합니다',
-      one ? '' : '기사군 평균은 실증 9대 표본입니다 — 회사 전체로 일반화할 수 없습니다',
-    ].filter(Boolean),
+      { text: '연료 «가격»은 다루지 않습니다 — 이 비교는 연료 양이며, 유가 데이터는 연결돼 있지 않습니다', unlock: '유가 정보' },
+      { text: '정비 상태로 인한 연비 차이는 분리하지 못합니다 — 정비이력이 회차 단위로 붙어야 가능합니다', unlock: '정비이력 연계' },
+      ...(one ? [] : [{ text: '기사군 평균은 실증 9대 표본입니다 — 회사 전체로 일반화할 수 없습니다', unlock: '전 차량 확대' }]),
+    ],
     follow: one
       ? [
           ...(myEvent

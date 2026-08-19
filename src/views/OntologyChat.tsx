@@ -39,6 +39,13 @@ type Msg =
 
 let seq = 1
 
+/**
+ * 대화는 컴포넌트 밖에 둔다 — 답 안의 «로드맵으로 가기» 같은 링크를 누르면 탭이 바뀌면서
+ * 이 화면이 언마운트되는데, 그때 오간 질문·답이 사라지면 근거를 확인하러 갔다 온 대가가 대화 손실이 된다.
+ * 「새 대화」를 눌렀을 때만 비운다.
+ */
+let kept: Msg[] = []
+
 /** 라이브 Claude에 넘길 현재 운영 상태 — 엔진이 진짜 근거다 */
 function buildSystem(s: SimSnapshot): string {
   const dh = s.deadheads.reduce((a, t) => a + t.distanceKm, 0)
@@ -63,9 +70,11 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
   const snapRef = useRef(snap)
   snapRef.current = snap
 
-  const [msgs, setMsgs] = useState<Msg[]>([])
+  // 답이 오는 중에 탭을 떠났다면 그 «생각 중» 거품은 영영 끝나지 않는다 — 복원할 때 버린다
+  const [msgs, setMsgs] = useState<Msg[]>(() => kept.filter((m) => m.role !== 'thinking'))
   const msgsRef = useRef(msgs)
   msgsRef.current = msgs
+  kept = msgs
 
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -185,9 +194,19 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
               <div className="text-[10.5px] text-gray-400">온톨로지 근거 질의 · 답은 엔진에서 계산</div>
             </div>
           </div>
-          <span className="rounded-md border border-gray-800 bg-gray-950 px-2 py-0.5 text-[10.5px] font-bold text-gray-400">
-            1차 데이터 8종 연결됨
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="rounded-md border border-gray-800 bg-gray-950 px-2 py-0.5 text-[10.5px] font-bold text-gray-400">
+              1차 데이터 8종 연결됨
+            </span>
+            <button
+              onClick={() => downloadMd(buildReport(msgsRef.current, snapRef.current), 'qdrive-질의응답-기록.md')}
+              disabled={!msgs.some((m) => m.role === 'qa')}
+              title="지금까지의 질문과 답을 제출용 문서로 저장합니다"
+              className="rounded-md border border-sky-500/40 px-2 py-0.5 text-[10.5px] font-bold text-sky-300 transition-colors hover:bg-sky-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              📄 보고서로 내보내기
+            </button>
+          </div>
         </header>
 
         {showKey && (
@@ -461,14 +480,41 @@ function MsgView({ m, stream, onNavigate, onAsk }: { m: Msg; stream: { id: numbe
           )}
         </div>
 
+        {r.cross && r.cross.length > 0 && (
+          <div className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2">
+            <div className="text-[10.5px] font-bold text-gray-100">교차검증 — 서로 다른 원천이 같은 사실을 말하는가</div>
+            <ul className="mt-1 space-y-1">
+              {r.cross.map((c, i) => (
+                <li key={i} className="break-keep text-[11.5px] leading-relaxed">
+                  <span className={c.ok ? 'text-emerald-300' : 'text-amber-300'}>{c.ok ? '✓' : '⚠'}</span>{' '}
+                  <span className="text-gray-400">
+                    {c.a} × {c.b}
+                  </span>
+                  <span className="text-gray-500"> — {c.what}</span>
+                  <div className="pl-4 text-gray-200">{c.result}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {r.limits && r.limits.length > 0 && (
           <div className="rounded-lg border border-amber-500/25 bg-gray-900 px-3 py-2">
             <div className="text-[10.5px] font-bold text-amber-300">이 답이 말할 수 없는 것</div>
             <ul className="mt-1 space-y-0.5">
               {r.limits.map((l, i) => (
-                <li key={i} className="flex gap-1.5 break-keep text-[11.5px] leading-relaxed text-gray-300">
+                <li key={i} className="flex flex-wrap items-baseline gap-1.5 break-keep text-[11.5px] leading-relaxed text-gray-300">
                   <span className="mt-[1px] shrink-0 text-gray-500">·</span>
-                  <span>{l}</span>
+                  <span>{l.text}</span>
+                  {l.unlock && (
+                    <button
+                      onClick={() => onNavigate?.('roadmap')}
+                      title="이 데이터가 붙으면 답할 수 있습니다 — 로드맵에서 확인"
+                      className="shrink-0 rounded-full border border-sky-500/40 px-2 py-0.5 text-[10px] font-bold text-sky-300 transition-colors hover:bg-sky-500/10 focus-visible:ring-2 focus-visible:ring-sky-500"
+                    >
+                      {l.unlock} 붙으면 → 로드맵
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -659,6 +705,80 @@ const Action = ({ onClick, label }: { onClick: () => void; label: string }) => (
 )
 
 const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms))
+
+/**
+ * 대화를 제출용 문서로. 채팅은 물어본 사람만 보지만 업무는 «문서로 주세요»에서 끝난다.
+ * 답에 붙은 신뢰 장치(신뢰도·집계구간·교차검증·한계·출처)를 문서에도 그대로 싣는다 —
+ * 화면에서만 보이고 문서에서 사라지면 그 장치는 장식이다.
+ */
+function buildReport(msgs: Msg[], snap: SimSnapshot): string {
+  const L: string[] = []
+  L.push('# Qdrive AI Q — 질의응답 기록', '')
+  L.push(`- 작성 시점: 시뮬 시각 ${String(Math.floor(snap.simTime / 60)).padStart(2, '0')}:${String(Math.floor(snap.simTime % 60)).padStart(2, '0')}`)
+  L.push(`- 대상 범위: 실증 ${snap.vehicles.length}대 · 영업 ${snap.trips.length}회 · 공차 ${snap.deadheads.length}회`)
+  L.push('- 답의 수치는 전부 운행 데이터에서 계산된 값이며, 각 절에 출처와 한계를 함께 적었습니다.', '')
+
+  let n = 0
+  for (let i = 0; i < msgs.length; i++) {
+    const m = msgs[i]
+    if (m.role !== 'qa') continue
+    n++
+    const prevUser = [...msgs.slice(0, i)].reverse().find((x) => x.role === 'user') as { text: string } | undefined
+    const r = m.res
+    L.push(`## ${n}. ${prevUser?.text ?? r.q}`, '')
+    if (r.subject) L.push(`**대상**: ${r.subject}`, '')
+    L.push(`**결론**: ${r.headline}`, '')
+    if (r.confidence) L.push(`- 신뢰도: ${r.confidence.level} (상한 ${r.confidence.pct}%) — ${r.confidence.why}`)
+    if (r.basis) L.push(`- 집계 구간: ${r.basis.window} · 표본 ${r.basis.records}`)
+    L.push('')
+    L.push(r.detail.replace(/\*\*/g, ''), '')
+    for (const sec of r.sections) {
+      L.push(`### ${sec.h}${sec.src?.length ? ` (출처: ${sec.src.join(', ')})` : ''}`)
+      sec.items.forEach((it) => L.push(`- ${it}`))
+      L.push('')
+    }
+    if (r.evidence.length) {
+      L.push('### 근거 수치', '', '| 항목 | 값 | 출처 |', '|---|---|---|')
+      r.evidence.forEach((e) => L.push(`| ${e.k} | ${e.v} | ${e.src ?? '-'} |`))
+      L.push('')
+    }
+    if (r.cross?.length) {
+      L.push('### 교차검증', '')
+      r.cross.forEach((c) => L.push(`- ${c.ok ? '통과' : '주의'} · ${c.a} × ${c.b} — ${c.what}: ${c.result}`))
+      L.push('')
+    }
+    if (r.record) {
+      L.push(`### 원본 레코드 — ${r.record.title}`, '')
+      r.record.fields.forEach((f) => L.push(`- ${f.k}: ${f.v}`))
+      L.push('')
+    }
+    if (r.walk) {
+      L.push('### 실제로 걸은 연결', '', `- 시작 ${r.walk.startLabel} · 레코드 ${r.walk.nodes}개 (${r.walk.classes.join(' · ')})`)
+      r.walk.trail.forEach((t) => L.push(`- ${t}`))
+      L.push('')
+    }
+    if (r.limits?.length) {
+      L.push('### 이 답이 말할 수 없는 것', '')
+      r.limits.forEach((l) => L.push(`- ${l.text}${l.unlock ? ` (필요한 데이터: ${l.unlock})` : ''}`))
+      L.push('')
+    }
+    L.push('### 출처', '')
+    r.sources.forEach((sc, k) => L.push(`${k + 1}. ${sc.code} — ${sc.name} · 보유 ${sc.owner} · ${sc.live ? '엔진 실집계' : '예시 상수'} · 기여: ${sc.role}`))
+    L.push('')
+  }
+  if (n === 0) L.push('_아직 기록된 질의응답이 없습니다._')
+  return L.join(String.fromCharCode(10))
+}
+
+/** 파일로 내려받는다 — 클립보드는 브라우저 권한에 막히는 일이 있어 저장을 기본으로 둔다 */
+function downloadMd(text: string, name: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 /* ═══════════ 라이브 Claude (자유 질문 전용) ═══════════ */
 

@@ -32,6 +32,12 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id']
 
+/** 해시에서 탭을 읽는다 — 새로고침해도 보던 메뉴가 남아야 한다 */
+function tabFromHash(h: string): TabId | null {
+  const id = h.replace(/^#/, '')
+  return (TABS as readonly { id: string }[]).some((t) => t.id === id) ? (id as TabId) : null
+}
+
 /** 해시 라우트 구독 — 시민 공개 페이지(#citizen)는 앱 셸 밖 독립 진입점 */
 function useHashRoute(): string {
   const [hash, setHash] = useState(() => window.location.hash)
@@ -44,10 +50,23 @@ function useHashRoute(): string {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<TabId>('city')
+  // 첫 렌더부터 해시의 탭으로 — 새로고침 후 대시보드로 되돌아가지 않게
+  const [tab, setTab] = useState<TabId>(() => tabFromHash(window.location.hash) ?? 'city')
   const snap = useSim()
   const theme = useTheme()
   const hash = useHashRoute()
+
+  /* 탭이 바뀌면 해시에 남긴다. replaceState라 뒤로가기가 탭 전환 이력으로 더럽혀지지 않는다 */
+  useEffect(() => {
+    if (window.location.hash === '#citizen') return
+    if (tabFromHash(window.location.hash) !== tab) window.history.replaceState(null, '', `#${tab}`)
+  }, [tab])
+
+  /* 주소를 직접 고치거나 뒤로가기로 해시가 바뀐 경우 — 화면을 따라가게 */
+  useEffect(() => {
+    const fromHash = tabFromHash(hash)
+    if (fromHash && fromHash !== tab) setTab(fromHash)
+  }, [hash])
 
   // 시민 공개 페이지 — 독립 진입점(공유·배포용), 앱 셸 없이 전체화면 렌더
   if (hash === '#citizen') return <CitizenPublic />

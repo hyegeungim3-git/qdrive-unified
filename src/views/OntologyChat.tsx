@@ -380,7 +380,9 @@ function MsgView({ m, stream, onNavigate }: { m: Msg; stream: { id: number; n: n
 
   const r = m.res
   const detail = (stream?.id === m.id ? r.detail.slice(0, stream.n) : r.detail).replace(/\*\*/g, '')
-  const done = stream?.id !== m.id
+  /* 타이핑 연출은 «표시»일 뿐이다. 스트림 상태가 어떤 이유로든 안 풀리면 근거·출처가 통째로
+     사라지므로, done으로 가리지 않고 항상 렌더한다 — 커서만 스트리밍 중에 보인다. */
+  const typing = stream?.id === m.id
 
   return (
     <Row>
@@ -395,11 +397,11 @@ function MsgView({ m, stream, onNavigate }: { m: Msg; stream: { id: number; n: n
           <div className={`break-keep text-[13.5px] font-bold leading-snug ${r.empty ? 'text-gray-200' : 'text-sky-200'}`}>{r.headline}</div>
           <div className="mt-1.5 break-keep text-[12.5px] leading-relaxed text-gray-300">
             {detail}
-            {!done && <Caret />}
+            {typing && <Caret />}
           </div>
         </div>
 
-        {done && (
+        {(
           <>
             {/* 출처 — 이 답이 어느 원천을 썼나 */}
             <div>

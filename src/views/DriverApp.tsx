@@ -102,6 +102,20 @@ function coaching(
   return { icon: '👍', msg: '정속 주행 중 — 연비 최적 구간입니다. 좋아요!', tone: 'ok' as const, eco: false }
 }
 
+/** 접어 둔 소명 한 건 — 알림 종 목록의 항목 */
+type PendingPlea = { key: string; type: RiskEventType; speed: number; when: number; simTime: number }
+
+/**
+ * 접어 둔 소명과 «접었다»는 사실은 **컴포넌트 밖**에 둔다.
+ *
+ * 화면 상태로 두면 기사 앱을 떠나는 순간 사라진다 — 접어 놓고 관제 화면을 잠깐 보고 오면
+ * 알림 종이 통째로 없어져 «접으면 알림으로 바뀌는 게 안 된다»가 된다(실측으로 확인).
+ * 접어 둔 일은 화면이 아니라 기사에게 남은 일이므로, 화면이 사라져도 남아야 한다.
+ */
+let keptPending: PendingPlea[] = []
+/** 어느 이벤트를 접었는지 — 다시 들어왔을 때 접어 둔 배너가 되살아나지 않게 */
+let keptFoldedKey: string | null = null
+
 export default function DriverApp() {
   const snap = useSim()
   const v = snap.vehicles.find((x) => x.id === DEMO_VEHICLE_ID)!
@@ -114,22 +128,25 @@ export default function DriverApp() {
 
   /* 소명 (음성 우선, 미지원 시 버튼 폴백) */
   const [pleaState, setPleaState] = useState<'idle' | 'listening' | 'sent'>('idle')
+  /** 지금 배너에 걸린 이벤트의 식별자 — 접힘 여부·알림 종 항목이 모두 이 키로 묶인다 */
+  const evKey = v.lastEvent && v.lastEventWall ? `${v.lastEvent.eventType}:${Math.round(v.lastEvent.simTime)}` : null
   /* 운전 중에는 배너가 시야를 가린다 — 접어 두되 «무슨 일이 있었는지»는 남긴다 */
-  const [folded, setFolded] = useState(false)
+  const [folded, setFolded] = useState(() => keptFoldedKey !== null && keptFoldedKey === evKey)
   /* 소명이 전달되면 15초를 다 채우지 않고 곧 닫는다 — 할 일이 끝났는데 남아 있으면 방해다 */
   const [sentAt, setSentAt] = useState<number | null>(null)
   /*
    * 접어 둔 소명은 사라지는 게 아니라 «알림 종»으로 간다.
    * 운전 중에는 못 하고 신호 대기나 회차 때 하는 일이라, 15초 창이 닫혀도 기회는 남아야 한다.
    */
-  const [pending, setPending] = useState<{ key: string; type: RiskEventType; speed: number; when: number; simTime: number }[]>([])
+  const [pending, setPending] = useState<PendingPlea[]>(() => keptPending)
+  keptPending = pending
   const [bellOpen, setBellOpen] = useState(false)
   useEffect(() => {
-    // 새 이벤트마다 초기화
+    // 새 이벤트마다 초기화 — 단, 이미 접어 둔 건이면 접힌 채로 둔다(화면을 다시 열었을 때)
     setPleaState('idle')
-    setFolded(false)
+    setFolded(keptFoldedKey !== null && keptFoldedKey === evKey)
     setSentAt(null)
-  }, [v.lastEventWall])
+  }, [v.lastEventWall, evKey])
   /**
    * 소명 한 건을 접수한다 — 배너에서도, 나중에 알림 종에서도 같은 경로를 쓴다.
    * @param label 어떤 이벤트에 대한 설명인지 (소명 문구에 남는다)
@@ -180,13 +197,13 @@ export default function DriverApp() {
   /** 접기 — 배너를 닫고 그 건을 알림 종으로 넘긴다(이미 소명했으면 넘기지 않는다) */
   const foldBanner = () => {
     setFolded(true)
+    keptFoldedKey = evKey
     const e = v.lastEvent
-    if (pleaState === 'sent' || !e || !v.lastEventWall) return
-    const key = `${e.eventType}:${Math.round(e.simTime)}`
+    if (pleaState === 'sent' || !e || !v.lastEventWall || !evKey) return
     setPending((prev) =>
-      prev.some((x) => x.key === key)
+      prev.some((x) => x.key === evKey)
         ? prev
-        : [{ key, type: e.eventType, speed: e.speedKmh, when: v.lastEventWall!, simTime: e.simTime }, ...prev].slice(0, 5),
+        : [{ key: evKey, type: e.eventType, speed: e.speedKmh, when: v.lastEventWall!, simTime: e.simTime }, ...prev].slice(0, 5),
     )
   }
   const co2Saved = Math.max(0, (v.baselineFuelM3 - v.fuelM3) * 2.2)

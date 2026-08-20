@@ -291,9 +291,6 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
               {busy ? '…' : '↑'}
             </button>
           </div>
-          <div className="mt-1.5 px-1 text-[10.5px] text-gray-400">
-            답의 숫자는 지어내지 않고 지금 돌아가는 엔진에서 계산합니다 · 출처는 답마다 함께 표시됩니다
-          </div>
         </div>
       </section>
     </div>
@@ -625,7 +622,7 @@ function MsgView({
                 {r.walk && (
                   <div className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2">
                     <div className="flex flex-wrap items-baseline gap-1.5">
-                      <span className="text-[10.5px] font-bold tracking-wider text-gray-400">실제로 걸은 연결</span>
+                      <span className="text-[10.5px] font-bold tracking-wider text-gray-400">기록을 따라간 경로</span>
                       <span className="text-[10px] text-gray-500">
                         {r.walk.startLabel}에서 출발 · 기록 {r.walk.nodes}건 ({r.walk.classes.join(' · ')})
                       </span>
@@ -800,7 +797,7 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
             .join('')}</tbody></table>`
         : ''
       const walk = r.walk
-        ? `<h3>실제로 걸은 연결</h3><p class="dim">시작 ${esc(r.walk.startLabel)} · 기록 ${r.walk.nodes}건 (${esc(r.walk.classes.join(' · '))})</p>
+        ? `<h3>기록을 따라간 경로</h3><p class="dim">시작 ${esc(r.walk.startLabel)} · 기록 ${r.walk.nodes}건 (${esc(r.walk.classes.join(' · '))})</p>
            <ul class="trail">${r.walk.trail.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`
         : ''
       const src = `<h3>출처</h3><ol class="srclist">${r.sources
@@ -948,7 +945,7 @@ function buildReport(items: ReportItem[], snap: SimSnapshot): string {
       L.push('')
     }
     if (r.walk) {
-      L.push('### 실제로 걸은 연결', '', `- 시작 ${r.walk.startLabel} · 기록 ${r.walk.nodes}건 (${r.walk.classes.join(' · ')})`)
+      L.push('### 기록을 따라간 경로', '', `- 시작 ${r.walk.startLabel} · 기록 ${r.walk.nodes}건 (${r.walk.classes.join(' · ')})`)
       r.walk.trail.forEach((t) => L.push(`- ${t}`))
       L.push('')
     }

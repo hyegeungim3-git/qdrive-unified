@@ -14,8 +14,10 @@ import io, json, re, sys
 sys.path.insert(0, r'C:\Users\TOTTEN~1\AppData\Local\Temp\claude\C--Qdrive---\4b8ea4ed-1b36-4e29-b62c-37a63a34ae5d\scratchpad')
 from build_routes import hav, cum, project, disp_name   # noqa: E402
 
-BIS = r'C:\Users\tottenham\AppData\Local\Temp\qdrive_bis_stops_geubhaeng1.json'
-OUT = r'C:\Users\TOTTEN~1\AppData\Local\Temp\claude\C--Qdrive---\4b8ea4ed-1b36-4e29-b62c-37a63a34ae5d\scratchpad\bis_route_급행1.json'
+SCRATCH = r'C:\Users\TOTTEN~1\AppData\Local\Temp\claude\C--Qdrive---\4b8ea4ed-1b36-4e29-b62c-37a63a34ae5d\scratchpad'
+ROUTE = sys.argv[1] if len(sys.argv) > 1 else '급행1'
+BIS = sys.argv[2] if len(sys.argv) > 2 else (SCRATCH + '\\qbis_급행1.json')
+OUT = SCRATCH + '\\bis_route_' + ROUTE + '.json'
 ROUTES_TS = r'C:\Qdrive 통합\qdrive-unified\src\sim\routes.ts'
 
 ON_LINE_M = 160   # 정류장이 OSM 선에서 이만큼 안이면 «그 선 위»로 본다
@@ -37,7 +39,7 @@ def main():
     up = sorted([i for i in items if 1000 <= int(i['nodeord']) < 2000], key=lambda x: int(x['nodeord']))
     stops = [{'name': disp_name(i['nodenm']), 'lat': float(i['gpslati']), 'lng': float(i['gpslong'])} for i in up]
 
-    line = osm_line('급행1')
+    line = osm_line(ROUTE)
     cums, _ = cum(line) if len(line) > 1 else ([], 0)
 
     # 각 정류장을 OSM 선에 투영 — 선 위면 (진행거리, 거리) 를 기록
@@ -71,7 +73,7 @@ def main():
     _, total = cum(pts)
     cums2, _ = cum(pts)
     out = {
-        'ref': '급행1',
+        'ref': ROUTE,
         'lengthM': round(total),
         'points': [[round(p[0], 5), round(p[1], 5)] for p in pts],
         'stops': [],
@@ -83,7 +85,7 @@ def main():
 
     io.open(OUT, 'w', encoding='utf-8').write(json.dumps(out, ensure_ascii=False))
     onc = sum(1 for x in proj if x['on'])
-    print(f"급행1 전 구간: 정류장 {len(stops)} · 선 {len(pts)}점 · {total/1000:.1f}km")
+    print(f"{ROUTE} 전 구간: 정류장 {len(stops)} · 선 {len(pts)}점 · {total/1000:.1f}km")
     print(f"  OSM 선 위 정류장 {onc}/{len(stops)} — 그 구간은 도로 형상, 나머지는 정류장 직선")
     print(f"  기점 {stops[0]['name']} → 종점 {stops[-1]['name']}")
     print('  저장', OUT)

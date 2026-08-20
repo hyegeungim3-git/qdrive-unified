@@ -8,7 +8,7 @@ DST = r'C:\Qdrive 통합\qdrive-unified\src\sim\routes.ts'
 # 엔진이 쓰는 3개 노선 — id는 기존 그대로 둔다(차량·이력이 이 id로 묶여 있다)
 DRIVEN = {
     '급행1':  dict(id='R1', road='달구벌대로', color='#ef4444', loop=False),
-    '순환2':  dict(id='R2', road='도심 순환로', color='#3b82f6', loop=False),
+    '순환2':  dict(id='R2', road='도심 순환로', color='#3b82f6', loop=True),
     '급행3':  dict(id='R3', road='팔달로·중앙대로', color='#22c55e', loop=False),
 }
 # 표시 전용 — 지도에만 깔린다

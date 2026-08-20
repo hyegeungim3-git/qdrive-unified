@@ -191,7 +191,12 @@ const notFound = (id: string, q: string, targetId: string, path: string[], sourc
   id, q, path, sources, sections: [], follow: [], empty: true,
   headline: '지목한 대상을 찾지 못했습니다',
   detail: `«${targetId}»에 해당하는 기록이 지금 스냅샷에 없습니다. 다른 기록으로 바꿔 답하지 않습니다 — 대상을 다시 골라 주세요.`,
-  evidence: [{ k: '요청한 대상', v: targetId }],
+  /*
+   * 근거는 비운다. 여기 «요청한 대상»을 한 줄 넣어 뒀었는데, 그것은 근거가 아니라 질의를 되비춘 것이라
+   * 댈 원천이 없어 출처 칸이 «—»로 떴다(사용자 지적). 같은 내용은 위 detail에 이미 있다.
+   * **근거 표에 들어가는 모든 행은 원천을 댈 수 있어야 한다** — 못 대면 그 행은 근거가 아니다.
+   */
+  evidence: [],
 })
 
 /** 순회 결과를 답에 담을 형태로 — 걸을 수 없으면 undefined라서 화면이 «못 걸었다»를 말할 수 있다 */

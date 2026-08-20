@@ -14,15 +14,13 @@ DRIVEN = {
 # 표시 전용 — 지도에만 깔린다
 # 급행5는 OSM에 이어진 도로가 4.4km뿐이라 뺐다 — 짧게 잘린 선을 «주요 노선»이라 깔면 지도가 거짓말을 한다
 EXTRA = {
-    # 대구 도심(반월당) 기준으로 고른다 — 폴리라인 중앙값 거리 12km 이내.
-    # 급행4(17.0km)·급행8(15.9)·급행8-1(21.4)·급행9(21.4)·급행9-1(29.7)은 달성·군위 방면이라 뺐다.
-    # 급행5는 거리는 가깝지만 이어진 형상이 4.4km 토막이라 «노선»이 되지 못해 함께 뺐다.
-    '급행2':   dict(id='X2', road='', color='#fb7185'),
-    '급행6':   dict(id='X6', road='', color='#14b8a6'),
-    '급행7':   dict(id='X7', road='', color='#f472b6'),
-    '순환2-1': dict(id='X21', road='', color='#60a5fa'),
-    '순환3':   dict(id='X3', road='', color='#c084fc'),
-    '순환3-1': dict(id='X31', road='', color='#a3e635'),
+    # 도심(반월당) 중앙값 12km 이내 + TAGO 공식 노선 목록(232개)에 있는 것만.
+    # 급행6은 OSM에만 남은 폐지 노선이라 뺐다 — 없는 노선을 «대구 버스»라고 그릴 수는 없다.
+    '급행2':   dict(id='X2', road='', color='#fb7185', loop=False),
+    '급행7':   dict(id='X7', road='', color='#f472b6', loop=False),
+    '순환2-1': dict(id='X21', road='', color='#60a5fa', loop=True),
+    '순환3':   dict(id='X3', road='', color='#c084fc', loop=True),
+    '순환3-1': dict(id='X31', road='', color='#a3e635', loop=True),
 }
 
 
@@ -96,7 +94,7 @@ for f in glob.glob(os.path.join(os.path.dirname(SRC), 'bis_route_*.json')):
         print(f"  ↳ {ref}: BIS 전 구간으로 교체 — {len(b['stops'])}정류장 {b['lengthM']/1000:.1f}km")
 
 driven = [block(data[k], v, v['loop']) for k, v in DRIVEN.items() if k in data]
-extra = [block(data[k], v, False) for k, v in EXTRA.items() if k in data]
+extra = [block(data[k], v, v.get('loop', False)) for k, v in EXTRA.items() if k in data]
 
 head = """import type { LatLng } from './geo'
 

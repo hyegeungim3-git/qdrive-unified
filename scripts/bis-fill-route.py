@@ -63,12 +63,16 @@ def main():
         # OSM 선의 진행 방향이 노선의 진행 방향과 반대일 수 있어(급행1이 그랬다) 순서를 맞춰 넣는다.
         if a['on'] and b['on'] and abs(b['at'] - a['at']) > 60:
             lo, hi = sorted([a['at'], b['at']])
-            mid = [line[k] for k in range(len(line)) if lo < cums[k] < hi]
-            if b['at'] < a['at']:
-                mid.reverse()
-            for q in mid:
-                if hav(pts[-1], q) > 1:
-                    pts.append(q)
+            straight = hav(p, (stops[i + 1]['lat'], stops[i + 1]['lng']))
+            # 안전장치: 끼워 넣을 도로 구간이 두 정류장 직선거리의 3배를 넘으면 반대편을 크게 돌아온 것이다.
+            # 순환 노선에서 실제로 그랬다(순환3-1이 31km → 61km로 부풀었다). 그럴 땐 직선으로 둔다.
+            if hi - lo <= max(400, straight * 3):
+                mid = [line[k] for k in range(len(line)) if lo < cums[k] < hi]
+                if b['at'] < a['at']:
+                    mid.reverse()
+                for q in mid:
+                    if hav(pts[-1], q) > 1:
+                        pts.append(q)
 
     _, total = cum(pts)
     cums2, _ = cum(pts)

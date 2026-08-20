@@ -183,6 +183,18 @@ html.light .bus-marker .bus-svg {
   transform: translate(-14px, -9px);
 }
 
+/*
+ * 실차인데 «우리가 그린 구간 밖»에 있는 경우 — 실데이터라 감추지 않되, 선 위의 실차와 구분한다.
+ * 우리 폴리라인은 OSM에 매핑된 일부 구간이라 실차의 절반쯤이 여기에 해당한다(실측 110대 중 57대).
+ */
+.bus-marker.real.off-line {
+  opacity: 0.78;
+}
+.bus-marker.real.off-line .label {
+  border-style: dashed;
+  color: #cbd5e1;
+}
+
 .bus-marker.warn .bus-svg {
   animation: bus-warn 0.9s ease-in-out infinite;
 }

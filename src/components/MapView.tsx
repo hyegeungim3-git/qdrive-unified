@@ -8,6 +8,7 @@ import { MAJOR_ROADS } from '../sim/roads'
 import { backgroundBuses } from '../sim/traffic'
 import { mapColor } from './mapColors'
 import { indexPolyline, pointAt } from '../sim/geo'
+import type { LatLng } from '../sim/geo'
 import type { RealBus } from '../sim/bis'
 import type { Incident, Packet409, VehicleState } from '../sim/types'
 
@@ -407,6 +408,44 @@ function bgBusIcon(color: string): L.DivIcon {
 }
 
 /** 이벤트를 ~110m 격자로 묶어 히트 서클 생성 */
+/** 점에서 폴리라인까지 최단거리(m) — 평면 근사(대구 위도에서 오차 무시 가능) */
+function distToLine(lat: number, lng: number, line: LatLng[]): number {
+  let best = Infinity
+  for (let i = 0; i < line.length - 1; i++) {
+    const ax = line[i][1] * 88000
+    const ay = line[i][0] * 111000
+    const bx = line[i + 1][1] * 88000
+    const by = line[i + 1][0] * 111000
+    const px = lng * 88000
+    const py = lat * 111000
+    const dx = bx - ax
+    const dy = by - ay
+    const L = dx * dx + dy * dy
+    const t = L === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L))
+    const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+    if (d < best) best = d
+  }
+  return best
+}
+
+/** 이 거리(m)를 넘으면 «우리가 그린 구간 밖» — 정류장 오프셋·GPS 오차를 넉넉히 넘긴 값 */
+const OFF_ROUTE_M = 300
+
+const ALL_ROUTES = [...ROUTES, ...EXTRA_ROUTES]
+
+/**
+ * 실차가 «우리 지도에 그린 구간» 위에 있는가.
+ *
+ * 우리 폴리라인은 OSM에 매핑된 일부 구간이라, 실차의 절반쯤은 그 밖을 달린다(실측 110대 중 57대).
+ * 감추면 실데이터를 숨기는 것이고, 그냥 두면 «선도 없는데 왜 저기 버스가»가 된다.
+ * → 다 보여 주되 **선 밖은 다르게 그리고 왜 그런지 말한다.**
+ */
+function offOurLine(b: RealBus): boolean {
+  const r = ALL_ROUTES.find((x) => x.name === b.routeNo)
+  if (!r) return true
+  return distToLine(b.lat, b.lng, r.points) > OFF_ROUTE_M
+}
+
 function heatCells(events: Packet409[]) {
   const cells = new Map<string, { lat: number; lng: number; count: number }>()
   for (const e of events) {
@@ -418,12 +457,12 @@ function heatCells(events: Packet409[]) {
   return [...cells.values()]
 }
 
-function realBusIcon(b: RealBus): L.DivIcon {
+function realBusIcon(b: RealBus, off: boolean): L.DivIcon {
   const dir = b.heading ? ` ▸${b.heading.slice(0, 5)}` : ''
   return L.divIcon({
     className: '',
-    html: `<div class="bus-marker real">
-      <span class="bus-body">${busSvg('#38bdf8', true)}</span>
+    html: `<div class="bus-marker real${off ? ' off-line' : ''}">
+      <span class="bus-body">${busSvg(off ? '#94a3b8' : '#38bdf8', true)}</span>
       <span class="label">실 ${b.routeNo}${dir}</span>
     </div>`,
     iconSize: [0, 0],
@@ -636,8 +675,10 @@ export default function MapView({
         ))}
 
       {/* BIS 실데이터 버스 (TAGO 오픈API) */}
-      {realBuses.map((b) => (
-        <Marker key={`real-${b.vehicleNo}`} position={[b.lat, b.lng]} icon={realBusIcon(b)}>
+      {realBuses.map((b) => {
+        const off = offOurLine(b)
+        return (
+        <Marker key={`real-${b.vehicleNo}`} position={[b.lat, b.lng]} icon={realBusIcon(b, off)}>
           <Tooltip direction="top" offset={[0, -10]}>
             <div style={{ fontSize: 11 }}>
               <b>{b.vehicleNo}</b> · {b.routeNo}
@@ -649,10 +690,17 @@ export default function MapView({
               )}
               <br />
               대구 BIS 실데이터 (TAGO)
+              {off && (
+                <>
+                  <br />
+                  <span style={{ opacity: 0.75 }}>우리 지도에 그린 구간 밖 — 노선 전 구간 중 미매핑 부분</span>
+                </>
+              )}
             </div>
           </Tooltip>
         </Marker>
-      ))}
+        )
+      })}
 
       {/* 시뮬 버스 — 실데이터가 오면 물러난다 */}
       {(liveReal ? [] : vehicles).map((v) => {

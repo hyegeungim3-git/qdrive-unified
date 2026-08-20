@@ -488,10 +488,8 @@ export default function MapView({
     if (simTime <= 0 || liveReal) return []
     const all = backgroundBuses(simTime)
     // 노선을 끄면 그 위 버스도 함께 꺼진다 — 선이 없는데 버스만 떠 있으면 «무엇을 타고 있나»가 설명되지 않는다
-    return all.filter((b) =>
-      b.kind === '주요 노선' ? showExtra && !!b.routeId && !hidden.has(b.routeId) : showRoads,
-    )
-  }, [simTime, showExtra, showRoads, hidden])
+    return all.filter((b) => showExtra && !hidden.has(b.routeId))
+  }, [simTime, showExtra, hidden])
 
   const theme = useTheme()
 
@@ -554,7 +552,7 @@ export default function MapView({
       {bgBuses.map((b) => (
         <Marker key={b.id} position={b.pos} icon={bgBusIcon(mapColor(b.color, theme === 'light', BG_ALPHA))}>
           <Tooltip direction="top" offset={[0, -8]}>
-            {b.on} · {b.kind} 표시용 — 실증 집계에 포함되지 않습니다
+            {b.on} · 표시용 — 실증 집계에 포함되지 않습니다
           </Tooltip>
         </Marker>
       ))}

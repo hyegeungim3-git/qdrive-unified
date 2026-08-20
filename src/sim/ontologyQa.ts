@@ -236,7 +236,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
       id, q, path, sources, sections: [], follow: [], empty: true,
       headline: '지금은 차고지 출고 기록부터 쌓이고 있습니다',
       detail: `지금까지 기록된 것은 차고지 출고 공차 ${dh.length}건뿐입니다. 배속을 올려 첫 회차가 끝나면 영업 운행이 쌓입니다.`,
-      evidence: [{ k: '공차 기록', v: `${dh.length}건` }],
+      evidence: [{ k: '공차 기록', v: `${dh.length}건`, src: SRC.depot.code }],
     }
   }
   const revKm = s.trips.reduce((n, t) => n + t.distanceKm, 0)
@@ -379,7 +379,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
       id, q, path, sources, sections: [], follow: [], empty: true,
       headline: '지금 구간에는 위험운전 기록이 없습니다',
       detail: '위험운전이 발생하면 그 시점의 노선·날씨가 함께 기록됩니다.',
-      evidence: [{ k: '누적 이벤트', v: `${s.kpi.totalEvents}건` }],
+      evidence: [{ k: '누적 이벤트', v: `${s.kpi.totalEvents}건`, src: SRC.dtg409.code }],
     }
   }
   const v = s.vehicles.find((x) => x.id === decel.vehicleId)
@@ -665,10 +665,25 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
       `${top.company} 소속 ${top.depot}가 오늘 만든 공차가 가장 많습니다. 편도 회송거리 ${km(top.oneWay)}가 출·입고마다 반복되기 때문입니다. ` +
       `3개 차고지 합계는 ${km(totKm)}·${totFuel.toFixed(1)}m³이고, 같은 시간 영업거리는 ${km(revKm)}입니다. ` +
       `공차는 수입이 없는 주행이라 **차고지 배치와 교대 주기를 바꾸면 그대로 줄어드는 비용**입니다.`,
-    evidence: rows.map((r) => ({
-      k: `${r.depot} (${r.company})`,
-      v: `${r.n}회 · ${km(r.km)} · ${r.fuel.toFixed(1)}m³ · CO₂ ${r.co2.toFixed(1)}kg`,
-    })).concat([{ k: '합계', v: `${km(totKm)} · ${totFuel.toFixed(1)}m³` }]),
+    /*
+     * 근거 행은 «한 행에 한 원천»이다 — 출처 칩이 곧 원천 코드라야 데이터 관리자 화면과 이어진다.
+     * 회수·거리는 출입고 기록에서 나오고, 연료·CO₂는 DTG 521의 환산 기준에서 나온다.
+     * 한 행에 둘을 섞어 적으면 어느 숫자가 어디서 왔는지 말할 수 없어 «출처 —»가 된다(그렇게 비어 있었다).
+     */
+    evidence: [
+      ...rows.map((r) => ({
+        k: `${r.depot} (${r.company})`,
+        v: `${r.n}회 · ${km(r.km)}`,
+        src: SRC.depot.code,
+      })),
+      { k: '합계 공차거리', v: km(totKm), src: SRC.depot.code },
+      {
+        k: '합계 연료 · CO₂',
+        v: `${totFuel.toFixed(1)}m³ · ${rows.reduce((a, r) => a + r.co2, 0).toFixed(1)}kg`,
+        src: SRC.dtg521.code,
+      },
+      { k: '같은 시간 영업거리', v: km(revKm), src: SRC.dtg521.code },
+    ],
     caveat: '편도 회송거리는 차고지↔기점 기준정보 값으로 계산합니다. 운수사 출입고 기록이 연동되면 같은 구조에 실측 거리가 그대로 들어옵니다.',
   }
 }

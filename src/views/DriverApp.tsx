@@ -142,9 +142,12 @@ export default function DriverApp() {
   keptPending = pending
   const [bellOpen, setBellOpen] = useState(false)
 
+  /** 알림 종 보관 한도 — 넘치면 오래된 것부터 밀려난다 */
+  const PENDING_MAX = 9
+
   /** 알림 종에 한 건 올린다 — 같은 건은 두 번 올리지 않는다 */
   const addPending = (it: PendingPlea) =>
-    setPending((prev) => (prev.some((x) => x.key === it.key) ? prev : [it, ...prev].slice(0, 5)))
+    setPending((prev) => (prev.some((x) => x.key === it.key) ? prev : [it, ...prev].slice(0, PENDING_MAX)))
 
   /**
    * 지금 배너에 걸려 있고 **아직 설명하지 않은** 건.
@@ -324,7 +327,7 @@ export default function DriverApp() {
                     🔔 소명 {pending.length}
                   </button>
                   {bellOpen && (
-                    <div className="absolute right-0 top-8 z-30 w-[320px] rounded-xl border border-gray-700 bg-gray-900 p-2 text-left shadow-2xl">
+                    <div className="absolute right-0 top-8 z-30 max-h-[60vh] w-[320px] overflow-y-auto rounded-xl border border-gray-700 bg-gray-900 p-2 text-left shadow-2xl">
                       <div className="px-1 pb-1.5 text-[11px] font-bold text-gray-400">접어 둔 상황 설명</div>
                       {pending.map((it) => (
                         <div key={it.key} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 hover:bg-gray-800/60">

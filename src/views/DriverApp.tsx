@@ -108,16 +108,28 @@ export default function DriverApp() {
   // 정당 판정 배너는 6초, 미판정(소명 가능) 배너는 15초 유지 — 소명 조작 시간 확보
   const warnActive =
     !!v.lastEvent && !!v.lastEventWall && Date.now() - v.lastEventWall < (v.lastEvent.justified ? 6000 : 15000)
+  /** 소명 접수 후 유지 시간(ms) — 확인만 하고 사라진다 */
+  const PLEA_LINGER = 2500
 
   /* 소명 (음성 우선, 미지원 시 버튼 폴백) */
   const [pleaState, setPleaState] = useState<'idle' | 'listening' | 'sent'>('idle')
-  useEffect(() => setPleaState('idle'), [v.lastEventWall]) // 새 이벤트마다 초기화
+  /* 운전 중에는 배너가 시야를 가린다 — 접어 두되 «무슨 일이 있었는지»는 남긴다 */
+  const [folded, setFolded] = useState(false)
+  /* 소명이 전달되면 15초를 다 채우지 않고 곧 닫는다 — 할 일이 끝났는데 남아 있으면 방해다 */
+  const [sentAt, setSentAt] = useState<number | null>(null)
+  useEffect(() => {
+    // 새 이벤트마다 초기화
+    setPleaState('idle')
+    setFolded(false)
+    setSentAt(null)
+  }, [v.lastEventWall])
   const startPlea = () => {
     const w = window as unknown as Record<string, any>
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition
     const submit = (note: string, method: '음성' | '버튼') => {
       engine.submitPlea(v.id, note, method)
       setPleaState('sent')
+      setSentAt(Date.now())
     }
     if (!SR) return submit('방어 운전 상황 설명 (음성 미지원 환경 — 버튼 접수)', '버튼')
     try {
@@ -604,8 +616,19 @@ export default function DriverApp() {
               </div>
             </div>
           )}
-          {warnActive && v.lastEvent && !v.lastEvent.justified && (
+          {warnActive && v.lastEvent && !v.lastEvent.justified && !(sentAt !== null && Date.now() - sentAt > PLEA_LINGER) && (
             <div className="absolute inset-x-0 top-14 z-20 flex justify-center">
+              {folded ? (
+                /* 접힌 상태 — 무슨 일이 있었는지와 «다시 펼치기»만 남긴다. 소명 기회를 잃지 않게 */
+                <button
+                  onClick={() => setFolded(false)}
+                  className="warn-drop flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-2xl"
+                  style={{ background: 'rgba(127, 29, 29, 0.92)', border: '1px solid rgba(248, 113, 113, 0.45)', color: '#fecaca' }}
+                >
+                  ⚠️ {v.lastEvent.eventType}
+                  {pleaState === 'sent' ? ' · 설명 전달됨' : ' · 눌러서 상황 설명'}
+                </button>
+              ) : (
               <div
                 className="warn-drop flex items-center gap-4 rounded-2xl px-6 py-3 shadow-2xl"
                 style={{ background: 'rgba(127, 29, 29, 0.96)', border: '1px solid rgba(248, 113, 113, 0.5)' }}
@@ -639,7 +662,17 @@ export default function DriverApp() {
                     ✓ 설명 전달됨 — 관제 확인 후 반영
                   </span>
                 )}
+                <button
+                  onClick={() => setFolded(true)}
+                  aria-label="알림 접기"
+                  title="접어 두기 — 운행 화면을 가리지 않습니다"
+                  className="shrink-0 rounded-lg px-2 py-2 text-base font-black leading-none"
+                  style={{ background: 'rgba(254, 202, 202, 0.14)', color: '#fecaca' }}
+                >
+                  ⌄
+                </button>
               </div>
+              )}
             </div>
           )}
         </div>

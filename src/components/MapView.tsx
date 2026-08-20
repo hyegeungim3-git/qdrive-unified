@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from 'react'
-import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { Circle, CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTheme } from '../theme'
 import { DAEGU_CENTER, EXTRA_ROUTES, ROUTES } from '../sim/routes'
@@ -78,6 +78,10 @@ const ROUTE_IDX = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points)]))
 /**
  * 간선도로 배경 — 도로는 변하지 않는다. memo로 묶지 않으면 엔진이 250ms마다 스냅샷을
  * 갈아끼울 때마다 폴리라인 수백 개가 다시 조정돼 지도가 눈에 띄게 느려진다.
+ *
+ * 설명은 **클릭**으로 연다(Popup). 예전에는 hover 툴팁이었는데, 도로 조각이 187개라
+ * 지도를 가로지르기만 해도 설명이 계속 튀어나왔다 — 설명하려던 것이 방해가 됐다.
+ * 클릭은 «내가 물어봤을 때만» 답하고, 닫을 때까지 남아 있어 발표 중 짚어 두기도 좋다.
  */
 const RoadLayer = memo(function RoadLayer({ light }: { light: boolean }) {
   /* 밝은 타일 위에서는 같은 앰버가 흰 종이에 노란 형광펜처럼 날아간다 — 라이트 모드는 진한 색으로 */
@@ -92,9 +96,9 @@ const RoadLayer = memo(function RoadLayer({ light }: { light: boolean }) {
             positions={seg}
             pathOptions={{ color, weight: 6, opacity, lineCap: 'round' }}
           >
-            <Tooltip sticky>
+            <Popup autoPanPaddingTopLeft={POPUP_PAD_TL} autoPanPaddingBottomRight={POPUP_PAD_BR}>
               <b>{rd.name}</b> · {rd.km}km · 노선 {rd.routes}개가 함께 타는 축
-            </Tooltip>
+            </Popup>
           </Polyline>
         )),
       )}
@@ -431,6 +435,23 @@ function distToLine(lat: number, lng: number, line: LatLng[]): number {
 /** 이 거리(m)를 넘으면 «우리가 그린 구간 밖» — 정류장 오프셋·GPS 오차를 넉넉히 넘긴 값 */
 const OFF_ROUTE_M = 300
 
+/**
+ * 노선 클릭 판정선 굵기(px). 보이는 선은 3~3.5px라 정확히 누르기 어렵다 —
+ * 터치 타깃 최소 44px에는 못 미치지만, 선은 길어서 «가로 폭»만 넓히면 충분히 눌린다.
+ */
+const HIT_WEIGHT = 16
+
+/**
+ * 팝업이 열릴 자리에서 비켜야 할 여백(px).
+ *
+ * HUD 칩(날씨·LIVE·노선·범례)은 지도 위에 겹쳐 둔 별도 레이어(z-1000)라 **팝업보다 위에 그려진다**
+ * — Leaflet 팝업 pane은 지도 pane 안(z-400 아래)이라 z-index를 올려도 HUD 위로 못 올라온다.
+ * 그래서 «가리지 않게» 대신 «그 자리를 피하게» 한다: 팝업이 열릴 때 지도가 이만큼 밀려난다.
+ * 위쪽은 날씨 줄 + 노선 칩 두 줄, 아래쪽은 범례·확대축소 버튼을 비운 값이다.
+ */
+const POPUP_PAD_TL: [number, number] = [16, 112]
+const POPUP_PAD_BR: [number, number] = [16, 76]
+
 const ALL_ROUTES = [...ROUTES, ...EXTRA_ROUTES]
 
 /**
@@ -555,12 +576,8 @@ export default function MapView({
             key={r.id}
             positions={r.points}
             pathOptions={{ color: mapColor(r.color, theme === 'light', 0.8), weight: 3, opacity: 0.8 }}
-          >
-            <Tooltip sticky>
-              <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''}
-              {r.full && r.full !== r.ends && <div className="opacity-70">전체 노선 {r.full} 중 매핑된 구간</div>}
-            </Tooltip>
-          </Polyline>
+            interactive={false}
+          />
         ))}
 
       {visibleRoutes.map((r) => {
@@ -574,19 +591,33 @@ export default function MapView({
               weight: highlightRouteId === r.id ? 6 : 3.5,
               opacity: dim ? 0.15 : 0.75,
             }}
-          >
-            <Tooltip sticky>
-              <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''}
-              {r.stops.length >= 3 && ` · 정류장 ${r.stops.length}`}
-              {r.source === 'BIS 전 구간' ? (
-                <div className="opacity-70">대구 BIS 경유정류소 — 노선 전 구간</div>
-              ) : (
-                r.full && r.full !== r.ends && <div className="opacity-70">전체 노선 {r.full} 중 매핑된 구간</div>
-              )}
-            </Tooltip>
-          </Polyline>
+            interactive={false}
+          />
         )
       })}
+
+      {/*
+        노선 클릭 판정선 — 보이는 선은 3~3.5px라 손으로 정확히 누르기 어렵다.
+        투명한 굵은 선을 위에 겹쳐 두고 설명은 여기에 붙인다(선 자체는 interactive={false}).
+        노선을 나중에 그려 도로보다 위에 두므로, 겹치는 곳에서는 노선 설명이 먼저 잡힌다.
+      */}
+      {[...(showExtra ? visibleExtra : []), ...visibleRoutes].map((r) => (
+        <Polyline
+          key={`hit-${r.id}`}
+          positions={r.points}
+          pathOptions={{ color: 'transparent', weight: HIT_WEIGHT, opacity: 0 }}
+        >
+          <Popup autoPanPaddingTopLeft={POPUP_PAD_TL} autoPanPaddingBottomRight={POPUP_PAD_BR}>
+            <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''}
+            {r.stops.length >= 3 && ` · 정류장 ${r.stops.length}`}
+            {r.source === 'BIS 전 구간' ? (
+              <div className="opacity-70">대구 BIS 경유정류소 — 노선 전 구간</div>
+            ) : (
+              r.full && r.full !== r.ends && <div className="opacity-70">전체 노선 {r.full} 중 매핑된 구간</div>
+            )}
+          </Popup>
+        </Polyline>
+      ))}
 
       {/* 정류장 핀 */}
       <StopPins routes={visibleRoutes} dimmed={(id) => highlightRouteId != null && highlightRouteId !== id} light={theme === 'light'} />

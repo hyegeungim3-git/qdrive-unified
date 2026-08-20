@@ -142,6 +142,56 @@ html.light .leaflet-control-attribution {
   color: #64748b !important;
 }
 
+/*
+  선(간선도로·노선) 설명 팝업 — 클릭으로 연다.
+  Leaflet 기본 팝업은 흰 말풍선이라 다크 모드에서 혼자 튄다. 테마 색으로 맞춘다.
+*/
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #111827;
+  color: #e5e7eb;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.45);
+}
+.leaflet-popup-content-wrapper {
+  border: 1px solid #374151;
+  border-radius: 10px;
+}
+.leaflet-popup-content {
+  margin: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+/* 닫기 버튼 — 기본 11px 글자는 누르기 어렵다. 터치로도 잡히게 키운다 */
+.leaflet-container a.leaflet-popup-close-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 28px;
+  color: #9ca3af;
+}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus-visible {
+  color: #f3f4f6;
+  background: transparent;
+}
+html.light .leaflet-popup-content-wrapper,
+html.light .leaflet-popup-tip {
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 6px 20px rgb(15 23 42 / 0.18);
+}
+html.light .leaflet-popup-content-wrapper {
+  border-color: #d1d5db;
+}
+html.light .leaflet-container a.leaflet-popup-close-button {
+  color: #6b7280;
+}
+html.light .leaflet-container a.leaflet-popup-close-button:hover,
+html.light .leaflet-container a.leaflet-popup-close-button:focus-visible {
+  color: #111827;
+}
+
 /* 버스 마커 — 측면 버스 SVG */
 .bus-marker {
   display: flex;

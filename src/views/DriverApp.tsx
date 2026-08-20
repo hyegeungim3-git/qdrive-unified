@@ -141,7 +141,31 @@ export default function DriverApp() {
   const [pending, setPending] = useState<PendingPlea[]>(() => keptPending)
   keptPending = pending
   const [bellOpen, setBellOpen] = useState(false)
+
+  /** 알림 종에 한 건 올린다 — 같은 건은 두 번 올리지 않는다 */
+  const addPending = (it: PendingPlea) =>
+    setPending((prev) => (prev.some((x) => x.key === it.key) ? prev : [it, ...prev].slice(0, 5)))
+
+  /**
+   * 지금 배너에 걸려 있고 **아직 설명하지 않은** 건.
+   *
+   * 배너는 한 번에 하나뿐이라 15초가 지나기 전에 다음 이벤트가 오면 앞 건이 덮인다.
+   * 그때 그냥 두면 **기사가 설명할 기회가 통째로 사라진다**(실측: 두 번째 이벤트를 넣으면
+   * 첫 건이 종에도 안 남고 없어졌다). 덮이는 순간 알림 종으로 넘겨 기회를 남긴다.
+   */
+  const unexplained = useRef<PendingPlea | null>(null)
+
   useEffect(() => {
+    // 앞 건이 설명 없이 밀려났으면 종으로 넘긴다
+    const prev = unexplained.current
+    if (prev && prev.key !== evKey) addPending(prev)
+
+    const e = v.lastEvent
+    unexplained.current =
+      e && v.lastEventWall && evKey && !e.justified
+        ? { key: evKey, type: e.eventType, speed: e.speedKmh, when: v.lastEventWall, simTime: e.simTime }
+        : null
+
     // 새 이벤트마다 초기화 — 단, 이미 접어 둔 건이면 접힌 채로 둔다(화면을 다시 열었을 때)
     setPleaState('idle')
     setFolded(keptFoldedKey !== null && keptFoldedKey === evKey)
@@ -188,11 +212,25 @@ export default function DriverApp() {
   }
 
   /** 배너에서 바로 소명 */
-  const startPlea = () =>
-    runPlea(v.lastEvent?.eventType ?? '위험운전', () => {
-      setPleaState('sent')
-      setSentAt(Date.now())
-    })
+  const startPlea = () => {
+    /*
+     * 어떤 건에 대한 설명인지 **누른 순간에 못 박는다.**
+     * 음성 인식은 최대 5초 걸리는데 그 사이 새 이벤트가 오면 엔진의 «가장 최근 이벤트»가 바뀐다 —
+     * target 없이 보내면 급감속에 대해 말한 설명이 그 뒤에 난 급진로변경에 붙는다.
+     * (알림 종 경로는 이미 target을 넘기고 있었다. 배너 경로만 빠져 있었다.)
+     */
+    const e = v.lastEvent
+    const target = e && evKey ? { eventType: e.eventType, simTime: e.simTime } : undefined
+    runPlea(
+      e?.eventType ?? '위험운전',
+      () => {
+        unexplained.current = null
+        setPleaState('sent')
+        setSentAt(Date.now())
+      },
+      target,
+    )
+  }
 
   /** 접기 — 배너를 닫고 그 건을 알림 종으로 넘긴다(이미 소명했으면 넘기지 않는다) */
   const foldBanner = () => {
@@ -200,11 +238,8 @@ export default function DriverApp() {
     keptFoldedKey = evKey
     const e = v.lastEvent
     if (pleaState === 'sent' || !e || !v.lastEventWall || !evKey) return
-    setPending((prev) =>
-      prev.some((x) => x.key === evKey)
-        ? prev
-        : [{ key: evKey, type: e.eventType, speed: e.speedKmh, when: v.lastEventWall!, simTime: e.simTime }, ...prev].slice(0, 5),
-    )
+    addPending({ key: evKey, type: e.eventType, speed: e.speedKmh, when: v.lastEventWall, simTime: e.simTime })
+    unexplained.current = null
   }
   const co2Saved = Math.max(0, (v.baselineFuelM3 - v.fuelM3) * 2.2)
   const w = snap.weather

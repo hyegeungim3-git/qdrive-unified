@@ -6,6 +6,7 @@ import { DAEGU_CENTER, EXTRA_ROUTES, ROUTES } from '../sim/routes'
 import type { BusRoute } from '../sim/routes'
 import { MAJOR_ROADS } from '../sim/roads'
 import { backgroundBuses } from '../sim/traffic'
+import { mapColor } from './mapColors'
 import { indexPolyline, pointAt } from '../sim/geo'
 import type { RealBus } from '../sim/bis'
 import type { Incident, Packet409, VehicleState } from '../sim/types'
@@ -94,8 +95,8 @@ function BgTrafficPane() {
 
 const RoadLayer = memo(function RoadLayer({ light }: { light: boolean }) {
   /* 밝은 타일 위에서는 같은 앰버가 흰 종이에 노란 형광펜처럼 날아간다 — 라이트 모드는 진한 색으로 */
-  const color = light ? '#b45309' : '#fbbf24'
-  const opacity = light ? 0.5 : 0.42
+  const opacity = light ? 0.62 : 0.5
+  const color = mapColor(light ? '#b45309' : '#fbbf24', light, opacity)
   return (
     <>
       {MAJOR_ROADS.flatMap((rd) =>
@@ -106,7 +107,7 @@ const RoadLayer = memo(function RoadLayer({ light }: { light: boolean }) {
             pathOptions={{ color, weight: 6, opacity, lineCap: 'round' }}
           >
             <Tooltip sticky>
-              <b>{rd.name}</b> · {rd.note}
+              <b>{rd.name}</b> · {rd.km}km · 노선 {rd.routes}개가 함께 타는 축
             </Tooltip>
           </Polyline>
         )),
@@ -134,7 +135,7 @@ function useZoom(): number {
  * 축소 상태(z<13)에서는 기점·종점만, 확대하면 전 정류장을 연다.
  * 전부 다 켜 두면 핀이 노선을 덮어 «어디를 지나는가»가 오히려 안 보인다.
  */
-function StopPins({ routes, dimmed }: { routes: BusRoute[]; dimmed: (id: string) => boolean }) {
+function StopPins({ routes, dimmed, light }: { routes: BusRoute[]; dimmed: (id: string) => boolean; light: boolean }) {
   const z = useZoom()
   return (
     <>
@@ -151,7 +152,7 @@ function StopPins({ routes, dimmed }: { routes: BusRoute[]; dimmed: (id: string)
               center={pos}
               radius={z >= 15 ? 4 : 3}
               pathOptions={{
-                color: r.color,
+                color: mapColor(r.color, light, 0.95),
                 fillColor: '#0b0f16',
                 fillOpacity: 1,
                 weight: 1.8,
@@ -248,7 +249,7 @@ function MapHud({
         </button>
         <button
           onClick={onToggleRoads}
-          title="달구벌대로·신천대로·앞산순환로·중앙대로를 깔아 노선이 어느 도로를 타고 어디서 가로지르는지 보이게 합니다"
+          title="여러 노선이 함께 타는 간선 축만 깔아 «버스가 실제로 다니는 길»이 보이게 합니다 (버스가 지나지 않는 도로는 그리지 않습니다)"
           className={`rounded-full border px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
             showRoads ? 'border-amber-500/50 bg-amber-500/15 text-amber-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
           }`}
@@ -408,6 +409,8 @@ export default function MapView({
    * 배경 교통 — 켜 둔 레이어 위에만 달린다. 노선을 껐는데 그 위에 버스가 남아 있으면
    * 「저 버스는 무엇을 타고 있나」가 설명되지 않는다.
    */
+  /* 보정 계산과 실제 렌더가 같은 알파를 봐야 대비가 맞는다 */
+  const BG_ALPHA = 0.7
   const bgBuses = useMemo(() => {
     // simTime 을 안 넘기는 화면(운행 이력의 단일 회차 지도 등)에는 배경 교통을 두지 않는다 —
     // 멈춰 선 점들이 «고장난 것»처럼 보이고, 한 회차를 보는 지도에 남의 버스는 방해다
@@ -442,10 +445,11 @@ export default function MapView({
           <Polyline
             key={r.id}
             positions={r.points}
-            pathOptions={{ color: r.color, weight: 3, opacity: 0.8 }}
+            pathOptions={{ color: mapColor(r.color, theme === 'light', 0.8), weight: 3, opacity: 0.8 }}
           >
             <Tooltip sticky>
               <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''}
+              {r.full && r.full !== r.ends && <div className="opacity-70">전체 노선 {r.full} 중 매핑된 구간</div>}
             </Tooltip>
           </Polyline>
         ))}
@@ -457,20 +461,22 @@ export default function MapView({
             key={r.id}
             positions={r.points}
             pathOptions={{
-              color: r.color,
+              color: mapColor(r.color, theme === 'light', 0.75),
               weight: highlightRouteId === r.id ? 6 : 3.5,
               opacity: dim ? 0.15 : 0.75,
             }}
           >
             <Tooltip sticky>
-              <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''} · 정류장 {r.stops.length}
+              <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''}
+              {r.stops.length >= 3 && ` · 정류장 ${r.stops.length}`}
+              {r.full && r.full !== r.ends && <div className="opacity-70">전체 노선 {r.full} 중 매핑된 구간</div>}
             </Tooltip>
           </Polyline>
         )
       })}
 
       {/* 정류장 핀 */}
-      <StopPins routes={visibleRoutes} dimmed={(id) => highlightRouteId != null && highlightRouteId !== id} />
+      <StopPins routes={visibleRoutes} dimmed={(id) => highlightRouteId != null && highlightRouteId !== id} light={theme === 'light'} />
 
       {/* 배경 교통 — 주요 노선·간선도로 위를 달리는 표시용 버스 (실증 집계에 들어가지 않는다) */}
       {bgBuses.map((b) => (
@@ -479,7 +485,7 @@ export default function MapView({
           center={b.pos}
           radius={2}
           pane="bgTraffic"
-          pathOptions={{ stroke: false, fillColor: b.color, fillOpacity: 0.55 }}
+          pathOptions={{ stroke: false, fillColor: mapColor(b.color, theme === 'light', BG_ALPHA), fillOpacity: BG_ALPHA }}
         >
           <Tooltip direction="top" offset={[0, -4]}>
             {b.on} · {b.kind} 표시용 — 실증 집계에 포함되지 않습니다

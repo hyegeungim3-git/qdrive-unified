@@ -162,6 +162,10 @@ function MapHud({
   onToggle,
   showExtra,
   onToggleExtra,
+  extraOpen,
+  onToggleExtraOpen,
+  onBulk,
+  visibleExtraCount,
   showRoads,
   onToggleRoads,
   showLive,
@@ -174,6 +178,11 @@ function MapHud({
   onToggle: (id: string) => void
   showExtra: boolean
   onToggleExtra: () => void
+  /** 주요 노선 목록 패널 열림 — 12개를 칩 줄에 다 풀면 지도를 덮는다 */
+  extraOpen: boolean
+  onToggleExtraOpen: () => void
+  onBulk: (on: boolean) => void
+  visibleExtraCount: number
   showRoads: boolean
   onToggleRoads: () => void
   /** 지도 밖에 이미 LIVE 배지가 있으면 HUD에서는 빼고 칩 줄을 그만큼 올린다 */
@@ -226,15 +235,58 @@ function MapHud({
             </button>
           )
         })}
-        <button
-          onClick={onToggleExtra}
-          title="대구 주요 버스 노선을 지도에 함께 깝니다 (실증 차량은 이 노선을 달리지 않습니다)"
-          className={`rounded-full border px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
-            showExtra ? 'border-sky-500/50 bg-sky-500/15 text-sky-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
-          }`}
-        >
-          + 주요 노선 {EXTRA_ROUTES.length}
-        </button>
+        {/* 주요 노선 — 왼쪽은 전체 on/off, 오른쪽 ▾는 노선별로 고르는 목록 */}
+        <span className="relative flex items-center">
+          <button
+            onClick={onToggleExtra}
+            title="대구 주요 버스 노선을 한 번에 켜고 끕니다 (실증 차량은 이 노선을 달리지 않습니다)"
+            className={`rounded-l-full border border-r-0 px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+              showExtra ? 'border-sky-500/50 bg-sky-500/15 text-sky-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
+            }`}
+          >
+            + 주요 노선 {visibleExtraCount}/{EXTRA_ROUTES.length}
+          </button>
+          <button
+            onClick={onToggleExtraOpen}
+            aria-label="주요 노선 목록"
+            title="노선별로 켜고 끄기"
+            className={`rounded-r-full border px-1.5 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+              showExtra ? 'border-sky-500/50 bg-sky-500/15 text-sky-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
+            }`}
+          >
+            ▾
+          </button>
+          {extraOpen && (
+            <div className="absolute left-0 top-7 z-[1001] w-[236px] rounded-xl border border-gray-700 bg-gray-900/95 p-2 shadow-2xl">
+              <div className="flex flex-wrap gap-1">
+                {EXTRA_ROUTES.map((r) => {
+                  const off = hidden.has(r.id)
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => onToggle(r.id)}
+                      title={`${r.name}${r.ends ? ` · ${r.ends}` : ''}${r.lengthKm ? ` · ${r.lengthKm}km` : ''}`}
+                      className={`flex items-center gap-1 rounded-full border px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                        off ? 'border-gray-700 bg-gray-900/85 text-gray-500' : 'border-gray-600 bg-gray-800/90 text-gray-100'
+                      }`}
+                    >
+                      <span className="h-[3px] w-3 rounded-full" style={{ background: off ? '#4b5563' : r.color }} />
+                      {r.name}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="mt-1.5 flex gap-1 border-t border-gray-800 pt-1.5">
+                <button onClick={() => onBulk(true)} className="flex-1 rounded-lg bg-gray-800 px-2 py-1 text-[10px] font-bold text-gray-200">
+                  전체 켜기
+                </button>
+                <button onClick={() => onBulk(false)} className="flex-1 rounded-lg bg-gray-800 px-2 py-1 text-[10px] font-bold text-gray-400">
+                  전체 끄기
+                </button>
+              </div>
+            </div>
+          )}
+        </span>
         <button
           onClick={onToggleRoads}
           title="여러 노선이 함께 타는 간선 축만 깔아 «버스가 실제로 다니는 길»이 보이게 합니다 (버스가 지나지 않는 도로는 그리지 않습니다)"
@@ -422,6 +474,8 @@ export default function MapView({
   const [showExtra, setShowExtra] = useState(true)
   const [showRoads, setShowRoads] = useState(true)
   const visibleRoutes = useMemo(() => ROUTES.filter((r) => !hidden.has(r.id)), [hidden])
+  const visibleExtra = useMemo(() => EXTRA_ROUTES.filter((r) => !hidden.has(r.id)), [hidden])
+  const [extraOpen, setExtraOpen] = useState(false)
   /*
    * 배경 교통 — 켜 둔 레이어 위에만 달린다. 노선을 껐는데 그 위에 버스가 남아 있으면
    * 「저 버스는 무엇을 타고 있나」가 설명되지 않는다.
@@ -433,8 +487,11 @@ export default function MapView({
     // 멈춰 선 점들이 «고장난 것»처럼 보이고, 한 회차를 보는 지도에 남의 버스는 방해다
     if (simTime <= 0 || liveReal) return []
     const all = backgroundBuses(simTime)
-    return all.filter((b) => (b.kind === '주요 노선' ? showExtra : showRoads))
-  }, [simTime, showExtra, showRoads])
+    // 노선을 끄면 그 위 버스도 함께 꺼진다 — 선이 없는데 버스만 떠 있으면 «무엇을 타고 있나»가 설명되지 않는다
+    return all.filter((b) =>
+      b.kind === '주요 노선' ? showExtra && !!b.routeId && !hidden.has(b.routeId) : showRoads,
+    )
+  }, [simTime, showExtra, showRoads, hidden])
 
   const theme = useTheme()
 
@@ -456,7 +513,7 @@ export default function MapView({
 
       {/* 주요 노선 — 표시 전용. 실증 노선보다 얇고 흐리게 깔아 주인공을 가리지 않는다 */}
       {showExtra &&
-        EXTRA_ROUTES.map((r) => (
+        visibleExtra.map((r) => (
           <Polyline
             key={r.id}
             positions={r.points}
@@ -528,6 +585,16 @@ export default function MapView({
         }
         showExtra={showExtra}
         onToggleExtra={() => setShowExtra((v) => !v)}
+        extraOpen={extraOpen}
+        onToggleExtraOpen={() => setExtraOpen((v) => !v)}
+        visibleExtraCount={visibleExtra.length}
+        onBulk={(on) =>
+          setHidden((prev) => {
+            const next = new Set(prev)
+            EXTRA_ROUTES.forEach((r) => (on ? next.delete(r.id) : next.add(r.id)))
+            return next
+          })
+        }
         showRoads={showRoads}
         onToggleRoads={() => setShowRoads((v) => !v)}
         showLive={showLive}

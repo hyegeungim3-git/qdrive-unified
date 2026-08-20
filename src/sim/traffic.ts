@@ -16,6 +16,8 @@ export interface BgBus {
   id: string
   pos: LatLng
   color: string
+  /** 어느 노선 위를 달리는가 — 노선을 끄면 그 위 버스도 함께 꺼져야 한다 */
+  routeId?: string
   /** 무엇 위를 달리는가 — 툴팁에 그대로 쓴다 */
   on: string
   kind: '주요 노선' | '간선도로'
@@ -30,7 +32,7 @@ const PER_ROAD_SEG = 1
 /** 간선도로에서 배경 버스를 태울 최소 조각 길이(m) — 짧은 조각은 점처럼 보인다 */
 const MIN_ROAD_SEG_M = 900
 
-type Track = { key: string; idx: PolylineIndex; color: string; on: string; kind: BgBus['kind']; n: number }
+type Track = { key: string; idx: PolylineIndex; color: string; on: string; kind: BgBus['kind']; n: number; routeId?: string }
 
 /** 트랙은 한 번만 만든다 — 폴리라인 인덱싱은 비싸고 노선·도로는 변하지 않는다 */
 let cache: Track[] | null = null
@@ -40,7 +42,7 @@ function tracks(): Track[] {
   const out: Track[] = []
 
   EXTRA_ROUTES.forEach((r) => {
-    out.push({ key: `x:${r.id}`, idx: indexPolyline(r.points), color: r.color, on: r.name, kind: '주요 노선', n: PER_ROUTE })
+    out.push({ key: `x:${r.id}`, idx: indexPolyline(r.points), color: r.color, on: r.name, kind: '주요 노선', n: PER_ROUTE, routeId: r.id })
   })
 
   MAJOR_ROADS.forEach((rd) => {
@@ -86,6 +88,7 @@ export function backgroundBuses(simTime: number): BgBus[] {
         id: `${t.key}#${i}`,
         pos,
         color: t.color,
+        routeId: t.routeId,
         on: t.on,
         kind: t.kind,
       })

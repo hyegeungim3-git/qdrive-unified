@@ -722,14 +722,27 @@ export default function DriverApp() {
                     ✓ 설명 전달됨 — 관제 확인 후 반영
                   </span>
                 )}
+                {/*
+                  «접는다»는 위로 올려 보내는 동작이라 화살표도 위를 향해야 한다.
+                  ⌄·⌃ 같은 글리프는 폰트마다 베이스라인이 달라 아래로 처진다 — SVG로 그려 정중앙에 둔다.
+                */}
                 <button
                   onClick={foldBanner}
                   aria-label="알림 접기"
                   title="접어 두기 — 상단 🔔 소명에서 나중에 할 수 있습니다"
-                  className="shrink-0 rounded-lg px-2 py-2 text-base font-black leading-none"
-                  style={{ background: 'rgba(254, 202, 202, 0.14)', color: '#fecaca' }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{ background: 'rgba(254, 202, 202, 0.14)' }}
                 >
-                  ⌄
+                  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                    <path
+                      d="M3.5 10.5 L8 6 L12.5 10.5"
+                      fill="none"
+                      stroke="#fecaca"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </button>
               </div>
               )}

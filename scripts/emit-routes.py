@@ -14,15 +14,19 @@ DRIVEN = {
 # 표시 전용 — 지도에만 깔린다
 # 급행5는 OSM에 이어진 도로가 4.4km뿐이라 뺐다 — 짧게 잘린 선을 «주요 노선»이라 깔면 지도가 거짓말을 한다
 EXTRA = {
-    # 중구 도심·달구벌대로·신천대로·앞산을 지나는 노선을 우선으로 골랐다 — 지도에서 그 축이 보이게
-    '급행2':   dict(id='X2', road='달구벌대로·신천대로', color='#fb7185'),
-    '순환3':   dict(id='X3', road='신천대로·앞산순환로', color='#c084fc'),
-    '순환3-1': dict(id='X31', road='앞산순환로·달구벌대로(역방향)', color='#a3e635'),
-    '급행6':   dict(id='X6', road='칠곡중앙대로·성서로', color='#14b8a6'),
-    '순환2-1': dict(id='X21', road='도심 순환로(역방향)', color='#60a5fa'),
-    '급행4':   dict(id='X4', road='앞산순환로·달서로', color='#f59e0b'),
-    # 달구벌대로를 실제로 가로지르는 노선 중 지도에 없던 마지막 하나(교차 판정으로 확인)
-    '급행7':   dict(id='X7', road='대구대로·달구벌대로 교차', color='#f472b6'),
+    # OSM에 형상이 있는 대구 노선 전부. 매핑이 부분적인 노선은 툴팁이 «전체 노선 A ↔ B 중 매핑된 구간»으로 밝힌다
+    '급행2':   dict(id='X2', road='', color='#fb7185'),
+    '급행4':   dict(id='X4', road='', color='#f59e0b'),
+    '급행5':   dict(id='X5', road='', color='#e879f9'),
+    '급행6':   dict(id='X6', road='', color='#14b8a6'),
+    '급행7':   dict(id='X7', road='', color='#f472b6'),
+    '급행8':   dict(id='X8', road='', color='#f97316'),
+    '급행8-1': dict(id='X81', road='', color='#06b6d4'),
+    '급행9':   dict(id='X9', road='', color='#a78bfa'),
+    '급행9-1': dict(id='X91', road='', color='#facc15'),
+    '순환2-1': dict(id='X21', road='', color='#60a5fa'),
+    '순환3':   dict(id='X3', road='', color='#c084fc'),
+    '순환3-1': dict(id='X31', road='', color='#a3e635'),
 }
 
 
@@ -42,6 +46,17 @@ def fmt_stops(stops):
     return '\n'.join(f"      {{ name: '{s['name']}', at: {s['at']} }}," for s in stops)
 
 
+def drawn_ends(r):
+    """
+    지도에 실제로 그린 구간의 기·종점. 관계 태그의 from/to 는 **전체 노선**이라
+    OSM에 일부만 매핑된 노선에서는 선과 라벨이 어긋난다(급행1: 태그 «동화사↔다사» / 그린 구간 동구청~동화교).
+    """
+    st = r.get('stops') or []
+    if len(st) >= 2:
+        return f"{st[0]['name']} ↔ {st[-1]['name']}"
+    return f"{r.get('from') or ''} ↔ {r.get('to') or ''}"
+
+
 def block(r, meta, loop):
     pts = [tuple(p) for p in r['points']]
     if loop:
@@ -56,7 +71,8 @@ def block(r, meta, loop):
     color: '{meta['color']}',
     loop: {'true' if loop else 'false'},
     osm: {r['osm']},
-    ends: '{r.get('from') or ''} ↔ {r.get('to') or ''}',
+    ends: '{drawn_ends(r)}',
+    full: '{r.get('from') or ''} ↔ {r.get('to') or ''}',
     lengthKm: {round(r['lengthM'] / 1000, 1)},
     points: [
 {fmt_pts([list(p) for p in pts])}
@@ -104,8 +120,10 @@ export interface BusRoute {
   stops: BusStop[]
   /** 출처 노선 관계 id — 재수집·검증용 */
   osm?: number
-  /** 기점 ↔ 종점 */
+  /** 지도에 그린 구간의 기·종점 (정류장 기준) */
   ends?: string
+  /** 관계 태그의 전체 노선 기·종점 — 그린 구간은 이 중 매핑된 일부일 수 있다 */
+  full?: string
   lengthKm?: number
 }
 

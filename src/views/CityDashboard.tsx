@@ -764,7 +764,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                 <div className="flex items-center justify-between gap-2">
                   <span className="min-w-0 text-gray-400">
                     {bis.matchedRoutes.join(' · ')} — 지도에서 <b className="text-sky-400">아웃라인 버스</b>가
-                    실차 (시뮬레이션과 나란히 표시)
+                    실차 — 실데이터가 오는 동안 시뮬레이션 차량은 표시를 멈춥니다
                   </span>
                   <button
                     onClick={stopBis}

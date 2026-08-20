@@ -412,7 +412,17 @@ AI 업무센터·에이전트 플랫폼은 최상위 탭에서 해체돼 각 소
 - **⚠ 빌드 크래시(0xC0000409 STATUS_STACK_BUFFER_OVERRUN) — 이 PC 환경 문제다**: `vite build`가 «modules transformed» 직후 네이티브 크래시로 죽는다. 2026-08-20 오후부터 재현.
   - **결정적 증거: 손대지 않은 qdrive-ontology 저장소(모듈 317개, 별도 node_modules)도 똑같이 죽는다.** 우리 코드·데이터와 무관하다.
   - 배제한 것: ①노선 데이터 크기(좌표 **6점짜리 축소본**도 죽는다) ②`node_modules/.vite` 캐시 ③`dist` 잔존 ④Tailwind 플러그인 ⑤minify 끄기 ⑥`RUST_MIN_STACK=64MB` ⑦`node --stack-size=16000` ⑧코드 분할 켜기 ⑨개발 서버 종료 ⑩메모리·디스크(8GB·50GB 여유) ⑪Node 버전 변경 없음(2026-01-12 설치 그대로).
-  - **대응**: 같은 날 오전에는 같은 소스가 잘 빌드됐으므로 **PC 재부팅 후 재시도**가 가장 유력하다. 빌드가 되면 배포는 `npx wrangler pages deploy dist --project-name qdrive-unified --branch main --commit-dirty=true`.
+  - **범위**: 이 PC의 Windows 환경 한정이다. **리눅스 CI(GitHub Actions)에서는 같은 커밋이 정상 빌드된다** — 확인됨.
+  - **두 저장소가 다 죽는 것은 «PC 전체 문제»의 증거가 아니었다**: 둘 다 pnpm 저장소의 **같은 rolldown 네이티브 바이너리 하나**를 하드링크로 공유한다(SHA256 동일, 21MB). 파일 자체는 오늘 바뀌지 않았다(수정일 8/15).
+  - **의심 대상**: 백신 **알약**(Defender 실시간보호는 꺼져 있고 알약이 활성)이 오늘 13:02~13:07에 시그니처를 갱신했다. 큰 네이티브 모듈에 대한 실시간 감시가 `__fastfail`(스택 쿠키/CFG 위반)을 일으키는 것은 알려진 패턴이다. **확인 방법(사용자가 직접)**: 알약에서 프로젝트 폴더와 `%LOCALAPPDATA%\pnpm` 을 검사 제외로 등록하거나 실시간 감시를 잠시 끄고 빌드. 그래도 안 되면 PC 재시작.
+  - **막혀도 배포는 된다 — CI 우회 경로**: `.github/workflows/cloudflare-deploy.yml` 이 빌드 후 `dist` 를 아티팩트로 남긴다.
+    ```
+    gh run list --workflow=cloudflare-deploy.yml --limit 1
+    gh run download <run-id> -n dist -D <임시폴더>
+    npx wrangler pages deploy <임시폴더> --project-name qdrive-unified --branch main --commit-dirty=true
+    ```
+    2026-08-20 실제로 이 경로로 배포했다(번들 `index-pDLGs4cK.js`).
+  - **CI 자동 배포는 토큰만 넣으면 끝난다**: `CLOUDFLARE_API_TOKEN` 시크릿이 비어 있어 지금까지 Cloudflare 잡이 **매번 실패**하고 있었다(GitHub Pages 잡은 계속 성공). 시크릿을 넣으면 push 만으로 정본이 갱신된다.
   - **번들 대조는 반드시**: 크래시 뒤 `dist/`에는 **옛 번들이 남는다**. 배포 전에 노선별 `lengthKm`과 끝 좌표가 번들에 있는지 grep 해서 현재 소스와 맞는지 확인할 것 — 안 그러면 «배포했는데 안 바뀐다»가 된다.
 - **도심에서 먼 노선 제외 (사용자 지시 «중심에서 너무 먼 노선은 빼도 될 듯»)**: 반월당 기준 **폴리라인 중앙값 거리 12km 이내**만 남겼다 — 급행4(17.0km)·급행8(15.9)·급행8-1(21.4)·급행9(21.4)·급행9-1(29.7)은 달성·군위 방면이라 제외. **급행5는 거리는 가깝지만 이어진 형상이 4.4km 토막**이라 노선이 되지 못해 함께 뺐다(그 19대가 전부 선 밖으로 뜨던 최악 사례). 결과: 운행 3 + 표시 6 = **9개 노선**, 표시용 버스 18대. **BIS 수신 목록도 같은 9개**로 맞췄다. 선 밖 비율 **52% → 24%**(남은 이탈은 대부분 급행1 — 우리 선 16.8km vs 실제 40km+).
 - **선 설명은 hover → 클릭으로 (2026-08-20, 사용자 요청 «이런 알림은 클릭하면 뜨면 좋겠어»)**

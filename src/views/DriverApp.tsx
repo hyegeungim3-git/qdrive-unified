@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { RiskEventType } from '../sim/types'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { engine, useSim } from '../sim/store'
 import { DEMO_VEHICLE_ID } from '../sim/engine'
@@ -117,19 +118,29 @@ export default function DriverApp() {
   const [folded, setFolded] = useState(false)
   /* 소명이 전달되면 15초를 다 채우지 않고 곧 닫는다 — 할 일이 끝났는데 남아 있으면 방해다 */
   const [sentAt, setSentAt] = useState<number | null>(null)
+  /*
+   * 접어 둔 소명은 사라지는 게 아니라 «알림 종»으로 간다.
+   * 운전 중에는 못 하고 신호 대기나 회차 때 하는 일이라, 15초 창이 닫혀도 기회는 남아야 한다.
+   */
+  const [pending, setPending] = useState<{ key: string; type: RiskEventType; speed: number; when: number; simTime: number }[]>([])
+  const [bellOpen, setBellOpen] = useState(false)
   useEffect(() => {
     // 새 이벤트마다 초기화
     setPleaState('idle')
     setFolded(false)
     setSentAt(null)
   }, [v.lastEventWall])
-  const startPlea = () => {
+  /**
+   * 소명 한 건을 접수한다 — 배너에서도, 나중에 알림 종에서도 같은 경로를 쓴다.
+   * @param label 어떤 이벤트에 대한 설명인지 (소명 문구에 남는다)
+   * @param onSent 접수 후 처리 (배너는 상태 전환, 종은 목록에서 제거)
+   */
+  const runPlea = (label: string, onSent: () => void, target?: { eventType: RiskEventType; simTime: number }) => {
     const w = window as unknown as Record<string, any>
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition
     const submit = (note: string, method: '음성' | '버튼') => {
-      engine.submitPlea(v.id, note, method)
-      setPleaState('sent')
-      setSentAt(Date.now())
+      engine.submitPlea(v.id, `${label} — ${note}`, method, target)
+      onSent()
     }
     if (!SR) return submit('방어 운전 상황 설명 (음성 미지원 환경 — 버튼 접수)', '버튼')
     try {
@@ -157,6 +168,26 @@ export default function DriverApp() {
     } catch {
       submit('방어 운전 상황 설명 (버튼 접수)', '버튼')
     }
+  }
+
+  /** 배너에서 바로 소명 */
+  const startPlea = () =>
+    runPlea(v.lastEvent?.eventType ?? '위험운전', () => {
+      setPleaState('sent')
+      setSentAt(Date.now())
+    })
+
+  /** 접기 — 배너를 닫고 그 건을 알림 종으로 넘긴다(이미 소명했으면 넘기지 않는다) */
+  const foldBanner = () => {
+    setFolded(true)
+    const e = v.lastEvent
+    if (pleaState === 'sent' || !e || !v.lastEventWall) return
+    const key = `${e.eventType}:${Math.round(e.simTime)}`
+    setPending((prev) =>
+      prev.some((x) => x.key === key)
+        ? prev
+        : [{ key, type: e.eventType, speed: e.speedKmh, when: v.lastEventWall!, simTime: e.simTime }, ...prev].slice(0, 5),
+    )
   }
   const co2Saved = Math.max(0, (v.baselineFuelM3 - v.fuelM3) * 2.2)
   const w = snap.weather
@@ -230,6 +261,45 @@ export default function DriverApp() {
                 {WEATHER_ICON[w.condition]} {w.condition} {w.tempC}°C
                 {w.condition === '폭우' && <b className="ml-1 text-sky-300">노면 주의</b>}
               </span>
+              {/* 소명 알림 종 — 접어 둔 건이 있을 때만. 하차벨(승객)과 헷갈리지 않게 «소명»을 붙여 적는다 */}
+              {pending.length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={() => setBellOpen((o) => !o)}
+                    title="접어 둔 상황 설명 — 지금 하거나 나중에 할 수 있습니다"
+                    className="flex items-center gap-1 rounded-md border border-amber-500/50 bg-amber-500/15 px-2.5 py-0.5 text-xs font-black text-amber-300"
+                  >
+                    🔔 소명 {pending.length}
+                  </button>
+                  {bellOpen && (
+                    <div className="absolute right-0 top-8 z-30 w-[320px] rounded-xl border border-gray-700 bg-gray-900 p-2 text-left shadow-2xl">
+                      <div className="px-1 pb-1.5 text-[11px] font-bold text-gray-400">접어 둔 상황 설명</div>
+                      {pending.map((it) => (
+                        <div key={it.key} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 hover:bg-gray-800/60">
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[12px] font-bold text-gray-100">{it.type}</div>
+                            <div className="text-[10.5px] text-gray-500">{it.speed} km/h · {Math.max(1, Math.round((Date.now() - it.when) / 1000))}초 전</div>
+                          </div>
+                          <button
+                            onClick={() =>
+                              runPlea(it.type, () => setPending((prev) => prev.filter((x) => x.key !== it.key)), {
+                                eventType: it.type,
+                                simTime: it.simTime,
+                              })
+                            }
+                            className="shrink-0 rounded-lg bg-amber-400/90 px-2.5 py-1.5 text-[11px] font-black text-amber-950"
+                          >
+                            🎙 설명하기
+                          </button>
+                        </div>
+                      ))}
+                      <div className="px-1 pt-1 text-[10px] leading-relaxed text-gray-600">
+                        운전 중에는 접어 두고, 신호 대기·회차 때 하셔도 됩니다.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <span className={`text-xs font-bold ${v.etasSubmitted ? 'text-emerald-400' : 'text-gray-600'}`}>
                 eTAS {v.etasSubmitted ? '제출완료 ✓' : '자동제출 대기'}
               </span>
@@ -618,17 +688,7 @@ export default function DriverApp() {
           )}
           {warnActive && v.lastEvent && !v.lastEvent.justified && !(sentAt !== null && Date.now() - sentAt > PLEA_LINGER) && (
             <div className="absolute inset-x-0 top-14 z-20 flex justify-center">
-              {folded ? (
-                /* 접힌 상태 — 무슨 일이 있었는지와 «다시 펼치기»만 남긴다. 소명 기회를 잃지 않게 */
-                <button
-                  onClick={() => setFolded(false)}
-                  className="warn-drop flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-2xl"
-                  style={{ background: 'rgba(127, 29, 29, 0.92)', border: '1px solid rgba(248, 113, 113, 0.45)', color: '#fecaca' }}
-                >
-                  ⚠️ {v.lastEvent.eventType}
-                  {pleaState === 'sent' ? ' · 설명 전달됨' : ' · 눌러서 상황 설명'}
-                </button>
-              ) : (
+              {folded ? null : (
               <div
                 className="warn-drop flex items-center gap-4 rounded-2xl px-6 py-3 shadow-2xl"
                 style={{ background: 'rgba(127, 29, 29, 0.96)', border: '1px solid rgba(248, 113, 113, 0.5)' }}
@@ -663,9 +723,9 @@ export default function DriverApp() {
                   </span>
                 )}
                 <button
-                  onClick={() => setFolded(true)}
+                  onClick={foldBanner}
                   aria-label="알림 접기"
-                  title="접어 두기 — 운행 화면을 가리지 않습니다"
+                  title="접어 두기 — 상단 🔔 소명에서 나중에 할 수 있습니다"
                   className="shrink-0 rounded-lg px-2 py-2 text-base font-black leading-none"
                   style={{ background: 'rgba(254, 202, 202, 0.14)', color: '#fecaca' }}
                 >

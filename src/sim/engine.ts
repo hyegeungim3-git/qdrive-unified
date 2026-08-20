@@ -350,17 +350,30 @@ export class SimEngine {
   }
 
   /** 기사 소명 — 급조작 직후 음성/버튼으로 즉시 기록 (마지막 이벤트에 귀속) */
-  submitPlea(vehicleId: string, note: string, method: '음성' | '버튼') {
+  /**
+   * 소명 접수.
+   * @param target 어느 이벤트에 대한 설명인지 — **나중에 하는 소명은 반드시 넘길 것.**
+   *   기본값(최신 이벤트)에 기대면 그 사이 새 이벤트가 나서 **엉뚱한 건에 붙고**,
+   *   최신 이벤트가 정당 인정이면 조용히 버려진다. 기사 앱 «알림 종»이 정확히 그 경로다.
+   */
+  submitPlea(
+    vehicleId: string,
+    note: string,
+    method: '음성' | '버튼',
+    target?: { eventType: RiskEventType; simTime: number },
+  ) {
     const v = this.vehicles.find((x) => x.id === vehicleId)
-    if (!v || !v.lastEvent || v.lastEvent.justified) return
+    if (!v) return
+    const ev = target ?? (v.lastEvent && !v.lastEvent.justified ? { eventType: v.lastEvent.eventType, simTime: v.lastEvent.simTime } : null)
+    if (!ev) return
     this.pleas.unshift({
       id: this.pleaSeq++,
       vehicleId,
       driverName: v.driverName,
-      eventType: v.lastEvent.eventType,
+      eventType: ev.eventType,
       note: note.trim() || '(내용 없음)',
       method,
-      simTime: v.lastEvent.simTime,
+      simTime: ev.simTime,
       status: '접수',
     })
     if (this.pleas.length > 20) this.pleas.pop()

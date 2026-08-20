@@ -378,6 +378,8 @@ function MsgView({
 }) {
   const [openRec, setOpenRec] = useState(false)
   const [openEvidence, setOpenEvidence] = useState(false)
+  /* 교차검증은 «물어보면 보여 주는» 것으로 둔다 — 답마다 늘 펼쳐 두면 정작 답이 밀린다 */
+  const [openCross, setOpenCross] = useState(false)
   const [openSrc, setOpenSrc] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -511,23 +513,7 @@ function MsgView({
           )}
         </div>
 
-        {r.cross && r.cross.length > 0 && (
-          <div className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2">
-            <div className="text-[10.5px] font-bold text-gray-100">교차검증 — 서로 다른 원천이 같은 사실을 말하는가</div>
-            <ul className="mt-1 space-y-1">
-              {r.cross.map((c, i) => (
-                <li key={i} className="break-keep text-[11.5px] leading-relaxed">
-                  <span className={c.ok ? 'text-emerald-300' : 'text-amber-300'}>{c.ok ? '✓' : '⚠'}</span>{' '}
-                  <span className="text-gray-400">
-                    {c.a} × {c.b}
-                  </span>
-                  <span className="text-gray-500"> — {c.what}</span>
-                  <div className="pl-4 text-gray-200">{c.result}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* 교차검증 본문은 아래 액션의 「교차검증 N건 보기」로 펼친다 — 근거·원본 기록과 같은 자리 */}
 
         {/* 「이 답이 말할 수 없는 것」 절은 사용자 요청으로 미표시.
             데이터(QaResult.limits)와 unlock→로드맵 딥링크는 엔진에 그대로 남아 있어 되살리면 바로 뜬다 */}
@@ -578,6 +564,12 @@ function MsgView({
                 onClick={() => setOpenEvidence((v) => !v)}
                 label={openEvidence ? '근거 접기' : `근거 ${r.evidence.length}항목 보기`}
               />
+              {r.cross && r.cross.length > 0 && (
+                <Action
+                  onClick={() => setOpenCross((v) => !v)}
+                  label={openCross ? '교차검증 접기' : `교차검증 ${r.cross.length}건 보기`}
+                />
+              )}
               {r.record && <Action onClick={() => setOpenRec((v) => !v)} label={openRec ? '원본 접기' : '원본 기록'} />}
               <Action
                 onClick={async () => {
@@ -614,6 +606,24 @@ function MsgView({
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {openCross && r.cross && r.cross.length > 0 && (
+              <div className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2">
+                <div className="text-[10.5px] font-bold text-gray-100">교차검증 — 서로 다른 원천이 같은 사실을 말하는가</div>
+                <ul className="mt-1 space-y-1">
+                  {r.cross.map((c, i) => (
+                    <li key={i} className="break-keep text-[11.5px] leading-relaxed">
+                      <span className={c.ok ? 'text-emerald-300' : 'text-amber-300'}>{c.ok ? '✓' : '⚠'}</span>{' '}
+                      <span className="text-gray-400">
+                        {c.a} × {c.b}
+                      </span>
+                      <span className="text-gray-500"> — {c.what}</span>
+                      <div className="pl-4 text-gray-200">{c.result}</div>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 

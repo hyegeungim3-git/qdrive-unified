@@ -578,7 +578,11 @@ export default function MapView({
             <Tooltip sticky>
               <b>{r.name}</b> {r.ends ? `· ${r.ends}` : ''} {r.lengthKm ? `· ${r.lengthKm}km` : ''}
               {r.stops.length >= 3 && ` · 정류장 ${r.stops.length}`}
-              {r.full && r.full !== r.ends && <div className="opacity-70">전체 노선 {r.full} 중 매핑된 구간</div>}
+              {r.source === 'BIS 전 구간' ? (
+                <div className="opacity-70">대구 BIS 경유정류소 — 노선 전 구간</div>
+              ) : (
+                r.full && r.full !== r.ends && <div className="opacity-70">전체 노선 {r.full} 중 매핑된 구간</div>
+              )}
             </Tooltip>
           </Polyline>
         )

@@ -22,6 +22,8 @@ const ALLOWED_ORIGINS = [
 const ALLOWED_PATHS = [
   '/1613000/BusRouteInfoInqireService/getRouteNoList',
   '/1613000/BusLcInfoInqireService/getRouteAcctoBusLcList',
+  // 노선별 경유정류소 — 노선 전 구간 형상을 채우는 데 쓴다(수집은 1회, 결과는 소스에 박는다)
+  '/1613000/BusRouteInfoInqireService/getRouteAcctoThrghSttnList',
 ]
 
 export default {

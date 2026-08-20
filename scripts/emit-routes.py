@@ -70,6 +70,7 @@ def block(r, meta, loop):
     ends: '{drawn_ends(r)}',
     full: '{r.get('from') or ''} ↔ {r.get('to') or ''}',
     lengthKm: {round(r['lengthM'] / 1000, 1)},
+    source: '{'BIS 전 구간' if r.get('bis') else 'OSM 매핑 구간'}',
     points: [
 {fmt_pts([list(p) for p in pts])}
     ],
@@ -83,6 +84,16 @@ CENTER = (chr(10) + '/** 지도 초기 중심 — 반월당네거리 부근 */' 
           + 'export const DAEGU_CENTER: LatLng = [35.868, 128.585]' + chr(10))
 
 data = {r['ref']: r for r in json.load(io.open(SRC, encoding='utf-8'))}
+
+# BIS 경유정류소로 전 구간을 채운 노선은 그쪽을 쓴다(OSM 관계는 일부만 매핑돼 있다).
+# ends/full/roads 같은 메타는 OSM 쪽 값을 유지하고 형상·정류장만 갈아끼운다.
+import glob, os
+for f in glob.glob(os.path.join(os.path.dirname(SRC), 'bis_route_*.json')):
+    b = json.load(io.open(f, encoding='utf-8'))
+    ref = b['ref']
+    if ref in data:
+        data[ref] = {**data[ref], 'points': b['points'], 'stops': b['stops'], 'lengthM': b['lengthM'], 'bis': True}
+        print(f"  ↳ {ref}: BIS 전 구간으로 교체 — {len(b['stops'])}정류장 {b['lengthM']/1000:.1f}km")
 
 driven = [block(data[k], v, v['loop']) for k, v in DRIVEN.items() if k in data]
 extra = [block(data[k], v, False) for k, v in EXTRA.items() if k in data]
@@ -120,6 +131,8 @@ export interface BusRoute {
   ends?: string
   /** 관계 태그의 전체 노선 기·종점 — 그린 구간은 이 중 매핑된 일부일 수 있다 */
   full?: string
+  /** 이 선이 어디서 왔는가 — «BIS 전 구간»이면 노선 전체, «OSM 매핑 구간»이면 일부 */
+  source?: string
   lengthKm?: number
 }
 

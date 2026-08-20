@@ -175,6 +175,18 @@ html.light .bus-marker .label {
 html.light .bus-marker .bus-svg {
   filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.35));
 }
+/*
+ * 표시용 버스 — 실증 차량과 같은 버스 형태지만 «작고 옅다».
+ * 형태를 달리하면 정류장 핀과 헷갈리고(검수 지적), 크기까지 같으면 실증 9대와 섞인다.
+ */
+.bus-marker.bg-bus {
+  transform: translate(-9px, -6px) scale(0.62);
+  opacity: 0.85;
+}
+.bus-marker.bg-bus .bus-svg {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
 .bus-marker.warn .bus-svg {
   animation: bus-warn 0.9s ease-in-out infinite;
 }

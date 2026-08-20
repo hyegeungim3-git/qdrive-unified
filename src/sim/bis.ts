@@ -28,7 +28,11 @@ export interface BisState {
 
 const CITY_CODE = 22 // 대구광역시
 const POLL_MS = 15000
-export const DEFAULT_ROUTES = ['급행1', '급행3', '급행10', '순환2']
+/**
+ * 실데이터를 받아올 노선 — **지도에 그린 노선과 같아야 한다.**
+ * 4개만 받던 때는 지도에 선은 있는데 그 위에 실차가 없어 «데이터가 안 온다»로 읽혔다.
+ */
+export const DEFAULT_ROUTES = ['급행1', '급행2', '급행3', '급행4', '급행6', '급행7', '순환2', '순환2-1', '순환3', '순환3-1']
 const KEY_STORAGE = 'qdrive-bis-key'
 
 /**

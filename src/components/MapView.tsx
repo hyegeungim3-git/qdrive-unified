@@ -182,6 +182,7 @@ function MapHud({
   showLive,
   bgCount,
   drivenCount,
+  realCount,
 }: {
   showHeat: boolean
   hidden: Set<string>
@@ -196,6 +197,8 @@ function MapHud({
   bgCount: number
   /** 실증 차량 수 — 노선 수가 아니라 차량 수여야 한다 */
   drivenCount: number
+  /** BIS 실차 수 — 있으면 시뮬은 물러나고 이 숫자가 진짜다 */
+  realCount: number
 }) {
   const map = useMap()
   // 스크롤 휠만 지도로 전파 차단(지도 줌 방지). 클릭 전파는 막지 않는다 —
@@ -260,13 +263,22 @@ function MapHud({
             움직이는 점이 실증 9대보다 훨씬 많다. 툴팁에만 «표시용»이라 적으면 마우스를 올린 사람만 안다 —
             발표를 지켜보는 사람에게는 상시로 적혀 있어야 한다. 숫자는 실제 렌더 개수라 레이어를 끄면 따라 줄어든다.
           */}
-          {bgCount > 0 && (
+          {realCount > 0 ? (
             <span
-              title="표시용 버스는 거리·연료·CO₂·안전점수 등 실증 집계에 포함되지 않습니다"
-              className="rounded-full border border-gray-700 bg-gray-900/85 px-2 py-[3px] text-[10px] font-bold text-gray-400"
+              title="대구 BIS에서 받은 실제 차량 위치입니다 — 시뮬레이션 차량은 표시를 멈춥니다"
+              className="rounded-full border border-emerald-500/50 bg-emerald-500/15 px-2 py-[3px] text-[10px] font-bold text-emerald-300"
             >
-              표시용 {bgCount} · 실증 {drivenCount}대
+              📡 실차 {realCount}대 · 시뮬 표시 중지
             </span>
+          ) : (
+            bgCount > 0 && (
+              <span
+                title="표시용 버스는 거리·연료·CO₂·안전점수 등 실증 집계에 포함되지 않습니다"
+                className="rounded-full border border-gray-700 bg-gray-900/85 px-2 py-[3px] text-[10px] font-bold text-gray-400"
+              >
+                표시용 {bgCount} · 실증 {drivenCount}대
+              </span>
+            )
           )}
         </div>
       </div>
@@ -344,6 +356,20 @@ function busIcon(v: VehicleState, color: string, warn: boolean): L.DivIcon {
 }
 
 /** 이벤트를 ~110m 격자로 묶어 히트 서클 생성 */
+/**
+ * 표시용 버스 아이콘 — 실증 차량과 같은 버스 형태로 그리되 **차량번호 라벨이 없고 작다**.
+ * 점으로 그렸더니 «저건 정류장인가»가 됐고(검수 지적), 같은 크기로 그리면 실증 9대와 섞인다.
+ * 형태는 같게, 무게는 다르게.
+ */
+function bgBusIcon(color: string): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `<div class="bus-marker bg-bus"><span class="bus-body">${busSvg(color)}</span></div>`,
+    iconSize: [0, 0],
+  })
+}
+
+/** 이벤트를 ~110m 격자로 묶어 히트 서클 생성 */
 function heatCells(events: Packet409[]) {
   const cells = new Map<string, { lat: number; lng: number; count: number }>()
   for (const e of events) {
@@ -398,6 +424,12 @@ export default function MapView({
   /** 배경 교통을 움직이는 시뮬 시각(초). 0이면 정지한 채로 놓인다 */
   simTime?: number
 }) {
+  /*
+   * 실데이터가 들어오는 순간 시뮬 차량과 배경 교통은 물러난다.
+   * 같은 지도에 «실제 버스»와 «만들어 낸 버스»가 섞이면 어느 쪽을 보고 있는지 알 수 없다 —
+   * 실차가 있으면 그것만 보여 주는 편이 정직하고, 시연에서도 «지금은 진짜입니다»가 분명해진다.
+   */
+  const liveReal = realBuses.length > 0
   const cells = useMemo(() => (showHeat ? heatCells(events) : []), [events, showHeat])
   /* 노선 표시 상태 — 지도가 정보로 꽉 차면 정작 «어디를 지나는가»가 안 보인다 */
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
@@ -414,7 +446,7 @@ export default function MapView({
   const bgBuses = useMemo(() => {
     // simTime 을 안 넘기는 화면(운행 이력의 단일 회차 지도 등)에는 배경 교통을 두지 않는다 —
     // 멈춰 선 점들이 «고장난 것»처럼 보이고, 한 회차를 보는 지도에 남의 버스는 방해다
-    if (simTime <= 0) return []
+    if (simTime <= 0 || liveReal) return []
     const all = backgroundBuses(simTime)
     return all.filter((b) => (b.kind === '주요 노선' ? showExtra : showRoads))
   }, [simTime, showExtra, showRoads])
@@ -480,17 +512,11 @@ export default function MapView({
 
       {/* 배경 교통 — 주요 노선·간선도로 위를 달리는 표시용 버스 (실증 집계에 들어가지 않는다) */}
       {bgBuses.map((b) => (
-        <CircleMarker
-          key={b.id}
-          center={b.pos}
-          radius={2}
-          pane="bgTraffic"
-          pathOptions={{ stroke: false, fillColor: mapColor(b.color, theme === 'light', BG_ALPHA), fillOpacity: BG_ALPHA }}
-        >
-          <Tooltip direction="top" offset={[0, -4]}>
+        <Marker key={b.id} position={b.pos} icon={bgBusIcon(mapColor(b.color, theme === 'light', BG_ALPHA))} pane="bgTraffic">
+          <Tooltip direction="top" offset={[0, -8]}>
             {b.on} · {b.kind} 표시용 — 실증 집계에 포함되지 않습니다
           </Tooltip>
-        </CircleMarker>
+        </Marker>
       ))}
 
       {/* 위험운전 히트맵 */}
@@ -523,7 +549,8 @@ export default function MapView({
         onToggleRoads={() => setShowRoads((v) => !v)}
         showLive={showLive}
         bgCount={bgBuses.length}
-        drivenCount={vehicles.length}
+        drivenCount={liveReal ? 0 : vehicles.length}
+        realCount={realBuses.length}
       />
 
       {/* 돌발정보 — 영향 반경 서클 + 배지 마커 */}
@@ -579,8 +606,8 @@ export default function MapView({
         </Marker>
       ))}
 
-      {/* 버스 */}
-      {vehicles.map((v) => {
+      {/* 시뮬 버스 — 실데이터가 오면 물러난다 */}
+      {(liveReal ? [] : vehicles).map((v) => {
         const route = ROUTES.find((r) => r.id === v.routeId)!
         const warn = !!v.lastEventWall && Date.now() - v.lastEventWall < 6000
         return (

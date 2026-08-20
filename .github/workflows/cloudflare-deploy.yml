@@ -28,7 +28,9 @@ jobs:
     # 토큰은 여기서 한 번만 꺼낸다 — step 의 `if:` 에서는 secrets 컨텍스트를 쓸 수 없다(워크플로 오류).
     # env 컨텍스트는 쓸 수 있으므로 «토큰 있음/없음»을 이 값으로 판단한다.
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      # 시크릿 이름은 둘 다 받는다 — GitHub 시크릿은 이름을 바꿀 수 없어서,
+      # 다른 이름으로 등록했다면 토큰을 새로 발급해 다시 넣어야 한다. 그럴 필요 없게 둘을 본다.
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.KHG_TOKEN }}
       # 계정 ID는 비밀이 아니다 (토큰 없이는 아무것도 못 함)
       CLOUDFLARE_ACCOUNT_ID: f44e0d7e8009a556ea2cbca976dafcfb
     steps:

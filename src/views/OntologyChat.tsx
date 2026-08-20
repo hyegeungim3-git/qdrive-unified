@@ -793,14 +793,8 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
             .map((e) => `<tr><td>${esc(e.k)}</td><td class="num">${esc(e.v)}</td><td class="src-cell">${esc(e.src ?? '—')}</td></tr>`)
             .join('')}</tbody></table>`
         : ''
-      const cross = r.cross?.length
-        ? `<h3>교차검증 — 서로 다른 원천이 같은 사실을 말하는가</h3><table><thead><tr><th>원천 A</th><th>원천 B</th><th>확인한 것</th><th>결과</th><th>판정</th></tr></thead><tbody>${r.cross
-            .map(
-              (c) =>
-                `<tr><td>${esc(c.a)}</td><td>${esc(c.b)}</td><td>${esc(c.what)}</td><td>${esc(c.result)}</td><td class="${c.ok ? 'ok' : 'warn'}">${c.ok ? '통과' : '주의'}</td></tr>`,
-            )
-            .join('')}</tbody></table>`
-        : ''
+      /* 교차검증은 문서에서 뺀다 — 화면의 «교차검증 N건 보기»로만 본다(사용자 요청).
+         데이터(QaResult.cross)는 그대로 있어 되살리면 바로 표가 돌아온다. */
       const rec = r.record
         ? `<h3>원본 기록 — ${esc(r.record.title)}</h3><table class="rec"><tbody>${r.record.fields
             .map((f) => `<tr><th>${esc(f.k)}</th><td>${esc(f.v)}</td></tr>`)
@@ -826,7 +820,7 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
         <p class="headline">${esc(r.headline)}</p>
         ${meta.length ? `<p class="meta">${meta.join('<br>')}</p>` : ''}
         <p class="detail">${bold(r.detail)}</p>
-        ${sec}${ev}${cross}${rec}${walk}${src}
+        ${sec}${ev}${rec}${walk}${src}
       </section>`
     })
     .join('')
@@ -836,30 +830,42 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
 <style>
   @page { size: A4; margin: 16mm; }
   * { box-sizing: border-box; }
+
+  /* 본문 서체는 앱과 같은 Paperlogy — 화면에서 보던 것과 문서가 따로 놀지 않게.
+     경로를 절대 주소로 박는 이유: 이 문서는 새 탭(about:blank)에 써 넣거나 파일로 저장돼
+     열리므로, 상대 경로면 폰트를 못 찾는다. 앱을 쓰는 동안 이미 받아 둔 파일이라 다시 받지 않는다. */
+  @font-face { font-family: 'Paperlogy'; src: url('${location.origin}/fonts/Paperlogy-4Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'Paperlogy'; src: url('${location.origin}/fonts/Paperlogy-6SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+  @font-face { font-family: 'Paperlogy'; src: url('${location.origin}/fonts/Paperlogy-7Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+
   body { margin: 0; background: #f3f4f6; color: #111827;
-    font-family: -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; font-size: 11.5px; line-height: 1.65; word-break: keep-all; }
+    font-family: 'Paperlogy', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    font-size: 12px; line-height: 1.7; letter-spacing: -.01em; word-break: keep-all;
+    -webkit-font-smoothing: antialiased; }
+  /* 숫자는 자릿수가 맞아야 표에서 눈으로 대조된다 */
+  table, .num, .meta, .headline { font-variant-numeric: tabular-nums; }
   .sheet { max-width: 190mm; margin: 24px auto; background: #fff; padding: 18mm 16mm; box-shadow: 0 1px 12px rgba(0,0,0,.12); }
   .bar { position: sticky; top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
     background: #111827; color: #e5e7eb; padding: 10px 16px; font-size: 12px; }
   .bar button { font: inherit; font-weight: 700; cursor: pointer; border: 0; border-radius: 6px; padding: 7px 14px; background: #0284c7; color: #fff; }
   .bar button:hover { background: #0369a1; }
   .bar span { opacity: .8; }
-  h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: -.3px; }
+  h1 { font-size: 21px; font-weight: 700; margin: 0 0 4px; letter-spacing: -.5px; }
   .head { border-bottom: 2px solid #111827; padding-bottom: 10px; margin-bottom: 18px; }
   .head p { margin: 2px 0; color: #4b5563; font-size: 11px; }
-  h2 { font-size: 14.5px; margin: 26px 0 8px; padding-bottom: 6px; border-bottom: 1px solid #d1d5db; }
+  h2 { font-size: 15px; font-weight: 700; margin: 26px 0 8px; padding-bottom: 6px; border-bottom: 1px solid #d1d5db; }
   h2 .no { display: inline-block; min-width: 20px; margin-right: 7px; color: #0284c7; }
   h3 { font-size: 12px; margin: 15px 0 5px; color: #0f172a; }
   h3 .src { margin-left: 8px; font-size: 10px; font-weight: 400; color: #6b7280; }
   .subject { margin: 0 0 6px; font-size: 11px; color: #0284c7; font-weight: 700; }
-  .headline { margin: 0 0 6px; font-size: 13.5px; font-weight: 700; }
-  .meta { margin: 0 0 10px; padding: 7px 10px; background: #f8fafc; border-left: 3px solid #0284c7; color: #374151; font-size: 10.5px; }
+  .headline { margin: 0 0 6px; font-size: 14px; font-weight: 700; letter-spacing: -.02em; }
+  .meta { margin: 0 0 10px; padding: 8px 11px; background: #f8fafc; border-left: 3px solid #0284c7; color: #374151; font-size: 11px; }
   .detail { margin: 0 0 6px; }
   ul, ol { margin: 4px 0 0; padding-left: 17px; }
   li { margin: 2px 0; }
   .trail li { color: #4b5563; font-size: 10.5px; }
   .dim { margin: 2px 0; color: #6b7280; font-size: 10.5px; }
-  table { width: 100%; border-collapse: collapse; margin: 6px 0 2px; font-size: 10.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 2px; font-size: 11px; }
   th, td { border: 1px solid #d1d5db; padding: 5px 7px; text-align: left; vertical-align: top; }
   thead th { background: #f3f4f6; font-size: 10px; }
   .rec th { width: 34%; background: #f9fafb; font-weight: 600; }
@@ -873,7 +879,7 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
   h2, h3 { break-after: avoid; }
   table, tr, li { break-inside: avoid; }
   @media print {
-    body { background: #fff; font-size: 10.5px; }
+    body { background: #fff; font-size: 11px; }
     .sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; }
     .bar { display: none; }
   }
@@ -944,11 +950,7 @@ function buildReport(items: ReportItem[], snap: SimSnapshot): string {
       r.evidence.forEach((e) => L.push(`| ${e.k} | ${e.v} | ${e.src ?? '-'} |`))
       L.push('')
     }
-    if (r.cross?.length) {
-      L.push('### 교차검증', '')
-      r.cross.forEach((c) => L.push(`- ${c.ok ? '통과' : '주의'} · ${c.a} × ${c.b} — ${c.what}: ${c.result}`))
-      L.push('')
-    }
+    /* 교차검증은 문서에서 뺀다 — 화면에서만 펼쳐 본다(HTML 보고서도 동일) */
     if (r.record) {
       L.push(`### 원본 기록 — ${r.record.title}`, '')
       r.record.fields.forEach((f) => L.push(`- ${f.k}: ${f.v}`))

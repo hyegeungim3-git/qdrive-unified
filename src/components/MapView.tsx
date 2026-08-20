@@ -78,21 +78,6 @@ const ROUTE_IDX = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points)]))
  * 간선도로 배경 — 도로는 변하지 않는다. memo로 묶지 않으면 엔진이 250ms마다 스냅샷을
  * 갈아끼울 때마다 폴리라인 수백 개가 다시 조정돼 지도가 눈에 띄게 느려진다.
  */
-/**
- * 배경 교통 전용 레이어를 만든다 — overlayPane(400)보다 아래(390)에 깔아
- * 표시용 버스가 정류장 핀·노선을 절대 덮지 않게 한다. JSX 순서에 기대면 다음 수정에서 쉽게 깨진다.
- */
-function BgTrafficPane() {
-  const map = useMap()
-  useEffect(() => {
-    if (!map.getPane('bgTraffic')) {
-      const pane = map.createPane('bgTraffic')
-      pane.style.zIndex = '390'
-    }
-  }, [map])
-  return null
-}
-
 const RoadLayer = memo(function RoadLayer({ light }: { light: boolean }) {
   /* 밝은 타일 위에서는 같은 앰버가 흰 종이에 노란 형광펜처럼 날아간다 — 라이트 모드는 진한 색으로 */
   const opacity = light ? 0.62 : 0.5
@@ -357,9 +342,9 @@ function busIcon(v: VehicleState, color: string, warn: boolean): L.DivIcon {
 
 /** 이벤트를 ~110m 격자로 묶어 히트 서클 생성 */
 /**
- * 표시용 버스 아이콘 — 실증 차량과 같은 버스 형태로 그리되 **차량번호 라벨이 없고 작다**.
- * 점으로 그렸더니 «저건 정류장인가»가 됐고(검수 지적), 같은 크기로 그리면 실증 9대와 섞인다.
- * 형태는 같게, 무게는 다르게.
+ * 표시용 버스 아이콘 — 실증 차량과 **같은 형태·같은 크기**. 구분은 «차량번호 라벨이 없다»로 한다.
+ * 크기를 줄였더니 같은 버스인데 멀리 있는 것처럼 보였다(사용자 지적). 도로 선 위에 떠야 하므로
+ * 기본 마커 pane(600)에 둔다 — 전용 pane(390)에 두면 도로·노선 아래로 깔려 가려진다.
  */
 function bgBusIcon(color: string): L.DivIcon {
   return L.divIcon({
@@ -466,8 +451,6 @@ export default function MapView({
         attribution='&copy; OpenStreetMap &copy; CARTO'
       />
 
-      <BgTrafficPane />
-
       {/* 간선도로 — 노선보다 먼저 그린다. 나중에 그리면 도로가 노선을 덮어 «어디서 가로지르는지»가 안 보인다 */}
       {showRoads && <RoadLayer light={theme === 'light'} />}
 
@@ -512,7 +495,7 @@ export default function MapView({
 
       {/* 배경 교통 — 주요 노선·간선도로 위를 달리는 표시용 버스 (실증 집계에 들어가지 않는다) */}
       {bgBuses.map((b) => (
-        <Marker key={b.id} position={b.pos} icon={bgBusIcon(mapColor(b.color, theme === 'light', BG_ALPHA))} pane="bgTraffic">
+        <Marker key={b.id} position={b.pos} icon={bgBusIcon(mapColor(b.color, theme === 'light', BG_ALPHA))}>
           <Tooltip direction="top" offset={[0, -8]}>
             {b.on} · {b.kind} 표시용 — 실증 집계에 포함되지 않습니다
           </Tooltip>

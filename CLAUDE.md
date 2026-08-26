@@ -225,7 +225,7 @@ AI 업무센터·에이전트 플랫폼은 최상위 탭에서 해체돼 각 소
 
 ## 온톨로지 스튜디오 → 별도 저장소로 분리 (2026-08-14)
 **이 저장소에는 더 이상 없다.** 사용자 지시로 `qdrive-ontology` 독립 저장소로 이관 — 운영 플랫폼은 이해관계자별 화면이 축이고 온톨로지 스튜디오는 문법·인과가 축이라 성격이 다르고, 여기 두면 최상위 탭이 11개가 되어 "누가 보는가" 단일 축이 흐려진다.
-- 저장소: https://github.com/hyegeungim3-git/qdrive-ontology · 라이브 https://hyegeungim3-git.github.io/qdrive-ontology/
+- 저장소: https://github.com/hyegeungim3-git/qdrive-ontology (**2026-08-26 비공개 전환**) · 라이브 **https://qdrive-ontology.pages.dev/** (Cloudflare Pages로 이전. 구 github.io 링크는 비공개 전환으로 404)
 - **시뮬레이터 코어(`src/sim/`)는 양쪽에 복제**돼 있다. 엔진을 고치면 두 저장소 모두 반영할 것.
 - 🔗 데이터 관리자(파이프라인)는 이 저장소에 그대로 남는다 — 온톨로지 ③단계(인스턴스 탐색기 포함)도 여기 유지.
 

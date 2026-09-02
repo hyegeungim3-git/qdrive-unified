@@ -19,10 +19,14 @@ import type { Theme } from './theme'
   그래도 **200으로 오는 오염(위 CARTO 워터마크)은 기계가 못 잡는다.**
   제공자를 바꿨으면 반드시 화면을 눈으로 볼 것.
 
-  체인 순서의 뜻 — 1순위는 «가장 예쁜 것», 2순위는 «가장 안 죽는 것»:
-  Stadia는 도메인 화이트리스트로 인증하는데 우리 도메인은 아직 우리가 등록한 게 아니다.
-  그래서 2순위는 어느 도메인에서도 200을 주는 VWorld로 두었다 — 1순위가 막혀도
-  지도가 «탁해지지» 않고 한글 지도로 자연스럽게 내려앉는다. OSM은 최후의 바닥이다.
+  체인 순서의 뜻 — **아무에게도 허락을 구하지 않아도 되는 것을 1순위로 둔다**:
+  VWorld(국토부)는 어느 도메인에서도 200을 주고 도로명·역명까지 순한글이다.
+  Stadia는 «도메인 화이트리스트»로 인증하는데 우리 도메인은 우리가 등록한 게 아니라
+  pages.dev가 통째로 허용 목록에 있어서 되는 것뿐이다 — 그게 바뀌면 401이 온다.
+  그래서 그쪽을 2순위로 내렸다. OSM은 최후의 바닥이다.
+
+  바꿔 얻은 것과 잃은 것: 순한글 도로명과 «등록 불필요»를 얻고, @2x 레티나를 잃었다.
+  되돌리려면 아래 배열에서 두 항목의 순서만 맞바꾸면 된다.
 */
 
 export type TileSource = {
@@ -57,23 +61,26 @@ const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreet
 export const CANARY_TILE = { z: 13, x: 7022, y: 3220 }
 
 /**
- * Stadia Alidade Smooth — CARTO Positron/Dark Matter의 직계 대체.
- * 같은 OpenMapTiles 스키마라 색·굵기·라벨 밀도가 거의 동일하고, 대구 지명이 한글로 나온다.
- * @2x 레티나 512px, z20까지 확인.
+ * Stadia Alidade Smooth — 2순위. CARTO Positron/Dark Matter의 직계 대체다.
+ * 같은 OpenMapTiles 스키마라 색·굵기·라벨 밀도가 거의 동일하고 @2x 레티나(512px)가 있다.
+ *
+ * 1순위가 아닌 이유는 품질이 아니라 **인증 방식**이다 — 도메인 화이트리스트로 막는데
+ * 우리 도메인은 아직 우리가 등록한 게 아니다(pages.dev가 통째로 허용 목록에 있어 되는 것).
+ * 등록을 마치면 여기를 다시 1순위로 올려도 된다. 그때는 레티나가 돌아온다.
+ *
+ * 라벨 어투도 다르다 — 도로명이 로마자 주·한글 병기(DONGSEONG-RO 2-GIL / 작게 동성로 2길)이고
+ * 시·구·동만 한글이 또렷하다. VWorld는 도로명·역명까지 순한글이다.
  */
 const STADIA_ATTR =
   '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> ' +
   OSM
 
 /**
- * VWorld (국토교통부 공간정보 오픈플랫폼) — 2순위.
+ * VWorld (국토교통부 공간정보 오픈플랫폼) — **1순위**.
  *
- * 여기 있는 이유가 중요하다. Stadia는 **도메인 화이트리스트**로 인증한다 —
- * 지금 라이브가 되는 것은 `pages.dev`가 통째로 허용 목록에 있어서지 우리가 등록해서가 아니다.
- * 그게 바뀌면 Stadia는 401을 준다. 그때 곧바로 «회색 보정 OSM»으로 떨어지면 지도가 탁해진다.
- *
- * VWorld는 **어느 도메인에서도 200**을 준다(미등록 임의 도메인으로 실측 확인).
- * 게다가 도로명·역명이 로마자 병기 없이 **순한글**이라, 이 데모에는 오히려 더 맞다.
+ * **어느 도메인에서도 200**을 준다(미등록 임의 도메인으로 실측 확인). 등록도 키도 필요 없다 —
+ * 배포 도메인이 바뀌든 프리뷰 링크가 매번 새로 생기든 지도가 깨지지 않는다.
+ * 게다가 도로명·역명이 로마자 병기 없이 **순한글**이라 대구 실증 데모에는 이쪽이 맞다.
  * 라이트(white)/다크(midnight) 쌍이 모두 있고 z18까지 커버한다(z19는 404).
  *
  * 주의 두 가지.
@@ -101,15 +108,6 @@ const OSM_DARK_FILTER = 'invert(1) hue-rotate(180deg) grayscale(0.75) brightness
 export const TILE_CHAIN: Record<Theme, TileSource[]> = {
   light: [
     {
-      id: 'stadia-smooth',
-      label: 'Stadia Alidade Smooth',
-      url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
-      attribution: STADIA_ATTR,
-      maxZoom: 20,
-      maxNativeZoom: 20,
-      detectRetina: true,
-    },
-    {
       id: 'vworld-white',
       label: 'VWorld white (국토부)',
       url: 'https://xdworld.vworld.kr/2d/white/service/{z}/{x}/{y}.png',
@@ -117,6 +115,15 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       maxZoom: 20,
       maxNativeZoom: 18,
       filter: VWORLD_LIGHT_FILTER,
+    },
+    {
+      id: 'stadia-smooth',
+      label: 'Stadia Alidade Smooth',
+      url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+      attribution: STADIA_ATTR,
+      maxZoom: 20,
+      maxNativeZoom: 20,
+      detectRetina: true,
     },
     {
       id: 'osm-light',
@@ -130,15 +137,6 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
   ],
   dark: [
     {
-      id: 'stadia-smooth-dark',
-      label: 'Stadia Alidade Smooth Dark',
-      url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
-      attribution: STADIA_ATTR,
-      maxZoom: 20,
-      maxNativeZoom: 20,
-      detectRetina: true,
-    },
-    {
       id: 'vworld-midnight',
       label: 'VWorld midnight (국토부)',
       url: 'https://xdworld.vworld.kr/2d/midnight/service/{z}/{x}/{y}.png',
@@ -146,6 +144,15 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       maxZoom: 20,
       maxNativeZoom: 18,
       filter: VWORLD_DARK_FILTER,
+    },
+    {
+      id: 'stadia-smooth-dark',
+      label: 'Stadia Alidade Smooth Dark',
+      url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+      attribution: STADIA_ATTR,
+      maxZoom: 20,
+      maxNativeZoom: 20,
+      detectRetina: true,
     },
     {
       id: 'osm-dark',

@@ -19,12 +19,25 @@ const INCIDENT_COLOR: Record<Incident['kind'], string> = { 사고: '#ef4444', �
 /** 영향 반경 (m) — 지도에 반투명 서클로 표시 */
 const INCIDENT_RADIUS: Record<Incident['kind'], number> = { 사고: 250, 고장: 120, 공사: 150, 기타: 0 }
 
-function incidentIcon(inc: Incident): L.DivIcon {
+/**
+ * 색 후광을 지도 배경에 «미리 섞어» 불투명한 옅은 색으로 만든다.
+ *
+ * 반투명(#RRGGBB + 알파)으로 두면 아래 노선·지명이 그대로 비쳐 아이콘이 지저분해진다.
+ * 눈에 보이는 색은 같은데 뒤가 안 비친다 — 합성 결과를 미리 계산해 두는 것이 요령이다.
+ */
+function tintOn(hex: string, light: boolean, ratio = 0.17): string {
+  const bg = light ? [255, 255, 255] : [11, 15, 23]
+  const n = parseInt(hex.slice(1), 16)
+  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  return '#' + rgb.map((v, i) => Math.round(v * ratio + bg[i] * (1 - ratio)).toString(16).padStart(2, '0')).join('')
+}
+
+function incidentIcon(inc: Incident, light: boolean): L.DivIcon {
   const c = INCIDENT_COLOR[inc.kind]
   return L.divIcon({
     className: '',
     html: `<div class="incident-marker${inc.status === '발생' ? ' fresh' : ''}">
-      <span class="badge" style="border-color:${c};background:${c}2b">${INCIDENT_ICON[inc.kind]}</span>
+      <span class="badge" style="border-color:${c};background:${tintOn(c, light)}">${INCIDENT_ICON[inc.kind]}</span>
       <span class="tag" style="color:${c};border-color:${c}66">${inc.kind} · ${inc.status}</span>
     </div>`,
     iconSize: [0, 0],
@@ -823,7 +836,7 @@ export default function MapView({
                 }}
               />
             )}
-            <Marker position={[i.lat!, i.lng!]} icon={incidentIcon(i)} zIndexOffset={500}>
+            <Marker position={[i.lat!, i.lng!]} icon={incidentIcon(i, theme === 'light')} zIndexOffset={500}>
               <Tooltip direction="top" offset={[0, -20]}>
                 <div style={{ fontSize: 11 }}>
                   <b>

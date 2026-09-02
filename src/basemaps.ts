@@ -9,11 +9,20 @@ import type { Theme } from './theme'
   Leaflet의 tileerror도 안 뜨고, 콘솔도 조용하고, 빌드도 통과한다.
   화면을 눈으로 보기 전에는 아무도 모른다.
 
-  그래서 두 가지를 한다.
+  그래서 세 가지를 한다.
   (1) 타일 URL을 컴포넌트에서 뜯어내 이 파일 한 곳에 둔다 — 제공자가 또 정책을 바꾸면
       MapView를 헤집지 않고 여기 배열 순서만 고친다.
-  (2) 폴백 체인을 둔다 — 다만 폴백은 «404·403·타임아웃»만 잡는다.
-      위 CARTO 사태 같은 200-워터마크는 기계가 못 잡는다. 사람 눈이 최종 검증이다.
+  (2) 폴백 체인을 둔다. 다만 «타일이 안 오는» 실패만 잡는다(404·타임아웃).
+  (3) 카나리아(MapView의 fetch)를 둔다 — Stadia는 등록 안 된 도메인에 401과 함께
+      «401 Error»가 그려진 정상 PNG를 주는데, 이건 <img>가 load로 처리해 (2)로는 안 잡힌다.
+
+  그래도 **200으로 오는 오염(위 CARTO 워터마크)은 기계가 못 잡는다.**
+  제공자를 바꿨으면 반드시 화면을 눈으로 볼 것.
+
+  체인 순서의 뜻 — 1순위는 «가장 예쁜 것», 2순위는 «가장 안 죽는 것»:
+  Stadia는 도메인 화이트리스트로 인증하는데 우리 도메인은 아직 우리가 등록한 게 아니다.
+  그래서 2순위는 어느 도메인에서도 200을 주는 VWorld로 두었다 — 1순위가 막혀도
+  지도가 «탁해지지» 않고 한글 지도로 자연스럽게 내려앉는다. OSM은 최후의 바닥이다.
 */
 
 export type TileSource = {
@@ -57,10 +66,28 @@ const STADIA_ATTR =
   OSM
 
 /**
- * Esri Canvas — 다크는 한국 커버리지가 온전하나, 라이트(World_Light_Gray_Base)는
- * 대구 z15에서 "Map data not yet available"가 뜬다. 그래서 다크 체인에만 넣는다.
+ * VWorld (국토교통부 공간정보 오픈플랫폼) — 2순위.
+ *
+ * 여기 있는 이유가 중요하다. Stadia는 **도메인 화이트리스트**로 인증한다 —
+ * 지금 라이브가 되는 것은 `pages.dev`가 통째로 허용 목록에 있어서지 우리가 등록해서가 아니다.
+ * 그게 바뀌면 Stadia는 401을 준다. 그때 곧바로 «회색 보정 OSM»으로 떨어지면 지도가 탁해진다.
+ *
+ * VWorld는 **어느 도메인에서도 200**을 준다(미등록 임의 도메인으로 실측 확인).
+ * 게다가 도로명·역명이 로마자 병기 없이 **순한글**이라, 이 데모에는 오히려 더 맞다.
+ * 라이트(white)/다크(midnight) 쌍이 모두 있고 z18까지 커버한다(z19는 404).
+ *
+ * 주의 두 가지.
+ * (1) @2x 레티나가 없다 — detectRetina를 켜면 전부 404가 된다.
+ * (2) 이 CDN 경로는 공식 문서에 없는 내부 경로다. VWorld 자체 지도 로더가 쓰는 주소라
+ *     막힐 가능성이 0은 아니다. 정본으로 승격하려면 vworld.kr에서 무료 인증키를 받아
+ *     공식 WMTS로 가야 하는데, **그쪽은 축 순서가 {z}/{y}/{x}로 뒤집힌다**:
+ *     https://api.vworld.kr/req/wmts/1.0.0/{KEY}/white/{z}/{y}/{x}.png
  */
-const ESRI_ATTR = 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+const VWORLD_ATTR =
+  '&copy; <a href="https://www.vworld.kr/">국토교통부 공간정보 오픈플랫폼(V-World)</a>'
+/* white는 지하철 노선을 고채도로, midnight은 전체를 짙은 남색으로 그린다 — 노선 폴리라인과 색이 경합한다 */
+const VWORLD_LIGHT_FILTER = 'saturate(0.25) brightness(1.03)'
+const VWORLD_DARK_FILTER = 'saturate(0.35) brightness(0.88) contrast(1.05)'
 
 /**
  * 최후 폴백 — OSM 표준 타일. 키가 필요 없고 죽는 일이 없다.
@@ -83,6 +110,15 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       detectRetina: true,
     },
     {
+      id: 'vworld-white',
+      label: 'VWorld white (국토부)',
+      url: 'https://xdworld.vworld.kr/2d/white/service/{z}/{x}/{y}.png',
+      attribution: VWORLD_ATTR,
+      maxZoom: 20,
+      maxNativeZoom: 18,
+      filter: VWORLD_LIGHT_FILTER,
+    },
+    {
       id: 'osm-light',
       label: 'OpenStreetMap (회색 보정)',
       url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -103,12 +139,13 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       detectRetina: true,
     },
     {
-      id: 'esri-dark',
-      label: 'Esri Dark Gray Canvas',
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-      attribution: ESRI_ATTR,
+      id: 'vworld-midnight',
+      label: 'VWorld midnight (국토부)',
+      url: 'https://xdworld.vworld.kr/2d/midnight/service/{z}/{x}/{y}.png',
+      attribution: VWORLD_ATTR,
       maxZoom: 20,
-      maxNativeZoom: 16,
+      maxNativeZoom: 18,
+      filter: VWORLD_DARK_FILTER,
     },
     {
       id: 'osm-dark',

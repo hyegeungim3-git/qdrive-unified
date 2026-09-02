@@ -315,7 +315,7 @@ html.light .bus-marker .bus-svg {
   line-height: 1;
   border-radius: 9999px;
   border: 2px solid;
-  backdrop-filter: blur(2px);
+  /* 배경을 불투명하게 미리 섞어 넣으므로(tintOn) 뒤를 흐릴 blur가 필요 없다 */
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 .incident-marker .tag {

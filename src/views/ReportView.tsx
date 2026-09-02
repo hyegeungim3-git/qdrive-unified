@@ -108,7 +108,7 @@ export default function ReportView() {
                   label={{ value: '도입', fill: '#38bdf8', fontSize: 11, fontWeight: 700, position: 'insideTopLeft', offset: 6 }}
                 />
                 <ReferenceLine y={avgBefore} stroke="#4b5563" strokeDasharray="4 3" />
-                <Line type="monotone" dataKey="kmPerM3" name="연비" stroke="#34d399" strokeWidth={2.5} dot={{ r: 3.5 }} />
+                <Line type="monotone" dataKey="kmPerM3" name="연비" stroke="#34d399" strokeWidth={2.5} dot={{ r: 3.5 }} isAnimationActive={false}/>
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -125,7 +125,7 @@ export default function ReportView() {
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="events" name="위험운전 이벤트" radius={[4, 4, 0, 0]}
                   fill="#f87171"
-                />
+                isAnimationActive={false}/>
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -277,8 +277,8 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                     <YAxis type="number" dataKey="y" domain={[1.8, 2.5]} name="연비" tick={chartTheme.tick} axisLine={false} tickLine={false} />
                     <ZAxis range={[26, 26]} />
                     <Tooltip {...chartTheme.tooltip} cursor={{ strokeDasharray: '3 3' }} />
-                    <Scatter data={corrPts} fill="rgba(56,189,248,0.5)" />
-                    <Scatter data={corrTrend} line={{ stroke: '#34d399', strokeWidth: 2.5, strokeDasharray: '7 5' }} shape={() => <g />} />
+                    <Scatter data={corrPts} fill="rgba(56,189,248,0.5)" isAnimationActive={false}/>
+                    <Scatter data={corrTrend} line={{ stroke: '#34d399', strokeWidth: 2.5, strokeDasharray: '7 5' }} shape={() => <g />} isAnimationActive={false}/>
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
@@ -311,7 +311,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                     <XAxis dataKey="name" tick={chartTheme.tick} axisLine={false} tickLine={false} />
                     <YAxis tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}t`} />
                     <Tooltip {...chartTheme.tooltip} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                    <Bar dataKey="t" fill="#38bdf8" radius={[6, 6, 0, 0]} barSize={30} />
+                    <Bar dataKey="t" fill="#38bdf8" radius={[6, 6, 0, 0]} barSize={30} isAnimationActive={false}/>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -324,7 +324,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                     <XAxis type="number" tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}t`} />
                     <YAxis type="category" dataKey="name" tick={{ ...chartTheme.tick, fontSize: 10 }} axisLine={false} tickLine={false} width={52} />
                     <Tooltip {...chartTheme.tooltip} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                    <Bar dataKey="t" fill="#34d399" radius={[0, 6, 6, 0]} barSize={16} />
+                    <Bar dataKey="t" fill="#34d399" radius={[0, 6, 6, 0]} barSize={16} isAnimationActive={false}/>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -436,7 +436,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                     <XAxis dataKey="name" tick={{ ...chartTheme.tick, fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}건`} />
                     <Tooltip {...chartTheme.tooltip} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                    <Bar dataKey="v" radius={[6, 6, 0, 0]} barSize={40}>
+                    <Bar dataKey="v" radius={[6, 6, 0, 0]} barSize={40} isAnimationActive={false}>
                       {evAgg.map((e) => (
                         <Cell key={e.name} fill={e.color} />
                       ))}

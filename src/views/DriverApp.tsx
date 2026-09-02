@@ -1057,8 +1057,8 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
                 <YAxis domain={[2.1, 2.8]} tick={{ fill: 'var(--color-gray-500)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: '#191f28', border: '1px solid #374151', borderRadius: 8, fontSize: 11 }} labelStyle={{ color: '#cbd5e1' }} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
-                <Line type="monotone" dataKey="me" name="내 연비" stroke="#38bdf8" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="avg" name="회사 평균" stroke="#6b7280" strokeDasharray="6 5" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="me" name="내 연비" stroke="#38bdf8" strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false}/>
+                <Line type="monotone" dataKey="avg" name="회사 평균" stroke="#6b7280" strokeDasharray="6 5" strokeWidth={2} dot={false} isAnimationActive={false}/>
               </LineChart>
             </ResponsiveContainer>
           </div>

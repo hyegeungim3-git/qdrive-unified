@@ -153,7 +153,7 @@ export default function BizSummary() {
                 <XAxis dataKey="m" tick={chartTheme.tick} axisLine={false} tickLine={false} />
                 <YAxis tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}만`} />
                 <Tooltip {...chartTheme.tooltip} formatter={(v) => [`${Number(v).toLocaleString()}만원`, '연료비 절감']} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                <Bar dataKey="v" fill="#38bdf8" radius={[7, 7, 0, 0]} barSize={30} />
+                <Bar dataKey="v" fill="#38bdf8" radius={[7, 7, 0, 0]} barSize={30} isAnimationActive={false}/>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -257,7 +257,7 @@ export default function BizSummary() {
               <XAxis type="number" dataKey="x" domain={[1, 50]} tick={chartTheme.tick} axisLine={false} tickLine={false} label={{ value: '전환 대수', position: 'insideBottom', offset: -2, fill: '#8899a6', fontSize: 11 }} />
               <YAxis tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}t`} />
               <Tooltip {...chartTheme.tooltip} formatter={(v) => [`${v}t/년`, 'CO₂ 감축']} labelFormatter={(l) => `${l}대 전환`} />
-              <Line type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2.5} dot={false} fill="rgba(56,189,248,.06)" />
+              <Line type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2.5} dot={false} fill="rgba(56,189,248,.06)" isAnimationActive={false}/>
               <ReferenceDot x={planN} y={plan.co2} r={6} fill="#34d399" stroke="#fff" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
@@ -290,12 +290,12 @@ export default function BizSummary() {
               <YAxis yAxisId="E" tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}`} />
               <YAxis yAxisId="D" orientation="right" domain={[40, 110]} tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
               <Tooltip {...chartTheme.tooltip} />
-              <Bar yAxisId="E" dataKey="e" name="충·방전(MWh)" radius={[2, 2, 0, 0]}>
+              <Bar yAxisId="E" dataKey="e" name="충·방전(MWh)" radius={[2, 2, 0, 0]} isAnimationActive={false}>
                 {v2gData.map((d, i) => (
                   <Cell key={i} fill={d.charge ? 'rgba(56,189,248,0.75)' : d.disch ? 'rgba(52,211,153,0.85)' : '#475569'} />
                 ))}
               </Bar>
-              <Line yAxisId="D" type="monotone" dataKey="d" name="전력수요(%)" stroke="#a78bfa" strokeWidth={2} strokeDasharray="5 4" dot={false} />
+              <Line yAxisId="D" type="monotone" dataKey="d" name="전력수요(%)" stroke="#a78bfa" strokeWidth={2} strokeDasharray="5 4" dot={false} isAnimationActive={false}/>
             </ComposedChart>
           </ResponsiveContainer>
         </div>

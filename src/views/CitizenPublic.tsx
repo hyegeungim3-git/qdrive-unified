@@ -201,7 +201,7 @@ export default function CitizenPublic() {
                   <XAxis dataKey="m" tick={chartTheme.tick} axisLine={false} tickLine={false} />
                   <YAxis tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}t`} />
                   <Tooltip {...chartTheme.tooltip} cursor={{ fill: 'rgba(3,178,108,0.08)' }} formatter={(v) => [`${v}t`, 'CO₂ 감축']} />
-                  <Bar dataKey="t" fill="#03b26c" radius={[9, 9, 0, 0]} barSize={30} />
+                  <Bar dataKey="t" fill="#03b26c" radius={[9, 9, 0, 0]} barSize={30} isAnimationActive={false}/>
                 </BarChart>
               </ResponsiveContainer>
             </div>

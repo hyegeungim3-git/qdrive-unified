@@ -3,7 +3,7 @@ import { Circle, CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer,
 import L from 'leaflet'
 import { useTheme } from '../theme'
 import type { Theme } from '../theme'
-import { TILE_CHAIN } from '../basemaps'
+import { CANARY_TILE, TILE_CHAIN } from '../basemaps'
 import { DAEGU_CENTER, EXTRA_ROUTES, ROUTES } from '../sim/routes'
 import type { BusRoute } from '../sim/routes'
 import { MAJOR_ROADS } from '../sim/roads'
@@ -534,6 +534,39 @@ function BaseTileLayer({ theme }: { theme: Theme }) {
       console.warn(`[basemap] ${chain[r].label} 타일을 못 받아 ${chain[r + 1].label}로 전환한다`)
       return r + 1
     })
+
+  /*
+    카나리아 — <img>로는 못 잡는 실패를 잡는다.
+
+    Stadia는 등록되지 않은 도메인에 «401 Error / Invalid Authentication»이 그려진
+    512×512 정상 PNG를 HTTP 401과 함께 돌려준다. 본문이 유효한 이미지라
+    브라우저 <img>는 이것을 load로 처리하고 Leaflet tileerror는 한 번도 안 뜬다 —
+    지도 전체가 에러 안내 그림으로 덮이는데 코드는 «정상»이라고 믿는다.
+    CARTO 워터마크와 정확히 같은 계열의 사고다.
+
+    다행히 그 401 응답에도 access-control-allow-origin: *가 붙어 있어
+    fetch로는 상태 코드를 볼 수 있다(체인의 세 제공자 모두 확인). 한 장만 찔러 본다.
+    상태를 못 읽는 경우(CORS 거부·네트워크 단절)에는 아무것도 하지 않는다 —
+    그쪽은 tileerror가 잡는 영역이고, 여기서 섣불리 내리면 멀쩡한 제공자를 버린다.
+  */
+  useEffect(() => {
+    const canary = src.url
+      .replace('{s}', 'a')
+      .replace('{r}', '')
+      .replace('{z}', String(CANARY_TILE.z))
+      .replace('{x}', String(CANARY_TILE.x))
+      .replace('{y}', String(CANARY_TILE.y))
+    const ac = new AbortController()
+    fetch(canary, { signal: ac.signal })
+      .then((res) => {
+        if (res.ok) return
+        console.warn(`[basemap] ${src.label} 카나리아 HTTP ${res.status} — 그림은 와도 인증이 거부됐다`)
+        demote()
+      })
+      .catch(() => {})
+    return () => ac.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src.id])
 
   // 색 보정은 타일 pane에만 건다 — 노선·버스는 overlay pane이라 같이 눌리지 않는다
   useEffect(() => {

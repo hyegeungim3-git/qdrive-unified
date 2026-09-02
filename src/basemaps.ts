@@ -38,6 +38,16 @@ export type TileSource = {
 const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'
 
 /**
+ * 카나리아로 찔러 볼 타일 한 장 — 대구 중심(z13).
+ *
+ * 아무 좌표나 쓰면 안 된다. 그 제공자가 원래 갖고 있지 않은 타일을 골라 404를 받으면
+ * 멀쩡한 제공자를 «죽었다»고 판정해 버린다. 이 좌표는 체인의 세 제공자 모두에서
+ * 200을 확인한 값이고, 지도가 실제로 쓰는 화면 범위 안이다.
+ * 제공자를 추가할 때는 이 타일이 그쪽에서도 200인지 먼저 확인할 것.
+ */
+export const CANARY_TILE = { z: 13, x: 7022, y: 3220 }
+
+/**
  * Stadia Alidade Smooth — CARTO Positron/Dark Matter의 직계 대체.
  * 같은 OpenMapTiles 스키마라 색·굵기·라벨 밀도가 거의 동일하고, 대구 지명이 한글로 나온다.
  * @2x 레티나 512px, z20까지 확인.

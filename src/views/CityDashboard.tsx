@@ -622,7 +622,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
         />
         {/* 날씨 칩 + LIVE — 한 줄에 둔다. 지도 HUD 안에 따로 띄우면 아래 노선 칩 줄과 겹친다 */}
         <div className="absolute left-3 top-3 z-[1000] flex max-w-[calc(100%-7rem)] flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 rounded-md border border-gray-800 bg-gray-900/90 px-3 py-1.5 text-xs text-gray-300">
+          <div className="flex items-center gap-2 rounded-md border border-gray-800 bg-gray-900 px-3 py-1.5 text-xs text-gray-300">
             {WEATHER_ICON[snap.weather.condition]} {snap.weather.tempC}°C
             <span className="text-gray-600">|</span>
             <span className="text-gray-500">대구광역시 · {simClock(snap.simTime)}</span>
@@ -633,8 +633,8 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
           onClick={() => setShowHeat((s) => !s)}
           className={`absolute right-3 top-3 z-[1000] rounded-md border px-3 py-1.5 text-xs font-semibold shadow-lg ${
             showHeat
-              ? 'border-red-500/40 bg-red-500/20 text-red-300'
-              : 'border-gray-700 bg-gray-900/90 text-gray-400'
+              ? 'border-red-500/40 map-on-red text-red-300'
+              : 'border-gray-700 bg-gray-900 text-gray-400'
           }`}
         >
           🔥 위험운전 히트맵 {showHeat ? 'ON' : 'OFF'}
@@ -650,7 +650,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                   key={no}
                   onClick={() => toggleRoute(no)}
                   className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold shadow ${
-                    on ? 'border-sky-500/50 bg-sky-500/20 text-sky-300' : 'border-gray-700 bg-gray-900/90 text-gray-600'
+                    on ? 'border-sky-500/50 map-on-sky text-sky-300' : 'border-gray-700 bg-gray-900 text-gray-600'
                   }`}
                 >
                   실 {no} {cnt}
@@ -659,7 +659,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
             })}
           </div>
         )}
-        <div className="absolute bottom-3 left-3 z-[1000] flex gap-3 rounded-md border border-gray-800 bg-gray-900/90 px-3 py-2 text-[11px]">
+        <div className="absolute bottom-3 left-3 z-[1000] flex gap-3 rounded-md border border-gray-800 bg-gray-900 px-3 py-2 text-[11px]">
           {ROUTES.map((r) => (
             <span key={r.id} className="flex items-center gap-1.5 text-gray-300">
               <span className="h-2 w-2 rounded-full" style={{ background: r.color }} />

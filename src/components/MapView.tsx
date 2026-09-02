@@ -65,7 +65,7 @@ function FlyTo({ target }: { target: { lat: number; lng: number; label?: string;
  */
 export function LiveBadge() {
   return (
-    <div className="flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-gray-900/90 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-lg">
+    <div className="flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-gray-900 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-lg">
       <span className="relative flex h-2 w-2">
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
@@ -234,7 +234,7 @@ function MapHud({
               onClick={() => onToggle(r.id)}
               title={`${r.name} · ${r.ends ?? ''}${r.lengthKm ? ` · ${r.lengthKm}km` : ''} — 눌러서 켜고 끄기`}
               className={`flex items-center gap-1 rounded-full border px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
-                off ? 'border-gray-700 bg-gray-900/85 text-gray-500' : 'border-gray-600 bg-gray-900/90 text-gray-100'
+                off ? 'border-gray-700 bg-gray-900 text-gray-500' : 'border-gray-600 bg-gray-900 text-gray-100'
               }`}
             >
               <span className="h-[3px] w-3 rounded-full" style={{ background: off ? '#4b5563' : r.color }} />
@@ -248,7 +248,7 @@ function MapHud({
             onClick={onToggleExtra}
             title="대구 주요 버스 노선을 한 번에 켜고 끕니다 (실증 차량은 이 노선을 달리지 않습니다)"
             className={`rounded-l-full border border-r-0 px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
-              showExtra ? 'border-sky-500/50 bg-sky-500/15 text-sky-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
+              showExtra ? 'border-sky-500/50 map-on-sky text-sky-200' : 'border-gray-700 bg-gray-900 text-gray-500'
             }`}
           >
             + 주요 노선 {visibleExtraCount}/{EXTRA_ROUTES.length}
@@ -258,13 +258,13 @@ function MapHud({
             aria-label="주요 노선 목록"
             title="노선별로 켜고 끄기"
             className={`rounded-r-full border px-1.5 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
-              showExtra ? 'border-sky-500/50 bg-sky-500/15 text-sky-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
+              showExtra ? 'border-sky-500/50 map-on-sky text-sky-200' : 'border-gray-700 bg-gray-900 text-gray-500'
             }`}
           >
             ▾
           </button>
           {extraOpen && (
-            <div className="absolute left-0 top-7 z-[1001] w-[236px] rounded-xl border border-gray-700 bg-gray-900/95 p-2 shadow-2xl">
+            <div className="absolute left-0 top-7 z-[1001] w-[236px] rounded-xl border border-gray-700 bg-gray-900 p-2 shadow-2xl">
               <div className="flex flex-wrap gap-1">
                 {EXTRA_ROUTES.map((r) => {
                   const off = hidden.has(r.id)
@@ -274,7 +274,7 @@ function MapHud({
                       onClick={() => onToggle(r.id)}
                       title={`${r.name}${r.ends ? ` · ${r.ends}` : ''}${r.lengthKm ? ` · ${r.lengthKm}km` : ''}`}
                       className={`flex items-center gap-1 rounded-full border px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
-                        off ? 'border-gray-700 bg-gray-900/85 text-gray-500' : 'border-gray-600 bg-gray-800/90 text-gray-100'
+                        off ? 'border-gray-700 bg-gray-900 text-gray-500' : 'border-gray-600 bg-gray-800 text-gray-100'
                       }`}
                     >
                       <span className="h-[3px] w-3 rounded-full" style={{ background: off ? '#4b5563' : r.color }} />
@@ -298,7 +298,7 @@ function MapHud({
           onClick={onToggleRoads}
           title="여러 노선이 함께 타는 간선 축만 깔아 «버스가 실제로 다니는 길»이 보이게 합니다 (버스가 지나지 않는 도로는 그리지 않습니다)"
           className={`rounded-full border px-2 py-[3px] text-[10px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
-            showRoads ? 'border-amber-500/50 bg-amber-500/15 text-amber-200' : 'border-gray-700 bg-gray-900/85 text-gray-500'
+            showRoads ? 'border-amber-500/50 map-on-amber text-amber-200' : 'border-gray-700 bg-gray-900 text-gray-500'
           }`}
         >
             간선도로 {MAJOR_ROADS.length}
@@ -318,7 +318,7 @@ function MapHud({
             bgCount > 0 && (
               <span
                 title="표시용 버스는 거리·연료·CO₂·안전점수 등 실증 집계에 포함되지 않습니다"
-                className="rounded-full border border-gray-700 bg-gray-900/85 px-2 py-[3px] text-[10px] font-bold text-gray-400"
+                className="rounded-full border border-gray-700 bg-gray-900 px-2 py-[3px] text-[10px] font-bold text-gray-400"
               >
                 표시용 {bgCount} · 실증 {drivenCount}대
               </span>
@@ -331,7 +331,7 @@ function MapHud({
       {showHeat && (
         <div
           ref={stop}
-          className="pointer-events-auto absolute bottom-[104px] right-3 z-[1000] rounded-lg border border-gray-700 bg-gray-900/95 px-2.5 py-2 text-[10px] shadow-xl"
+          className="pointer-events-auto absolute bottom-[104px] right-3 z-[1000] rounded-lg border border-gray-700 bg-gray-900 px-2.5 py-2 text-[10px] shadow-xl"
         >
           <div className="mb-1 font-bold text-red-300">🔥 위험운전 밀도</div>
           <div
@@ -348,7 +348,7 @@ function MapHud({
       {/* 줌 컨트롤 — 우하단, 44px 터치 타깃 (기본 zoomControl 대체) */}
       <div
         ref={stop}
-        className="pointer-events-auto absolute bottom-3 right-3 z-[1000] flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-900/95 shadow-xl"
+        className="pointer-events-auto absolute bottom-3 right-3 z-[1000] flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-900 shadow-xl"
       >
         <button
           onClick={() => map.setZoom(Math.min(map.getMaxZoom(), map.getZoom() + 1), { animate: false })}
@@ -560,7 +560,19 @@ function BaseTileLayer({ theme }: { theme: Theme }) {
     fetch(canary, { signal: ac.signal })
       .then((res) => {
         if (res.ok) return
-        console.warn(`[basemap] ${src.label} 카나리아 HTTP ${res.status} — 그림은 와도 인증이 거부됐다`)
+        /*
+          401·403에만 내려간다.
+
+          이 카나리아의 존재 이유는 «인증은 거부됐는데 그림은 정상으로 오는» 실패 하나다.
+          그 외(429·5xx·404)까지 내리면 일시적인 응답 한 번에 지도가 폴백(회색 보정 OSM)으로
+          굳어 시연 내내 탁한 지도를 보게 된다 — 실제로 그렇게 됐다.
+          그런 실패는 타일 자체도 함께 깨지므로 tileerror가 잡는 영역이다.
+        */
+        if (res.status !== 401 && res.status !== 403) {
+          console.warn(`[basemap] ${src.label} 카나리아 HTTP ${res.status} — 일시적일 수 있어 그대로 둔다`)
+          return
+        }
+        console.warn(`[basemap] ${src.label} 인증 거부(HTTP ${res.status}) — 그림은 와도 지도가 아니다`)
         demote()
       })
       .catch(() => {})

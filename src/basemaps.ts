@@ -19,14 +19,18 @@ import type { Theme } from './theme'
   그래도 **200으로 오는 오염(위 CARTO 워터마크)은 기계가 못 잡는다.**
   제공자를 바꿨으면 반드시 화면을 눈으로 볼 것.
 
-  체인 순서의 뜻 — **아무에게도 허락을 구하지 않아도 되는 것을 1순위로 둔다**:
-  VWorld(국토부)는 어느 도메인에서도 200을 주고 도로명·역명까지 순한글이다.
-  Stadia는 «도메인 화이트리스트»로 인증하는데 우리 도메인은 우리가 등록한 게 아니라
-  pages.dev가 통째로 허용 목록에 있어서 되는 것뿐이다 — 그게 바뀌면 401이 온다.
-  그래서 그쪽을 2순위로 내렸다. OSM은 최후의 바닥이다.
+  체인 순서의 뜻 — **글자가 가장 또렷한 것을 1순위로 둔다**:
+  Stadia는 @2x 주소가 있어 고밀도 화면에서 «같은 지도를 2배 픽셀로» 그린다.
+  VWorld에는 @2x가 없어 «한 단계 깊은 지도를 절반으로 축소»하는 우회를 쓰는데,
+  선명해지는 대신 **라벨이 절반 크기로 작아진다**. 시연에서 그게 읽기 어려웠다.
+  그래서 Stadia를 1순위로, VWorld를 2순위로 둔다. OSM은 최후의 바닥이다.
 
-  바꿔 얻은 것과 잃은 것: 순한글 도로명과 «등록 불필요»를 얻고, @2x 레티나를 잃었다.
-  되돌리려면 아래 배열에서 두 항목의 순서만 맞바꾸면 된다.
+  대신 Stadia는 «도메인 화이트리스트»로 인증하는데 우리 도메인은 우리가 등록한 게 아니라
+  pages.dev가 통째로 허용 목록에 있어서 되는 것뿐이다 — 그게 바뀌면 401이 온다.
+  그 401은 그림이 정상으로 오는 실패라 카나리아(MapView의 fetch)가 잡아
+  **어느 도메인에서도 200을 주는 VWorld**로 내려 준다. 지도가 사라지지는 않는다.
+  근본 해법은 stadiamaps.com 무료 도메인 등록이다(키가 아니라 화이트리스트라
+  저장소에 커밋할 비밀값이 생기지 않는다). 등록 전까지는 이 폴백이 안전망이다.
 */
 
 export type TileSource = {
@@ -73,26 +77,27 @@ const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreet
 export const CANARY_TILE = { z: 13, x: 7022, y: 3220 }
 
 /**
- * Stadia Alidade Smooth — 2순위. CARTO Positron/Dark Matter의 직계 대체다.
- * 같은 OpenMapTiles 스키마라 색·굵기·라벨 밀도가 거의 동일하고 @2x 레티나(512px)가 있다.
+ * Stadia Alidade Smooth — **1순위**. CARTO Positron/Dark Matter의 직계 대체다.
+ * 같은 OpenMapTiles 스키마라 색·굵기·라벨 밀도가 거의 동일하다.
  *
- * 1순위가 아닌 이유는 품질이 아니라 **인증 방식**이다 — 도메인 화이트리스트로 막는데
- * 우리 도메인은 아직 우리가 등록한 게 아니다(pages.dev가 통째로 허용 목록에 있어 되는 것).
- * 등록을 마치면 여기를 다시 1순위로 올려도 된다. 그때는 레티나가 돌아온다.
+ * 여기 있는 이유는 **@2x 주소**다. 고밀도 화면에서 «같은 지도를 2배 픽셀로» 받으므로
+ * 라벨 크기는 그대로 두고 선명해진다. VWorld의 우회 방식('zoom')은 선명해지는 대신
+ * 라벨이 절반 크기가 되는데, 시연에서 그게 읽기 어려웠다.
  *
- * 라벨 어투도 다르다 — 도로명이 로마자 주·한글 병기(DONGSEONG-RO 2-GIL / 작게 동성로 2길)이고
- * 시·구·동만 한글이 또렷하다. VWorld는 도로명·역명까지 순한글이다.
+ * 라벨 어투는 아쉬운 쪽이다 — 도로명이 로마자 주·한글 병기(DONGSEONG-RO 2-GIL /
+ * 작게 동성로 2길)이고 시·구·동만 한글이 또렷하다. VWorld는 도로명·역명까지 순한글이다.
+ * 순한글이 더 중요해지면 아래 배열에서 두 항목 순서만 맞바꾸면 된다.
  */
 const STADIA_ATTR =
   '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> ' +
   OSM
 
 /**
- * VWorld (국토교통부 공간정보 오픈플랫폼) — **1순위**.
+ * VWorld (국토교통부 공간정보 오픈플랫폼) — **2순위이자 실질적인 안전망**.
  *
  * **어느 도메인에서도 200**을 준다(미등록 임의 도메인으로 실측 확인). 등록도 키도 필요 없다 —
- * 배포 도메인이 바뀌든 프리뷰 링크가 매번 새로 생기든 지도가 깨지지 않는다.
- * 게다가 도로명·역명이 로마자 병기 없이 **순한글**이라 대구 실증 데모에는 이쪽이 맞다.
+ * Stadia가 도메인 인증으로 막히는 순간 여기로 내려오면 지도가 «탁해지지» 않는다.
+ * 도로명·역명이 로마자 병기 없이 **순한글**인 것도 이 데모에는 오히려 어울린다.
  * 라이트(white)/다크(midnight) 쌍이 모두 있고 z18까지 커버한다(z19는 404).
  *
  * 주의 두 가지.
@@ -127,6 +132,15 @@ const OSM_DARK_FILTER = 'invert(1) hue-rotate(180deg) grayscale(0.75) brightness
 export const TILE_CHAIN: Record<Theme, TileSource[]> = {
   light: [
     {
+      id: 'stadia-smooth',
+      label: 'Stadia Alidade Smooth',
+      url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+      attribution: STADIA_ATTR,
+      maxZoom: 20,
+      maxNativeZoom: 20,
+      hiDpi: 'url',
+    },
+    {
       id: 'vworld-white',
       label: 'VWorld white (국토부)',
       url: 'https://xdworld.vworld.kr/2d/white/service/{z}/{x}/{y}.png',
@@ -136,15 +150,6 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       maxNativeZoom: 18,
       hiDpi: 'zoom',
       filter: VWORLD_LIGHT_FILTER,
-    },
-    {
-      id: 'stadia-smooth',
-      label: 'Stadia Alidade Smooth',
-      url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
-      attribution: STADIA_ATTR,
-      maxZoom: 20,
-      maxNativeZoom: 20,
-      hiDpi: 'url',
     },
     {
       id: 'osm-light',
@@ -158,6 +163,15 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
   ],
   dark: [
     {
+      id: 'stadia-smooth-dark',
+      label: 'Stadia Alidade Smooth Dark',
+      url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+      attribution: STADIA_ATTR,
+      maxZoom: 20,
+      maxNativeZoom: 20,
+      hiDpi: 'url',
+    },
+    {
       id: 'vworld-midnight',
       label: 'VWorld midnight (국토부)',
       url: 'https://xdworld.vworld.kr/2d/midnight/service/{z}/{x}/{y}.png',
@@ -167,15 +181,6 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       maxNativeZoom: 18,
       hiDpi: 'zoom',
       filter: VWORLD_DARK_FILTER,
-    },
-    {
-      id: 'stadia-smooth-dark',
-      label: 'Stadia Alidade Smooth Dark',
-      url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
-      attribution: STADIA_ATTR,
-      maxZoom: 20,
-      maxNativeZoom: 20,
-      hiDpi: 'url',
     },
     {
       id: 'osm-dark',

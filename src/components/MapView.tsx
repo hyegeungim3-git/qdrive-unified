@@ -514,6 +514,28 @@ function simHeading(v: VehicleState): string {
 }
 
 /**
+ * 지금 화면의 devicePixelRatio — **바뀌면 다시 그린다.**
+ *
+ * 한 번 읽고 마는 값이 아니다. 창을 다른 모니터로 옮기거나 브라우저 확대를 바꾸면 달라지고,
+ * 로드 직후 잠깐 1이었다가 올라가기도 한다(이 프리뷰 창에서 실제로 1↔1.5를 오갔다).
+ * 그 순간의 값으로 고정해 버리면 Leaflet의 L.Browser.retina와 똑같은 함정에 빠진다 —
+ * 고밀도 화면인데 저해상도 타일을 받아 글자가 흐려진다.
+ *
+ * matchMedia의 resolution 질의는 «지금 dpr에서 벗어나는 순간»에 change를 준다.
+ * 그래서 dpr이 바뀔 때마다 구독을 새로 건다.
+ */
+function useDevicePixelRatio(): number {
+  const [dpr, setDpr] = useState(() => window.devicePixelRatio)
+  useEffect(() => {
+    const mq = window.matchMedia(`(resolution: ${dpr}dppx)`)
+    const on = () => setDpr(window.devicePixelRatio)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [dpr])
+  return dpr
+}
+
+/**
  * 배경지도 한 장.
  *
  * 제공자가 죽으면 다음 제공자로 스스로 내려간다 — 다만 폴백이 잡는 건 «타일이 안 오는» 경우뿐이다.
@@ -609,7 +631,7 @@ function BaseTileLayer({ theme }: { theme: Theme }) {
     devicePixelRatio»로 고정된다. 로드 시점에 dpr이 1이면 나중에 1.5가 되어도 영영 false다
     — 이 환경에서 실제로 그래서 타일이 1.5배로 늘어나 글자가 흐렸다.
   */
-  const hiDpi = window.devicePixelRatio > 1
+  const hiDpi = useDevicePixelRatio() > 1
   const url2x = hiDpi && src.hiDpi === 'url'
   const zoom2x = hiDpi && src.hiDpi === 'zoom'
 

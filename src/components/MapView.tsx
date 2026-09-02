@@ -512,11 +512,28 @@ function BaseTileLayer({ theme }: { theme: Theme }) {
   const src = chain[Math.min(rank, chain.length - 1)]
   const map = useMap()
 
-  // 제공자가 바뀌면 «죽었는지» 판정을 처음부터 다시 센다
-  const tally = useRef({ errors: 0, loaded: false })
+  // 제공자가 바뀌면 «죽었는지» 판정을 처음부터 다시 한다
+  const tally = useRef<{ errors: number; loaded: boolean; timer: number | null }>({
+    errors: 0,
+    loaded: false,
+    timer: null,
+  })
   useEffect(() => {
-    tally.current = { errors: 0, loaded: false }
+    const t = tally.current
+    if (t.timer != null) clearTimeout(t.timer)
+    tally.current = { errors: 0, loaded: false, timer: null }
+    return () => {
+      if (tally.current.timer != null) clearTimeout(tally.current.timer)
+    }
   }, [src.id])
+
+  /** 이 제공자를 포기하고 다음으로 내려간다 */
+  const demote = () =>
+    setRank((r) => {
+      if (r >= chain.length - 1) return r
+      console.warn(`[basemap] ${chain[r].label} 타일을 못 받아 ${chain[r + 1].label}로 전환한다`)
+      return r + 1
+    })
 
   // 색 보정은 타일 pane에만 건다 — 노선·버스는 overlay pane이라 같이 눌리지 않는다
   useEffect(() => {
@@ -540,17 +557,29 @@ function BaseTileLayer({ theme }: { theme: Theme }) {
         tileload: () => {
           tally.current.loaded = true
           tally.current.errors = 0
+          if (tally.current.timer != null) {
+            clearTimeout(tally.current.timer)
+            tally.current.timer = null
+          }
         },
         tileerror: () => {
           tally.current.errors += 1
-          // 한 장도 못 받은 채 넉 장이 깨지면 제공자가 죽은 것으로 본다.
-          // 이미 받아 본 적이 있으면 바다·경계 같은 일시적 결손일 수 있어 스무 장까지 참는다.
-          if (tally.current.errors < (tally.current.loaded ? 20 : 4)) return
-          setRank((r) => {
-            if (r >= chain.length - 1) return r
-            console.warn(`[basemap] ${chain[r].label} 타일을 못 받아 ${chain[r + 1].label}로 전환한다`)
-            return r + 1
-          })
+          // 이미 한 장이라도 받아 본 제공자라면 바다·경계 같은 일시적 결손일 수 있어 스무 장까지 참는다
+          if (tally.current.loaded) {
+            if (tally.current.errors >= 20) demote()
+            return
+          }
+          /*
+            한 장도 못 받았다 — 다만 «몇 장 깨지면»으로 세면 안 된다.
+            지도가 접힌 패널 안에 있거나 폭이 아직 0이면 타일을 서너 장밖에 안 부르는데,
+            그런 화면에서는 임계 장수를 영영 못 채워 지도가 빈 채로 남는다(실제로 겪었다).
+            대신 첫 실패에서 잠깐 기다렸다가 그래도 한 장도 없으면 죽은 것으로 본다.
+          */
+          if (tally.current.timer != null) return
+          tally.current.timer = window.setTimeout(() => {
+            tally.current.timer = null
+            if (!tally.current.loaded) demote()
+          }, 2500)
         },
       }}
     />

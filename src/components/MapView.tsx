@@ -1,7 +1,9 @@
-import { memo, useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTheme } from '../theme'
+import type { Theme } from '../theme'
+import { TILE_CHAIN } from '../basemaps'
 import { DAEGU_CENTER, EXTRA_ROUTES, ROUTES } from '../sim/routes'
 import type { BusRoute } from '../sim/routes'
 import { MAJOR_ROADS } from '../sim/roads'
@@ -498,6 +500,63 @@ function simHeading(v: VehicleState): string {
   return `${terminus} 방면`
 }
 
+/**
+ * 배경지도 한 장.
+ *
+ * 제공자가 죽으면 다음 제공자로 스스로 내려간다 — 다만 폴백이 잡는 건 «타일이 안 오는» 경우뿐이다.
+ * CARTO가 그랬듯 200으로 워터마크 박힌 타일을 주면 Leaflet은 성공으로 친다. 그건 눈으로 봐야 안다.
+ */
+function BaseTileLayer({ theme }: { theme: Theme }) {
+  const chain = TILE_CHAIN[theme]
+  const [rank, setRank] = useState(0)
+  const src = chain[Math.min(rank, chain.length - 1)]
+  const map = useMap()
+
+  // 제공자가 바뀌면 «죽었는지» 판정을 처음부터 다시 센다
+  const tally = useRef({ errors: 0, loaded: false })
+  useEffect(() => {
+    tally.current = { errors: 0, loaded: false }
+  }, [src.id])
+
+  // 색 보정은 타일 pane에만 건다 — 노선·버스는 overlay pane이라 같이 눌리지 않는다
+  useEffect(() => {
+    const pane = map.getPane('tilePane')
+    if (!pane) return
+    pane.style.filter = src.filter ?? ''
+    return () => {
+      pane.style.filter = ''
+    }
+  }, [map, src.filter])
+
+  return (
+    <TileLayer
+      key={`${src.id}-${theme}`}
+      url={src.url}
+      attribution={src.attribution}
+      maxZoom={src.maxZoom}
+      maxNativeZoom={src.maxNativeZoom}
+      detectRetina={src.detectRetina}
+      eventHandlers={{
+        tileload: () => {
+          tally.current.loaded = true
+          tally.current.errors = 0
+        },
+        tileerror: () => {
+          tally.current.errors += 1
+          // 한 장도 못 받은 채 넉 장이 깨지면 제공자가 죽은 것으로 본다.
+          // 이미 받아 본 적이 있으면 바다·경계 같은 일시적 결손일 수 있어 스무 장까지 참는다.
+          if (tally.current.errors < (tally.current.loaded ? 20 : 4)) return
+          setRank((r) => {
+            if (r >= chain.length - 1) return r
+            console.warn(`[basemap] ${chain[r].label} 타일을 못 받아 ${chain[r + 1].label}로 전환한다`)
+            return r + 1
+          })
+        },
+      }}
+    />
+  )
+}
+
 export default function MapView({
   vehicles,
   events,
@@ -560,11 +619,7 @@ export default function MapView({
       className="h-full w-full rounded-xl border border-gray-800"
       zoomControl={false}
     >
-      <TileLayer
-        key={theme}
-        url={`https://{s}.basemaps.cartocdn.com/${theme === 'dark' ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`}
-        attribution='&copy; OpenStreetMap &copy; CARTO'
-      />
+      <BaseTileLayer theme={theme} />
 
       {/* 간선도로 — 노선보다 먼저 그린다. 나중에 그리면 도로가 노선을 덮어 «어디서 가로지르는지»가 안 보인다 */}
       {showRoads && <RoadLayer light={theme === 'light'} />}

@@ -244,8 +244,8 @@ export default function PerformanceProof() {
           ))}
         </div>
         <div className="mt-3 rounded-lg border border-gray-800 bg-gray-900/50 px-4 py-2.5 text-[12px] leading-relaxed text-gray-400">
-          💡 <b className="text-gray-200">"성과가 검증되지 않으면 과금하지 않는다"</b>는 구조 자체가 신뢰를 상품으로 파는 증거 —
-          이 4단을 통과한 성과는 크레딧 자산·정산 근거·과금 정당성이 됩니다.
+          💡 <b className="text-gray-200">"검증되지 않은 성과는 확대하지 않는다"</b>는 원칙이 이 체계의 기준입니다 —
+          이 4단을 통과한 성과만 정책 보고·정산 근거로 쓰고, 통과하지 못한 항목은 보완·재검증 후 종료합니다.
         </div>
       </Panel>
     </div>

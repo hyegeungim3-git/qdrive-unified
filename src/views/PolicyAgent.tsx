@@ -321,8 +321,8 @@ function docToHtml(d: GovDoc): string {
     : ''
   return `<div style="font-family:'맑은 고딕',Malgun Gothic,sans-serif;max-width:760px;margin:0 auto;color:${DG.ink};font-size:13px;line-height:1.7">
     <div style="display:flex;justify-content:space-between;align-items:center;background:${DG.blue};color:#fff;padding:10px 18px">
-      <div><div style="font-size:15px;font-weight:800;letter-spacing:0.28em">대구광역시</div>
-      <div style="font-size:8.5px;letter-spacing:0.14em;opacity:.8">DAEGU METROPOLITAN CITY</div></div>
+      <div><div style="font-size:15px;font-weight:800;letter-spacing:0.28em">○○광역시</div>
+      <div style="font-size:8.5px;letter-spacing:0.14em;opacity:.8">METROPOLITAN CITY</div></div>
       <div style="text-align:right"><div style="font-size:11px;font-weight:700">${d.dept}</div><div style="font-size:9.5px;opacity:.8">${d.docNo}</div></div>
     </div>
     <div style="height:3px;background:${DG.gold};margin-bottom:16px"></div>
@@ -348,7 +348,7 @@ function docToHtml(d: GovDoc): string {
     </table>
     <div style="margin-top:18px;font-size:11px;color:${DG.sub}">※ 본 문서는 Qdrive 정책 보고서 에이전트가 운행 데이터로 자동 작성한 초안이며, 담당자 검토·결재 후 확정됩니다.</div>
     <div style="display:flex;justify-content:space-between;background:${DG.blue};color:#fff;font-size:9.5px;padding:6px 18px;margin-top:16px">
-      <span>대구광역시 ${d.dept} · 대구광역시 중구 공평로 88</span><span style="opacity:.85">작성 ${d.createdAt} · ${d.docNo}</span>
+      <span>○○광역시 ${d.dept}</span><span style="opacity:.85">작성 ${d.createdAt} · ${d.docNo}</span>
     </div>
   </div>`
 }
@@ -507,7 +507,7 @@ export default function PolicyAgent() {
 
   const buildDoc = (): GovDoc => {
     docSeq += 1
-    const docNo = `대구-${dept}-2026-${String(docSeq).padStart(3, '0')}`
+    const docNo = `${dept}-2026-${String(docSeq).padStart(3, '0')}`
     const periodLabel =
       period.id === 'today'
         ? `2026. 7. 17. (${asOf} 기준)`
@@ -555,8 +555,8 @@ export default function PolicyAgent() {
         },
         'q-budget': {
           q: '추가 예산 소요는 얼마입니까?',
-          a: `1단계 도입은 시 예산 부담 없이 착수함. 운수사가 보유한 운행기록계·차량 자가진단 데이터와 시 공개 버스정보 API, 무료 국가 측위 인프라만 사용하기 때문임. 과금은 검증된 절감액의 일정 비율로, 성과 미검증 시 발생하지 않음`,
-          ev: ['자체 자산 + 공개 데이터', '성과연동 과금'],
+          a: `1단계 도입은 시 예산 부담 없이 착수함. 운수사가 보유한 운행기록계·차량 자가진단 데이터와 시 공개 버스정보 API, 무료 국가 측위 인프라만 사용하기 때문임. 성과가 검증된 범위만 다음 단계로 확대하며, 미검증 항목은 보완·재검증 후 종료함`,
+          ev: ['자체 자산 + 공개 데이터', '검증된 범위만 확대'],
         },
       }
       return {
@@ -1008,8 +1008,8 @@ export default function PolicyAgent() {
                     大
                   </div>
                   <div className="leading-tight text-white">
-                    <div className="text-[14px] font-extrabold tracking-[0.28em]">대구광역시</div>
-                    <div className="text-[8.5px] tracking-[0.14em] opacity-80">DAEGU METROPOLITAN CITY</div>
+                    <div className="text-[14px] font-extrabold tracking-[0.28em]">○○광역시</div>
+                    <div className="text-[8.5px] tracking-[0.14em] opacity-80">METROPOLITAN CITY</div>
                   </div>
                 </div>
                 <div className="text-right leading-tight text-white">
@@ -1190,7 +1190,7 @@ export default function PolicyAgent() {
                 className="flex flex-wrap items-center justify-between gap-1 px-6 py-2 text-[9.5px] text-white"
                 style={{ background: DG.blue }}
               >
-                <span>대구광역시 {doc.dept} · 대구광역시 중구 공평로 88</span>
+                <span>○○광역시 {doc.dept}</span>
                 <span className="opacity-85">
                   작성 {doc.createdAt} · {doc.docNo}
                 </span>

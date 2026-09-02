@@ -4,11 +4,11 @@ import { ROUTES } from '../../sim/routes'
 
 /**
  * 연료·에코 AI — 사후 집계가 아닌 "예방형 연료절감".
- * 연료 낭비를 4요인으로 분해하고, 코칭으로 줄일 수 있는 부분을 대구 전 차량 연간으로 환산.
+ * 연료 낭비를 4요인으로 분해하고, 코칭으로 줄일 수 있는 부분을 대구 CNG 전체 1,513대 연간으로 환산.
  */
 
 const CNG_PRICE = 1055 // 원/N㎥
-const DAEGU_CNG_FLEET = 1513
+const DAEGU_CNG_FLEET = 1513 // 대구 CNG 시내버스 전체(26개사). 준공영제 참여 5개사 412대(VehicleRegistry)와는 다른 층이다
 const OPERATING_DAYS = 330
 
 const WASTE_META = [
@@ -21,7 +21,7 @@ const WASTE_META = [
 export default function EcoFuel() {
   const snap = useSim()
 
-  // 전 차량 낭비 합산
+  // 실증 9대 낭비 합산
   const agg = snap.vehicles.reduce(
     (a, v) => ({
       idle: a.idle + v.fuelWaste.idle,
@@ -35,7 +35,7 @@ export default function EcoFuel() {
   const coachable = agg.idle + agg.harsh + agg.habit // 냉방 제외
   const { kpi } = snap
 
-  // 코칭 가능 낭비를 대구 전 차량 연간으로 환산
+  // 코칭 가능 낭비를 실증 9대 1대당으로 나눈 뒤 대구 CNG 전체 1,513대 연간으로 환산
   const running = snap.vehicles.length
   const perVehicleCoachable = running > 0 ? coachable / running : 0
   const annualWon = perVehicleCoachable * DAEGU_CNG_FLEET * OPERATING_DAYS * CNG_PRICE
@@ -67,7 +67,7 @@ export default function EcoFuel() {
       </div>
 
       {/* 낭비 원인 분해 (waterfall bar) */}
-      <Panel title="🔎 연료 낭비 원인 분해 (전 차량 누적)" right={<span className="text-[11px] text-gray-500">코칭 가능분 vs 환경 요인</span>}>
+      <Panel title="🔎 연료 낭비 원인 분해 (실증 9대 누적)" right={<span className="text-[11px] text-gray-500">코칭 가능분 vs 환경 요인</span>}>
         {totalWaste < 0.05 ? (
           <div className="py-6 text-center text-xs text-gray-600">
             데이터를 수집하고 있습니다
@@ -106,7 +106,7 @@ export default function EcoFuel() {
       </Panel>
 
       {/* AI 절감 시뮬레이션 */}
-      <Panel title="💡 AI 절감 시뮬레이션" right={<span className="text-[11px] text-gray-500">코칭 가능분 → 대구 전 차량 연간</span>}>
+      <Panel title="💡 AI 절감 시뮬레이션" right={<span className="text-[11px] text-gray-500">실증 9대 → 대구 CNG 전체 1,513대 연간</span>}>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="rounded-lg bg-gray-800/50 px-3 py-3">
             <div className="text-xl font-extrabold tabular-nums text-gray-100">
@@ -116,7 +116,7 @@ export default function EcoFuel() {
           </div>
           <div className="rounded-lg bg-emerald-500/10 px-3 py-3">
             <div className="text-xl font-extrabold tabular-nums text-emerald-400">약 {annualEok.toFixed(1)}억원</div>
-            <div className="mt-0.5 text-[10px] text-gray-500">연간 재정 절감 여력 (1,513대)</div>
+            <div className="mt-0.5 text-[10px] text-gray-500 break-keep">연간 재정 절감 여력 (대구 CNG 전체 1,513대)</div>
           </div>
           <div className="rounded-lg bg-gray-800/50 px-3 py-3">
             <div className="text-xl font-extrabold tabular-nums text-gray-100">{kpi.totalCo2SavedKg.toFixed(1)}kg</div>

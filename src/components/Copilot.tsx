@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { setOperatorSubtabIntent } from '../sim/navIntent'
 import { engine, useSim } from '../sim/store'
 import { RISK_EVENT_TYPES, type SimSnapshot } from '../sim/types'
 import { topZones } from '../views/operator/AiReport'
@@ -10,7 +11,7 @@ import { simClock } from './ui'
  *
  * 대통합: proto의 규칙 기반 엔진 조회(조치 제안·탭 이동) + 탄소 플랫폼의 라이브 모드(사용자 키 → 실제 Claude)를 병합.
  * - 추천 질문: 규칙 기반 즉시 조회(근거·조치·이동 버튼)
- * - 자유 입력: 라이브 연결(localStorage 키) 시 실제 Claude(claude-opus-4-8)가 실시간 스냅샷을 근거로 답변, 미연결 시 규칙 기반
+ * - 자유 입력: 라이브 연결(localStorage 키) 시 실제 Claude(claude-opus-5)가 실시간 스냅샷을 근거로 답변, 미연결 시 규칙 기반
  * 키는 브라우저 localStorage 전용 · api.anthropic.com만 전송 · 저장소 커밋 금지.
  */
 
@@ -19,7 +20,7 @@ interface Reply {
   evidence?: string[]
   /** run(): 실행 결과 메시지를 반환하면 그 문구를, 없으면 label 기반 기본 문구를 채팅에 추가 */
   action?: { label: string; run: () => string | void }
-  nav?: { tab: string; label: string }
+  nav?: { tab: string; label: string; sub?: string }
 }
 
 const fmt1 = (n: number) => Math.round(n * 10) / 10
@@ -39,7 +40,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
     return {
       text: `${v.id.slice(-4)}호(${v.driverName} 기사)는 안전점수 ${Math.round(v.score)}점, 경제운전 ${Math.round(v.ecoScore)}점입니다. 현재 ${Math.round(v.speedKmh)}km/h로 ${v.nextStopName} 방면 운행 중이며 재차율 ${Math.round(v.occupancy * 100)}%, 오늘 위험운전 ${evTotal}건입니다.`,
       evidence: [`점수 ${Math.round(v.score)} · 에코 ${Math.round(v.ecoScore)}`, `주행 ${fmt1(v.distanceKm)}km · 연료 ${fmt1(v.fuelM3)}m³`],
-      nav: { tab: 'operator', label: '운수사 관제' },
+      nav: { tab: 'operator', label: '운수사 관제', sub: 'ops' },
     }
   }
 
@@ -49,13 +50,13 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
       return {
         text: `${snap.fault.vehicleId.slice(-4)}호에서 ${snap.fault.kind} 예측이 발화했습니다(현재 ${fmt1(snap.fault.coolantTemp)}°C). 회차 종료 후 예방 정비를 권장하며, 작업지시는 운수사 관제에서 발행할 수 있습니다.`,
         evidence: [`고장 예측 1건`, `냉각수온 ${fmt1(snap.fault.coolantTemp)}°C`],
-        nav: { tab: 'operator', label: '운수사 관제' },
+        nav: { tab: 'operator', label: '운수사 관제', sub: 'ops' },
       }
     }
     return {
       text: '현재 예측된 고장은 없습니다. 정기 점검 대상은 브레이크 패드(3742·5563호 잔여 2주)이며, 진단 스캐너에서 1초 단위 센서값을 확인할 수 있습니다.',
       evidence: [`고장 예측 0건 · 작업지시 ${snap.workOrders.length}건`],
-      nav: { tab: 'operator', label: '진단 스캐너' },
+      nav: { tab: 'operator', label: '진단 스캐너', sub: 'scanner' },
     }
   }
 
@@ -66,7 +67,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
     return {
       text: `현재 안전점수 최저는 ${worst.id.slice(-4)}호(${worst.driverName} 기사) ${Math.round(worst.score)}점입니다. ${topType.c > 0 ? `${topType.t} ${topType.c}건이 주된 감점 요인으로, 해당 유형 중심 코칭을 권장합니다.` : '이벤트는 적으나 점수 회복 구간으로 관찰이 필요합니다.'}`,
       evidence: [`전체 평균 ${fmt1(snap.kpi.avgScore)}점`, `대상 ${worst.id.slice(-4)}호 ${Math.round(worst.score)}점`],
-      nav: { tab: 'operator', label: '운수사에서 리포트 보기' },
+      nav: { tab: 'operator', label: '운수사에서 리포트 보기', sub: 'report' },
     }
   }
 
@@ -85,7 +86,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
               ? '✓ 배차 권고를 생성했습니다 — 운수사 관제에서 승인해 주세요.'
               : '이미 대기 중인 배차 권고가 있어요 — 운수사 관제에서 먼저 승인해 주세요.',
         },
-        nav: { tab: 'operator', label: '운수사에서 승인' },
+        nav: { tab: 'operator', label: '운수사에서 승인', sub: 'ops' },
       }
     }
     return {
@@ -117,7 +118,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
     return {
       text: `현재 코칭 절감률은 ${fmt1(snap.kpi.fuelSavedPct)}%입니다. 전 차량 연료 낭비 1위 요인은 ${total > 0 ? `${top[0]}(${Math.round(((top[1] as number) / total) * 100)}%)` : '집계 중'}이며, 예측형 에코 코칭(정류장 전 관성주행 안내)으로 발생 전에 억제하고 있습니다.`,
       evidence: [`절감률 ${fmt1(snap.kpi.fuelSavedPct)}%`, `CO₂ 절감 ${fmt1(snap.kpi.totalCo2SavedKg)}kg`],
-      nav: { tab: 'operator', label: '연료 절감 AI' },
+      nav: { tab: 'operator', label: '연료 절감 AI', sub: 'eco' },
     }
   }
 
@@ -271,10 +272,14 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
           'x-api-key': localStorage.getItem(KEY_LS) || '',
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true',
+          'anthropic-beta': 'server-side-fallback-2026-07-01',
         },
         body: JSON.stringify({
-          model: 'claude-opus-4-8',
-          max_tokens: 1024,
+          model: 'claude-opus-5',
+          max_tokens: 4096,
+          // 시연 중 지연이 길면 안 되므로 낮은 effort — 사고는 켜 둔 채로 비용·지연만 낮춘다(💬 AI Q 탭과 동일 설정)
+          output_config: { effort: 'low' },
+          fallbacks: 'default',
           system: buildLiveSystem(snapRef.current),
           messages: [{ role: 'user', content: q }],
         }),
@@ -283,14 +288,18 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
       if (!res.ok) {
         if (res.status === 401) setAns("API 키가 유효하지 않아요 — '설정'에서 키를 다시 확인해 주세요.")
         else if (res.status === 429) setAns('요청이 많아 잠시 제한됐어요 — 잠시 후 다시 시도해 주세요.')
-        else setAns('요청이 실패했어요: ' + (data?.error?.message ?? `HTTP ${res.status}`))
+        else {
+          // 원문(HTTP 코드·API 메시지)은 콘솔로만 남긴다 — 발표 화면에 날것으로 내보내지 않는다
+          console.warn('[AI Q] 라이브 요청 실패', res.status, data?.error?.message ?? '')
+          setAns('지금은 라이브 답변을 가져오지 못했어요 — 아래 추천 질문은 실시간 데이터로 바로 답해 드려요.')
+        }
         return
       }
-      if (data.stop_reason === 'refusal') {
+      if (data?.stop_reason === 'refusal') {
         setAns('이 질문에는 답변할 수 없어요.')
         return
       }
-      const text = (data.content || [])
+      const text = (data?.content ?? [])
         .filter((b: { type: string }) => b.type === 'text')
         .map((b: { text: string }) => b.text)
         .join('\n')
@@ -432,7 +441,9 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
                       {m.reply?.nav && (
                         <button
                           onClick={() => {
-                            onNavigate(m.reply!.nav!.tab)
+                            const nav = m.reply!.nav!
+                            if (nav.sub) setOperatorSubtabIntent(nav.sub)
+                            onNavigate(nav.tab)
                             setOpen(false)
                           }}
                           className="rounded-md border border-gray-700 px-2.5 py-1 text-[10px] font-semibold text-gray-300 hover:text-gray-100"

@@ -58,8 +58,8 @@ export default function ReportView() {
                 리포트 형식 예시 · 실증 시 실측 대체
               </span>
             </h2>
-            <div className="mt-1 text-xs text-gray-500">
-              대상: 급행1 노선 3대 (CNG) · 기간: 도입 전 4주 / 후 4주 · 측정: 주유량 대사 + DTG 주행거리
+            <div className="mt-1 text-xs text-gray-500 break-keep">
+              대상: 실증 9대 (3개 노선 · CNG) · 기간: 도입 전 4주 / 후 4주 · 측정: 주유량 대사 + DTG 주행거리
             </div>
           </div>
           <div className="rounded-lg border border-dashed border-gray-700 px-3 py-2 text-center text-[10px] text-gray-500">
@@ -84,7 +84,7 @@ export default function ReportView() {
         <KpiCard label="위험운전 감소" value="−57" unit="%" sub="1,000km당 42.5 → 18.0건" accent="text-emerald-400" />
         <KpiCard label="운전점수" value="70.8 → 88" unit="점" sub="4주 코칭 효과" accent="text-sky-400" />
         <KpiCard
-          label="연간 환산 (1,513대)"
+          label="연간 환산 (대구 CNG 전체 1,513대)"
           value="약 2.1"
           unit="억원"
           sub="연료비 절감 추정 · CNG 단가 기준"
@@ -133,23 +133,23 @@ export default function ReportView() {
       </div>
 
       {/* 탄소 환산 */}
-      <Panel title="🌍 탄소 절감 환산 — 대구 전체 확대 시나리오">
+      <Panel title="🌍 탄소 절감 환산 — 대구 CNG 전체(1,513대) 확대 시나리오">
         <div className="grid grid-cols-3 gap-4 text-sm">
           {[
             {
-              n: '실증 3대',
-              co2: '4.2 톤/년',
-              note: '본 실증 실측 기반',
+              n: '실증 9대',
+              co2: '12.6 톤/년',
+              note: '실증 실측 기반 (형식 예시)',
               cls: 'border-emerald-500/30',
             },
             {
-              n: '1개 운수사 60대',
-              co2: '84 톤/년',
+              n: '준공영제 5개사 412대',
+              co2: '약 577 톤/년',
               note: '실측치 선형 환산',
               cls: 'border-sky-500/30',
             },
             {
-              n: '대구 CNG 1,513대',
+              n: '대구 CNG 전체 1,513대',
               co2: '약 2,100 톤/년',
               note: '연료비 절감 ~2.1억 + 배출권*',
               cls: 'border-amber-500/30',

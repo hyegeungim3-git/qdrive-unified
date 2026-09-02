@@ -32,14 +32,16 @@ const NETWORK_KPI = {
   lowEfficiency: 9,
 } as const
 
-/** 노선별 통계 예시 대장(정적 6행) — 원본 그대로, 실증 3노선과 노선명이 겹치지 않는 표본 포함 */
+/** 노선별 통계 예시 대장(정적 5행) — 노선명·구간은 sim/routes.ts의 «지도에 그려지는 노선»에서만 고른다.
+ *  실증 3노선(급행1·순환2·급행3)은 위 라이브 표에 있으므로 여기서는 표시 전용 5개 노선만 싣는다 —
+ *  같은 노선이 한 화면에 정적·라이브 두 값으로 나오는 것을 막는다. 수치는 원본 예시 그대로. */
 type RouteRow = { no: string; seg: string; trips: string; pax: string; eff: string; co2: string; grade: 'A' | 'B' | 'C' }
 const ROUTE_STATS: RouteRow[] = [
-  { no: '간선 401', seg: '반월당 ↔ 칠곡경대병원', trips: '118회', pax: '14,260명', eff: '34.8L', co2: '0.92kg', grade: 'A' },
-  { no: '간선 649', seg: '성서공단 ↔ 대구역', trips: '96회', pax: '11,830명', eff: '38.1L', co2: '1.03kg', grade: 'B' },
-  { no: '순환 3-1', seg: '범어네거리 순환', trips: '88회', pax: '7,940명', eff: '41.5L', co2: '1.12kg', grade: 'B' },
-  { no: '지선 356', seg: '두류역 ↔ 시지지구', trips: '74회', pax: '5,210명', eff: '46.9L', co2: '1.28kg', grade: 'C' },
-  { no: '급행 5', seg: '대구공항 ↔ 계명대', trips: '64회', pax: '4,080명', eff: '49.3L', co2: '1.34kg', grade: 'C' },
+  { no: '순환2-1', seg: '검단동 순환', trips: '118회', pax: '14,260명', eff: '34.8L', co2: '0.92kg', grade: 'A' },
+  { no: '순환3-1', seg: '범물동 순환 · 청호로', trips: '96회', pax: '11,830명', eff: '38.1L', co2: '1.03kg', grade: 'B' },
+  { no: '순환3', seg: '범물동 순환 · 서대구로', trips: '88회', pax: '7,940명', eff: '41.5L', co2: '1.12kg', grade: 'B' },
+  { no: '급행2', seg: '대일리 ↔ 동호동', trips: '74회', pax: '5,210명', eff: '46.9L', co2: '1.28kg', grade: 'C' },
+  { no: '급행7', seg: '대곡지구 ↔ 동호동', trips: '64회', pax: '4,080명', eff: '49.3L', co2: '1.34kg', grade: 'C' },
 ]
 const GRADE_CLS: Record<RouteRow['grade'], string> = {
   A: 'bg-emerald-500/15 text-emerald-400',
@@ -109,7 +111,7 @@ export default function RouteRegistry() {
       <div className="grid grid-cols-4 gap-3 max-[900px]:grid-cols-2">
         <KpiCard label="운영 노선" value={String(NETWORK_KPI.totalRoutes)} unit="개" sub={`${NETWORK_KPI.byType} · 실증 ${ROUTES.length}개 라이브`} />
         <KpiCard label="일 평균 운행" value={NETWORK_KPI.dailyTrips.toLocaleString()} unit="회" sub={`일 주행 ${NETWORK_KPI.dailyKm.toLocaleString()}km · 실증 ${snap.kpi.totalDistanceKm.toFixed(1)}km`} />
-        <KpiCard label="평균 정시율" value={NETWORK_KPI.onTimeRate.toFixed(1)} unit="%" accent="text-emerald-400" sub={`전월대비 ${NETWORK_KPI.onTimeDelta} · 실증 ${liveAvgOnTime.toFixed(1)}%`} />
+        <KpiCard label="평균 정시율" value={NETWORK_KPI.onTimeRate.toFixed(1)} unit="%" accent="text-emerald-400" sub={`전월대비 ${NETWORK_KPI.onTimeDelta} · 실증 노선 ${liveAvgOnTime.toFixed(1)}% (예시)`} />
         <KpiCard label="저효율 노선" value={String(NETWORK_KPI.lowEfficiency)} unit="개" accent="text-amber-400" sub={worstEff ? `AI 개편 검토 권장 · 실증 최저 ${worstEff.route.name}` : 'AI 개편 검토 권장'} />
       </div>
 
@@ -120,7 +122,7 @@ export default function RouteRegistry() {
             <tr className="border-b border-gray-800 text-[11px] text-gray-500">
               <th className="pb-2 pr-3 font-medium">노선</th>
               <th className="pb-2 pr-3 font-medium">배차 차량</th>
-              <th className="pb-2 pr-3 font-medium">정시율</th>
+              <th className="pb-2 pr-3 font-medium">정시율 (예시)</th>
               <th className="pb-2 pr-3 font-medium">평균 안전점수</th>
               <th className="pb-2 pr-3 font-medium">연비 효율</th>
               <th className="pb-2 font-medium">위험운전</th>
@@ -144,7 +146,7 @@ export default function RouteRegistry() {
             ))}
           </tbody>
         </table>
-        <div className="mt-1.5 text-[10px] text-gray-600">정시율은 노선 평가·정산 패널과 동일 기준값 · 연비 효율 = 누적 주행거리 ÷ 누적 연료(CNG m³), 배속을 올리면 집계가 쌓여요</div>
+        <div className="mt-1.5 break-keep text-[10px] text-gray-600">배차 차량·평균 안전점수·연비 효율·위험운전은 엔진 실시간 집계 · 정시율(예시)만 시티 대시보드 노선 평가·정산 패널과 동일한 기준정보 · 연비 효율 = 누적 주행거리 ÷ 누적 연료(CNG m³), 배속을 올리면 집계가 쌓여요</div>
       </Panel>
 
       {/* C. 노선 효율(라이브) + 계통별 수송 인원(정적) — 원본 dash R의 2-차트 나란히 */}
@@ -217,7 +219,7 @@ export default function RouteRegistry() {
               </tbody>
             </table>
           </div>
-          <div className="mt-1.5 text-[10px] text-gray-600">대구시 노선망 예시 데이터 · 실증 3개 노선은 위 라이브 표에서</div>
+          <div className="mt-1.5 text-[10px] text-gray-600">지도에 함께 표시되는 노선 기준 예시 데이터 · 실증 3개 노선(급행1·순환2·급행3)은 위 라이브 표에서</div>
         </Panel>
     </div>
   )

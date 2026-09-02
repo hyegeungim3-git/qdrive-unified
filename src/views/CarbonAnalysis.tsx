@@ -32,21 +32,21 @@ import { setOperatorSubtabIntent } from '../sim/navIntent'
 // ── 기간별 성과 (원본 periodData 이식) — 월/연은 서사값, 일간은 엔진 라이브로 덮어씀 ──
 const PERIODS = {
   일간: {
-    title: '오늘, 안전운전이 만든 절감', asOf: '금일 운행분 · 실시간 집계',
+    title: '오늘, 안전운전이 만든 절감', asOf: '금일 운행분 · 실증 9대 실시간 집계',
     km: '129,200', kmSub: '금일 운행 누적', eff: '+4.3%', effSub: '2.42 → 2.52 km/L (경유)',
     fuel: '784', fuelSub: '기준선 대비 -4.1%', co2: '2.1', co2Pct: '-4.3%',
     fuelUnit: 'L', labels: ['7/5', '7/6', '7/7', '7/8', '7/9', '7/10', '7/11'],
     trendFuel: [740, 790, 720, 830, 810, 620, 784], trendCo2: [1.98, 2.12, 1.93, 2.22, 2.17, 1.66, 2.1],
   },
   월간: {
-    title: '7월, 안전운전이 만든 절감', asOf: '7월 11일 기준 · 412대',
+    title: '7월, 안전운전이 만든 절감', asOf: '7월 11일 기준 · 준공영제 5개사 412대',
     km: '2,843,000', kmSub: '운행 22일 누적', eff: '+4.5%', effSub: '2.42 → 2.53 km/L (경유)',
     fuel: '27,100', fuelSub: '기준선 대비 -4.3%', co2: '72.6', co2Pct: '-4.7%',
     fuelUnit: '천L', labels: ['2월', '3월', '4월', '5월', '6월', '7월'],
     trendFuel: [21.4, 22.8, 24.1, 25.2, 26.3, 27.1], trendCo2: [57.4, 61.1, 64.6, 67.5, 70.5, 72.6],
   },
   연간: {
-    title: '2026년, 안전운전이 만든 절감', asOf: '2~7월 누적 · 412대',
+    title: '2026년, 안전운전이 만든 절감', asOf: '2~7월 누적 · 준공영제 5개사 412대',
     km: '16,240,000', kmSub: '도입 후 6개월 누적', eff: '+4.1%', effSub: '2.43 → 2.53 km/L (기간 평균)',
     fuel: '146,900', fuelSub: '기준선 대비 -4.2%', co2: '393.7', co2Pct: '-4.5%',
     fuelUnit: '천L', labels: ['2월', '3월', '4월', '5월', '6월', '7월'],
@@ -77,12 +77,14 @@ const SYSTEM_CO2 = [
   { name: '지선', t: 16.8 },
   { name: '순환', t: 6.2 },
 ]
+// 노선명은 sim/routes.ts(지도에 실제로 그려지는 8개 노선)에서만 고른다 — 지도에 없는 노선을 쓰면
+// 지도를 본 직후 «이 노선은 어디 있습니까»가 나온다. 값은 확대 시나리오(412대) 예시.
 const ROUTE_CO2 = [
   { name: '급행1', t: 3.9 },
-  { name: '간선 401', t: 3.2 },
-  { name: '간선 649', t: 2.7 },
-  { name: '순환 2-1', t: 1.9 },
-  { name: '지선 356', t: 1.6 },
+  { name: '급행3', t: 3.2 },
+  { name: '순환2', t: 2.7 },
+  { name: '순환3', t: 1.9 },
+  { name: '급행2', t: 1.6 },
 ]
 const FUEL_MIX = [
   { name: '경유', v: 78, color: '#64748b' },
@@ -123,6 +125,10 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
   const liveCo2 = snap.kpi.totalCo2SavedKg
   const liveFuelPct = snap.kpi.fuelSavedPct
   const liveKm = snap.kpi.totalDistanceKm
+  // 「연료 절감」 카드는 소비량(kpi.totalFuelM3)이 아니라 절감량이어야 한다 —
+  // 기준선(코칭 미적용 가정) − 실측. PerformanceProof.tsx와 같은 파생식이라 엔진 확장 0.
+  const liveBaseFuelM3 = snap.vehicles.reduce((s, v) => s + v.baselineFuelM3, 0)
+  const liveFuelSavedM3 = Math.max(0, liveBaseFuelM3 - snap.kpi.totalFuelM3)
   const avgScore = snap.vehicles.length
     ? snap.vehicles.reduce((s, v) => s + v.score, 0) / snap.vehicles.length
     : 0
@@ -230,15 +236,15 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
             title={`${P.title} · ${P.asOf}`}
             right={
               !isLive ? (
-                <span className="rounded bg-gray-700/60 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">확대 시나리오 예시 (412대 가정)</span>
+                <span className="rounded bg-gray-700/60 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">확대 시나리오 예시 (준공영제 5개사 412대 가정)</span>
               ) : undefined
             }
           >
             <div className="grid grid-cols-4 gap-3 max-[720px]:grid-cols-2">
               <FlowCard label="DTG 주행거리" value={isLive ? Math.round(liveKm).toLocaleString() : P.km} unit="km" sub={isLive ? '시뮬레이션 누적' : P.kmSub} />
-              <FlowCard label="연비 개선" value={isLive ? `+${liveFuelPct.toFixed(1)}` : P.eff} unit={isLive ? '%' : ''} sub={P.effSub} accent="text-emerald-400" arrow />
-              <FlowCard label="연료 절감" value={isLive ? Math.round(snap.kpi.totalFuelM3).toLocaleString() : P.fuel} unit={isLive ? 'm³' : P.fuelUnit} sub={P.fuelSub} accent="text-sky-400" arrow />
-              <FlowCard label="CO₂ 절감" value={isLive ? (liveCo2 / 1000).toFixed(2) : P.co2} unit="t" sub={`저감률 ${P.co2Pct}`} accent="text-emerald-400" arrow />
+              <FlowCard label="연비 개선" value={isLive ? `+${liveFuelPct.toFixed(1)}` : P.eff} unit={isLive ? '%' : ''} sub={isLive ? 'CNG · 코칭 미적용 대비' : P.effSub} accent="text-emerald-400" arrow />
+              <FlowCard label="연료 절감" value={isLive ? liveFuelSavedM3.toFixed(1) : P.fuel} unit={isLive ? 'm³' : P.fuelUnit} sub={isLive ? `기준선 대비 -${liveFuelPct.toFixed(1)}%` : P.fuelSub} accent="text-sky-400" arrow />
+              <FlowCard label="CO₂ 절감" value={isLive ? (liveCo2 / 1000).toFixed(2) : P.co2} unit="t" sub={isLive ? `저감률 -${liveFuelPct.toFixed(1)}%` : `저감률 ${P.co2Pct}`} accent="text-emerald-400" arrow />
             </div>
             <div className="mt-3 rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-4 py-2.5 text-[11px] leading-relaxed text-gray-400">
               {isLive ? (
@@ -316,7 +322,10 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
                 </ResponsiveContainer>
               </div>
             </Panel>
-            <Panel title="노선별 절감 TOP5">
+            <Panel
+              title="노선별 절감 TOP5"
+              right={<span className="shrink-0 whitespace-nowrap rounded bg-gray-700/60 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">확대 시나리오 예시</span>}
+            >
               <div className="h-44">
                 <ResponsiveContainer>
                   <BarChart data={ROUTE_CO2} layout="vertical" margin={{ top: 4, right: 10, left: 8, bottom: 0 }}>

@@ -21,17 +21,17 @@ const ROUTES: {
   save: string
   desc: string
 }[] = [
-  { name: '급행1', seg: '동대구역 ↔ 서부정류장', grade: 'A', co2: '0.84kg', pax: '18,420명', save: '3.9 tCO₂',
+  { name: '급행1', seg: '동화사 ↔ 다사', grade: 'A', co2: '0.84kg', pax: '18,420명', save: '3.9 tCO₂',
     desc: '대구에서 가장 친환경적인 노선이에요. 기사님들의 예측 감속 실천율이 91%로 가장 높아요.' },
-  { name: '간선 401', seg: '반월당 ↔ 칠곡경대병원', grade: 'A', co2: '0.92kg', pax: '14,260명', save: '3.2 tCO₂',
-    desc: '전기버스 비중이 높아 배출이 적은 노선이에요. 조용하고 매연 없는 승차감을 느껴보세요.' },
-  { name: '간선 649', seg: '성서공단 ↔ 대구역', grade: 'B', co2: '1.03kg', pax: '11,830명', save: '2.7 tCO₂',
+  { name: '급행3', seg: '동명 ↔ 범물동', grade: 'A', co2: '0.92kg', pax: '14,260명', save: '3.2 tCO₂',
+    desc: '실증 차량이 다니는 노선이에요. 예측 감속 안내가 붙은 뒤로 연비가 꾸준히 좋아지고 있어요.' },
+  { name: '순환2', seg: '검단동 순환', grade: 'B', co2: '1.03kg', pax: '11,830명', save: '2.7 tCO₂',
     desc: '평균 수준의 효율을 내는 노선이에요. 공회전 줄이기 코칭으로 계속 좋아지고 있어요.' },
-  { name: '순환 2-1', seg: '범어네거리 순환', grade: 'B', co2: '1.12kg', pax: '7,940명', save: '1.9 tCO₂',
+  { name: '순환3', seg: '범물동 순환', grade: 'B', co2: '1.12kg', pax: '7,940명', save: '1.9 tCO₂',
     desc: '짧은 정류장 간격에도 부드러운 가감속으로 효율을 지키고 있는 노선이에요.' },
-  { name: '지선 356', seg: '두류역 ↔ 시지지구', grade: 'C', co2: '1.28kg', pax: '5,210명', save: '1.6 tCO₂',
-    desc: '언덕 구간이 많아 배출이 높은 편이에요. 전기버스 우선 투입 검토 대상이에요.' },
-  { name: '급행5', seg: '대구공항 ↔ 계명대', grade: 'C', co2: '1.34kg', pax: '4,080명', save: '1.4 tCO₂',
+  { name: '급행2', seg: '대일리 ↔ 동호동', grade: 'C', co2: '1.28kg', pax: '5,210명', save: '1.6 tCO₂',
+    desc: '언덕과 신호 구간이 많아 배출이 높은 편이에요. 공회전·급가속 코칭을 집중 적용하고 있어요.' },
+  { name: '급행7', seg: '대곡지구 ↔ 동호동', grade: 'C', co2: '1.34kg', pax: '4,080명', save: '1.4 tCO₂',
     desc: '장거리 고속 구간 노선이에요. 정속 주행 코칭을 집중 적용하고 있어요.' },
 ]
 
@@ -45,9 +45,9 @@ const MONTHLY = [
 ]
 
 const IMPACT = [
-  { month: '5월', text: '간선 649 배차 12분 → 10분', desc: '출근 시간 혼잡 데이터가 증차 결정의 근거가 됐어요.' },
+  { month: '5월', text: '혼잡 노선 배차 간격 조정 건의', desc: '출근 시간 혼잡 데이터가 증차 검토의 근거가 됐어요.' },
   { month: '6월', text: '반월당 급감속 구간 신호 개선 건의', desc: '6개월 주행 데이터를 근거로 교통 부서가 검토 중이에요.' },
-  { month: '7월', text: '지선 356에 저상버스 2대 우선 배치', desc: '교통약자 승하차 데이터가 배치 순서를 바꿨어요.' },
+  { month: '7월', text: '교통약자 이용 많은 노선 저상버스 우선 배치 건의', desc: '승하차 데이터가 배치 순서 검토의 근거가 됐어요.' },
 ]
 
 /** 공유 성공·실패 피드백 토스트 (원본 _toast 이식) */
@@ -210,7 +210,7 @@ export default function CitizenPublic() {
             <div className="text-[17px] font-bold text-gray-100">함께 만든 사람들</div>
             <div className="flex flex-1 flex-col justify-center gap-3">
               {[
-                ['참여 버스', '412대', 'text-gray-100'],
+                ['참여 버스 (준공영제 5개사)', '412대', 'text-gray-100'],
                 ['안전운전 기사님', '486명', 'text-gray-100'],
                 ['친환경 버스 (전기·CNG)', '140대', 'text-emerald-400'],
                 ['에코 드라이빙 실천율 (5개사 평균)', '78%', 'text-sky-400'],
@@ -231,7 +231,7 @@ export default function CitizenPublic() {
         <div className="mt-3.5 rounded-2xl border border-gray-800 bg-gray-900 px-6 py-5 shadow-lg">
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="text-[17px] font-bold text-gray-100">내가 타는 버스는 얼마나 친환경일까요?</div>
-            <span className="rounded-full bg-emerald-500/12 px-2.5 py-1 text-xs font-bold text-emerald-400">노선별 효율 등급</span>
+            <span className="rounded-full bg-gray-700/60 px-2.5 py-1 text-xs font-bold text-gray-400">노선별 효율 등급 · 예시</span>
           </div>
           <div className="mt-3.5 flex flex-wrap gap-2">
             {ROUTES.map((r, i) => {

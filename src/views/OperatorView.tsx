@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { Panel, PersonaChip, ScoreBadge, simClock } from '../components/ui'
 import { engine, useSim } from '../sim/store'
@@ -6,7 +6,7 @@ import { ROUTES } from '../sim/routes'
 import { RISK_EVENT_TYPES } from '../sim/types'
 import { resolveRequest, useAgentRequests } from '../sim/agentRequests'
 import { ActionCenterList, actionOwnerReadyCount } from '../components/ActionCenter'
-import { consumeOperatorSubtabIntent } from '../sim/navIntent'
+import { consumeOperatorSubtabIntent, subscribeOperatorSubtabIntent } from '../sim/navIntent'
 import Scanner from './operator/Scanner'
 import MaintChat from './operator/MaintChat'
 import Depot from './operator/Depot'
@@ -38,6 +38,15 @@ const REQ_ICON = { 휴가: '🏖️', 상황설명: '🎙', 교육문의: '🎓'
 
 export default function OperatorView() {
   const [sub, setSub] = useState<SubTab>(() => (consumeOperatorSubtabIntent() as SubTab | null) ?? 'ops')
+  // 이 탭이 이미 열린 상태로 딥링크가 오면(플로팅 AI Q) 마운트가 없으므로 구독으로 받는다
+  useEffect(
+    () =>
+      subscribeOperatorSubtabIntent((s) => {
+        consumeOperatorSubtabIntent()
+        setSub(s as SubTab)
+      }),
+    [],
+  )
   const snap = useSim()
   const fault = snap.fault
 

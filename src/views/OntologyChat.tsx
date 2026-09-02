@@ -52,7 +52,7 @@ function buildSystem(s: SimSnapshot): string {
   const dh = s.deadheads.reduce((a, t) => a + t.distanceKm, 0)
   const rev = s.trips.reduce((a, t) => a + t.distanceKm, 0)
   return [
-    '당신은 대구 시내버스 통합 운영 플랫폼 Qdrive의 온톨로지 질의 도우미입니다.',
+    '당신은 AI 기반 버스 통합 운영관리 플랫폼 Qdrive의 온톨로지 질의 도우미입니다.',
     '아래는 지금 이 순간 시뮬레이터 엔진의 실제 집계값입니다. 이 범위 밖의 수치는 지어내지 말고,',
     '모르면 "이번 실증 범위 밖입니다"라고 한 문장으로 짧게 말하고 넘어가세요. 답은 3~5문장 한국어로 간결하게.',
     '',
@@ -893,7 +893,7 @@ function buildReportHtml(items: ReportItem[], snap: SimSnapshot): string {
     <p>각 답의 수치는 «그 답을 낸 시점»의 집계입니다 — 문항마다 적힌 집계 구간이 기준입니다.</p>
   </div>
   ${body || '<p>담긴 답이 없습니다.</p>'}
-  <div class="foot">답의 수치는 운행 데이터에서 계산된 값이며, 근거가 되는 원천을 문항마다 함께 적었습니다. · Qdrive 대구 시내버스 통합 운영 플랫폼</div>
+  <div class="foot">답의 수치는 운행 데이터에서 계산된 값이며, 근거가 되는 원천을 문항마다 함께 적었습니다. · Qdrive — AI 기반 버스 통합 운영관리 플랫폼</div>
 </div>
 </body></html>`
 }

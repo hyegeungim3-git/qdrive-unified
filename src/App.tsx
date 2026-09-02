@@ -80,14 +80,14 @@ export default function App() {
             <div className="text-lg font-black tracking-tight text-gray-50">
               Q<span className="text-sky-400">drive</span>
               <span className="ml-2 hidden text-[10px] font-semibold tracking-widest text-gray-500 xl:inline">
-                대구 시내버스 통합 운영 플랫폼
+                AI 기반 버스 통합 운영관리 플랫폼
               </span>
             </div>
             <div
               className="text-[10px] text-gray-500"
               title="공단 표준 DTG 기록(409 위험운전 / 521 운행기록) 형식 기반 실증 데모"
             >
-              안전운전 · 연료절감 · 탄소중립을 한 화면에서
+              기존 BMS 위에 원인 분석 · 현장 실행 · 효과 확인을 더합니다
             </div>
           </div>
           <nav className="flex flex-wrap gap-1">

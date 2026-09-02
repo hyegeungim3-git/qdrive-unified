@@ -39,8 +39,20 @@ export type TileSource = {
   maxZoom: number
   /** 제공자가 실제로 타일을 갖고 있는 한계. 이보다 크게 확대하면 마지막 타일을 늘려 보여준다 */
   maxNativeZoom?: number
-  /** @2x 타일이 있는 제공자만 켠다. 없는데 켜면 404가 쏟아진다 */
-  detectRetina?: boolean
+  /**
+   * 고밀도 화면(dpr>1)에서 선명하게 그리는 방법. 제공자마다 달라서 갈라 둔다.
+   *
+   * 'url'  — @2x 주소가 있는 제공자. URL의 {r}을 '@2x'로 바꾸면 512px 타일이 온다.
+   * 'zoom' — @2x가 없는 제공자. **한 단계 깊은 줌의 타일을 절반 크기로** 그려 해상도를 2배로 만든다
+   *          (tileSize 128 · zoomOffset +1). 표준 256px 타일만으로 같은 효과를 낸다.
+   *
+   * 왜 Leaflet의 detectRetina를 안 쓰는가 — 그 옵션은 `L.Browser.retina`에 기대는데,
+   * 그 값이 **Leaflet 모듈이 로드되는 순간의 devicePixelRatio로 고정**된다.
+   * 창이 나중에 고밀도로 바뀌거나 로드 시점에 dpr이 1이면 영영 false로 굳어
+   * detectRetina도 {r} 치환도 통째로 무시된다(이 환경에서 실제로 그랬다 — dpr 1.5인데 false).
+   * 그래서 dpr 판단을 우리가 직접 하고 옵션을 명시적으로 넘긴다.
+   */
+  hiDpi?: 'url' | 'zoom'
   /**
    * 저채도 스타일이 아닌 원본 타일을 노선·버스가 묻히지 않게 눌러 주는 CSS 필터.
    * 최후 폴백(OSM 표준)에만 쓴다 — 색이 강해서 그대로 깔면 오버레이가 안 읽힌다.
@@ -84,7 +96,9 @@ const STADIA_ATTR =
  * 라이트(white)/다크(midnight) 쌍이 모두 있고 z18까지 커버한다(z19는 404).
  *
  * 주의 두 가지.
- * (1) @2x 레티나가 없다 — detectRetina를 켜면 전부 404가 된다.
+ * (1) **@2x 레티나 URL이 없다.** 그렇다고 저해상도로 둘 필요는 없다 — hiDpi: 'zoom'으로
+ *     한 단계 깊은 타일을 절반 크기로 그려 2배 해상도를 낸다(위 hiDpi 설명 참조).
+ *     이걸 안 하면 dpr 1.5 화면에서 256px 타일이 384px로 늘어나 **글자가 흐려진다**(실측).
  * (2) 이 CDN 경로는 공식 문서에 없는 내부 경로다. VWorld 자체 지도 로더가 쓰는 주소라
  *     막힐 가능성이 0은 아니다. 정본으로 승격하려면 vworld.kr에서 무료 인증키를 받아
  *     공식 WMTS로 가야 하는데, **그쪽은 축 순서가 {z}/{y}/{x}로 뒤집힌다**:
@@ -92,9 +106,14 @@ const STADIA_ATTR =
  */
 const VWORLD_ATTR =
   '&copy; <a href="https://www.vworld.kr/">국토교통부 공간정보 오픈플랫폼(V-World)</a>'
-/* white는 지하철 노선을 고채도로, midnight은 전체를 짙은 남색으로 그린다 — 노선 폴리라인과 색이 경합한다 */
-const VWORLD_LIGHT_FILTER = 'saturate(0.25) brightness(1.03)'
-const VWORLD_DARK_FILTER = 'saturate(0.35) brightness(0.88) contrast(1.05)'
+/*
+  white는 지하철 노선을 고채도로, midnight은 전체를 짙은 남색으로 그린다 — 노선 폴리라인과 색이 경합한다.
+  다만 채도만 빼고 밝기까지 건드리면 지명 글자가 배경 쪽으로 눌려 «흐릿하다»는 인상이 된다
+  (라이트에서 brightness를 올리면 회색 글자가 날아가고, 다크에서 내리면 글자가 가라앉는다).
+  밝기는 그대로 두고 대비를 조금 올려 글자 획을 살린다.
+*/
+const VWORLD_LIGHT_FILTER = 'saturate(0.3) contrast(1.08)'
+const VWORLD_DARK_FILTER = 'saturate(0.4) contrast(1.12)'
 
 /**
  * 최후 폴백 — OSM 표준 타일. 키가 필요 없고 죽는 일이 없다.
@@ -113,7 +132,9 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       url: 'https://xdworld.vworld.kr/2d/white/service/{z}/{x}/{y}.png',
       attribution: VWORLD_ATTR,
       maxZoom: 20,
+      /* 제공자 상한은 18. 'zoom' 방식은 요청 줌을 +1 하므로 여기서 하나 빼 둔다(안 그러면 z19를 불러 404) */
       maxNativeZoom: 18,
+      hiDpi: 'zoom',
       filter: VWORLD_LIGHT_FILTER,
     },
     {
@@ -123,7 +144,7 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       attribution: STADIA_ATTR,
       maxZoom: 20,
       maxNativeZoom: 20,
-      detectRetina: true,
+      hiDpi: 'url',
     },
     {
       id: 'osm-light',
@@ -142,7 +163,9 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       url: 'https://xdworld.vworld.kr/2d/midnight/service/{z}/{x}/{y}.png',
       attribution: VWORLD_ATTR,
       maxZoom: 20,
+      /* 제공자 상한은 18. 'zoom' 방식은 요청 줌을 +1 하므로 여기서 하나 빼 둔다(안 그러면 z19를 불러 404) */
       maxNativeZoom: 18,
+      hiDpi: 'zoom',
       filter: VWORLD_DARK_FILTER,
     },
     {
@@ -152,7 +175,7 @@ export const TILE_CHAIN: Record<Theme, TileSource[]> = {
       attribution: STADIA_ATTR,
       maxZoom: 20,
       maxNativeZoom: 20,
-      detectRetina: true,
+      hiDpi: 'url',
     },
     {
       id: 'osm-dark',

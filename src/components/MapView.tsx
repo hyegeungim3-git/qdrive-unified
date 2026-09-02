@@ -603,14 +603,27 @@ function BaseTileLayer({ theme }: { theme: Theme }) {
     }
   }, [map, src.filter])
 
+  /*
+    고밀도 화면 대응 — Leaflet의 detectRetina에 맡기지 않고 직접 판단한다.
+    그 옵션은 `L.Browser.retina`를 보는데, 그 값이 «Leaflet 모듈이 로드되는 순간의
+    devicePixelRatio»로 고정된다. 로드 시점에 dpr이 1이면 나중에 1.5가 되어도 영영 false다
+    — 이 환경에서 실제로 그래서 타일이 1.5배로 늘어나 글자가 흐렸다.
+  */
+  const hiDpi = window.devicePixelRatio > 1
+  const url2x = hiDpi && src.hiDpi === 'url'
+  const zoom2x = hiDpi && src.hiDpi === 'zoom'
+
   return (
     <TileLayer
-      key={`${src.id}-${theme}`}
-      url={src.url}
+      key={`${src.id}-${theme}-${url2x ? 'u' : zoom2x ? 'z' : '1'}`}
+      url={src.url.replace('{r}', url2x ? '@2x' : '')}
       attribution={src.attribution}
       maxZoom={src.maxZoom}
-      maxNativeZoom={src.maxNativeZoom}
-      detectRetina={src.detectRetina}
+      /* 'zoom' 방식은 요청 줌이 +1 되므로 제공자 상한에서 하나 뺀 값으로 잘라야 404가 안 난다 */
+      maxNativeZoom={zoom2x && src.maxNativeZoom ? src.maxNativeZoom - 1 : src.maxNativeZoom}
+      tileSize={zoom2x ? 128 : 256}
+      zoomOffset={zoom2x ? 1 : 0}
+      detectRetina={false}
       eventHandlers={{
         tileload: () => {
           tally.current.loaded = true

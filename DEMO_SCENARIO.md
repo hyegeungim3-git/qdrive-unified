@@ -4,6 +4,7 @@
 > 화면 제품명: **Qdrive — AI 기반 버스 통합 운영관리 플랫폼** (덱 S01과 같은 이름) · 주인공: **3742호 · 김성호 기사 · 급행1**
 > **시연 범위 = 제안서 `QDrive_대구시_AI고도화_보고용_260826_1445.pptx` 제3장 「플랫폼 소개」가 소개한 메뉴만** (§1 대조표)
 > 시연 URL: https://hyegeungim3-git.github.io/qdrive-unified/ (정본: https://qdrive-unified.pages.dev/)
+> 발표자용 페이지 2종 — **대본만**: https://claude.ai/code/artifact/8798d0c3-ad58-439b-b4dc-e28bce8c029e · **전체 큐시트**(세팅·타이밍·플랜B·문답 포함): https://claude.ai/code/artifact/656faa8e-8761-4532-ada9-dab5eaf3a185
 > 작성 2026-09-02 · 모든 타이밍·수치는 **배포본에서 실측**한 값 (측정 방법은 부록 C)
 
 ---

@@ -9,6 +9,7 @@
 > · **시간순 대본**(막별 클릭·대사): https://claude.ai/code/artifact/8798d0c3-ad58-439b-b4dc-e28bce8c029e
 > · **전체 큐시트**(세팅·타이밍·플랜B·결함): https://claude.ai/code/artifact/656faa8e-8761-4532-ada9-dab5eaf3a185
 > · **예상 문답집**(주제 9 · 문답 58): https://claude.ai/code/artifact/f2ed02ec-4f70-43d0-995e-342fae90351b
+> · **표지**(무엇을 언제 쓰나 · 외부 배포 범위): https://claude.ai/code/artifact/116706f1-1a9b-49f8-b5a8-cafed6e9916c
 > 작성 2026-09-02 · 모든 타이밍·수치는 **배포본에서 실측**한 값 (측정 방법은 부록 C)
 
 ---

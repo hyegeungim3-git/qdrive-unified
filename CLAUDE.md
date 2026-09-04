@@ -706,3 +706,22 @@ CDP·클릭·워밍업은 `capture.py` 를 import 해 재사용하므로 두 벌
 같은 워크플로의 누락 검증관이 **신규 문답에 그대로 다시 써 넣었다**(계정 발급·회수 항목). 한 워크플로에서
 «고치는 에이전트»와 «새로 쓰는 에이전트»를 병렬로 돌리면 이 사고가 난다. 취합 뒤 **같은 거짓이 신규분에
 들어오지 않았는지 반드시 재검사**할 것 — 이번엔 최종 문서 금지어 검사에서 걸렸다.
+
+### 산출물 정리 — 문서 3종 + 웹 5종 + 표지 (2026-09-04)
+
+| 문서 (`C:\Qdrive 통합\산출물\`) | 웹 | 외부 배포 |
+|---|---|---|
+| `Qdrive_발표자료_표지.docx` | https://claude.ai/code/artifact/116706f1-1a9b-49f8-b5a8-cafed6e9916c | 안내용 |
+| `Qdrive_서비스_설명자료.docx` | 메뉴별 설명 887ee050 | **가능** |
+| `Qdrive_시연_운영자료.docx` | 큐시트 656faa8e · 대본 8798d0c3 | 내부용 |
+| `Qdrive_예상문답집.docx` | 문답집 f2ed02ec | 내부용 |
+
+- **산출물은 저장소 바깥에 둔다.** `qdrive-unified`는 공개 저장소이고 운영자료·문답집에는
+  결함 대장·「누르지 말 것」·발표자 지시가 들어 있다. 처음에 저장소 안에 만들었다가 옮겼다.
+- **외부 배포 가능한 것은 서비스 설명자료 하나**다. 표지 Ⅳ장에 그 기준을 적어 두었다.
+- 생성기는 스크래치패드에 있다 — `build_docx.py`(공용 셸) · `build_service.py` · `build_ops.py` ·
+  `build_qa.py` · `build_cover.py`, 웹은 `gen_brief.py` · `gen_script.py`.
+  **내용의 단일 원천은 `gen_brief.py`(카드) · `qdrive-cuesheet.html`(막·큐·금지어·결함) ·
+  `qa_final.json`(문답)** 이고 나머지는 거기서 나온다.
+- **regex 치환의 replacement에 Windows 경로를 넣지 말 것** — `C:\Qdrive`의 `\Q`가
+  bad escape로 터진다. `re.sub(..., lambda _m: TEXT, ...)`로 넘길 것.

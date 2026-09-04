@@ -988,8 +988,8 @@ const WEEKLY_FUEL_TREND = ['월', '화', '수', '목', '금', '토', '일'].map(
 
 /** AI 코칭 팁 3종 — 탄소 플랫폼 원본 "개선 포인트" 그대로 이식 */
 const COACHING_TIPS = [
-  { tag: '공회전', title: '대기 중 시동 끄기', desc: '동대구역 회차 대기 시 공회전이 하루 평균 22분이에요. 5분 이상 대기 시 시동을 꺼 보세요.', effect: '월 14L 연료 절감', accent: 'text-amber-400', badge: 'bg-amber-500/12 text-amber-400' },
-  { tag: '정속', title: '신천대로 정속 유지', desc: '70km/h 정속 구간에서 가감속이 잦아요. 페달을 일정하게 유지해 보세요.', effect: '연비 +0.2km/L 기대', accent: 'text-sky-400', badge: 'bg-sky-500/12 text-sky-400' },
+  { tag: '공회전', title: '대기 중 시동 끄기', desc: '동대구역 회차 대기 시 공회전이 하루 평균 22분이에요. 5분 이상 대기 시 시동을 꺼 보세요.', effect: '월 14m³ 연료 절감', accent: 'text-amber-400', badge: 'bg-amber-500/12 text-amber-400' },
+  { tag: '정속', title: '신천대로 정속 유지', desc: '70km/h 정속 구간에서 가감속이 잦아요. 페달을 일정하게 유지해 보세요.', effect: '연비 +0.2km/m³ 기대', accent: 'text-sky-400', badge: 'bg-sky-500/12 text-sky-400' },
   { tag: '예측', title: '신호 예측 감속', desc: '아양교네거리 진입 300m 전부터 서서히 감속하면 급감속을 줄일 수 있어요.', effect: '안전점수 +1.5점 기대', accent: 'text-emerald-400', badge: 'bg-emerald-500/12 text-emerald-400' },
 ]
 
@@ -1032,7 +1032,7 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
         <div className="rounded-2xl border border-gray-800 bg-gray-900/60 px-5 py-4">
           <div className="text-[12px] font-semibold text-gray-500">평균 연비</div>
           <div className="mt-1.5 text-2xl font-bold tabular-nums text-sky-400">
-            2.5<span className="ml-0.5 text-sm font-semibold text-gray-400">km/L</span>
+            2.5<span className="ml-0.5 text-sm font-semibold text-gray-400">km/m³</span>
           </div>
           <div className="mt-1 text-[11px] font-semibold text-emerald-400">▲ 회사 평균보다 +8%</div>
         </div>
@@ -1084,7 +1084,7 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
                     <div className="truncate text-[10.5px] text-gray-500">{t.routeName} · {t.distanceKm}km</div>
                   </div>
                   <div className="flex-none text-right">
-                    <div className="text-[12.5px] font-bold tabular-nums text-sky-300">{(t.distanceKm / t.fuelM3).toFixed(1)}km/L</div>
+                    <div className="text-[12.5px] font-bold tabular-nums text-sky-300">{(t.distanceKm / t.fuelM3).toFixed(1)}km/m³</div>
                     <div className="text-[10px] font-semibold tabular-nums text-gray-500">{t.co2Kg.toFixed(1)}kg CO₂</div>
                   </div>
                 </div>

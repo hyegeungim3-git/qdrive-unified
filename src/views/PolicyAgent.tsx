@@ -430,7 +430,7 @@ export default function PolicyAgent() {
     head: ['구분', '실측', '환산 기준', '효과'],
     rows: [
       ['연료 절감', `${kpi.fuelSavedPct.toFixed(1)}%`, `${fmtN(savedM3 * k)}m³`, `${annualEok.toFixed(1)}억원/년`],
-      ['CO₂ 감축', `${kpi.totalCo2SavedKg.toFixed(1)}kg`, '배출계수 2.68', '탄소중립 실적 반영'],
+      ['CO₂ 감축', `${kpi.totalCo2SavedKg.toFixed(1)}kg`, 'CNG 배출계수 2.2 kgCO₂/m³', '온실가스 감축 실적 반영'],
       ['적용 범위', `실증 ${runCnt}대`, `CNG ${DAEGU_CNG_FLEET.toLocaleString()}대 환산`, '단순 선형 가정'],
     ],
   })
@@ -545,8 +545,8 @@ export default function PolicyAgent() {
         },
         'q-carbon': {
           q: '탄소중립 실적으로 인정받을 수 있는 근거가 있습니까?',
-          a: `연료 실측(OBD)에 배출계수 2.68을 적용하여 CO₂ 감축량을 산출함. 현재 ${kpi.totalCo2SavedKg.toFixed(1)}kg을 절감하였으며, 추정이 아닌 실측 기반이므로 외부사업(KOC) 방법론에 따른 인증 절차에 제출 가능한 형식임`,
-          ev: [`CO₂ 절감 ${kpi.totalCo2SavedKg.toFixed(1)}kg`, '배출계수 2.68 kgCO₂/L'],
+          a: `연료 실측(OBD)에 CNG 배출계수 2.2 kgCO₂/m³을 적용하여 CO₂ 감축량을 산출함. 현재 ${kpi.totalCo2SavedKg.toFixed(1)}kg을 절감하였으며, 추정이 아닌 실측 기반이므로 외부사업(KOC) 방법론에 따른 인증 절차에 제출 가능한 형식임`,
+          ev: [`CO₂ 절감 ${kpi.totalCo2SavedKg.toFixed(1)}kg`, 'CNG 배출계수 2.2 kgCO₂/m³'],
         },
         'q-complaint': {
           q: '시민 민원 처리는 어떻게 개선됩니까?',

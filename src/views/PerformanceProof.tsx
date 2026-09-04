@@ -19,13 +19,14 @@ const chartTheme = {
   },
 }
 
-const PERSONA_LABEL: Record<string, string> = { A: '모범 운전군', B: '평균 운전군', C: '개선 대상군' }
+/** 코칭 효과를 가려내기 위한 분석용 대조군 — 개인 평가에 쓰지 않습니다 */
+const PERSONA_LABEL: Record<string, string> = { A: '절감 여지 작은 유형', B: '중간 유형', C: '절감 여지 큰 유형' }
 
 /** 4단 검증 게이트 */
 const GATES = [
   { n: '01', name: '기준선', en: 'Baseline', pass: true, note: '도입 전 12개월 노선별 연비 + 코칭 없을 때 예상 기준' },
   { n: '02', name: '효과 확인', en: 'Cause Check', pass: true, note: '코칭을 안 했을 때와 비교 — 유가·날씨 영향 분리' },
-  { n: '03', name: '검증', en: 'Verification', pass: 'progress', note: 'OBD·DTG 두 데이터로 교차 확인 · 검증기관 제출(8월)' },
+  { n: '03', name: '검증', en: 'Verification', pass: 'progress', note: 'OBD·DTG 두 데이터로 교차 확인 진행 중 · 검증기관 제출 예정' },
   { n: '04', name: '정직한 불확실성', en: 'Honesty', pass: true, note: '신뢰구간·표본수 병기 · 과장 없음' },
 ] as const
 
@@ -60,10 +61,10 @@ export default function PerformanceProof() {
   // ── ④ 서비스별 성과 + 신뢰지표 ──
   const services: Svc[] = [
     { icon: '⛽', name: '연료 절감', result: `순수 절감 −${netPct.toFixed(1)}%`, source: 'OBD 연료분사 × DTG', sample: `실증 ${n}대`, cross: 'OBD·DTG 교차', status: '교차' },
-    { icon: '🌱', name: 'CO₂ 감축', result: `${(kpi.totalCo2SavedKg / 1000).toFixed(2)}t 누적`, source: '연료 × 배출계수 2.68', sample: `실증 ${n}대`, cross: '연비 기반', status: '검증' },
+    { icon: '🌱', name: 'CO₂ 감축', result: `${(kpi.totalCo2SavedKg / 1000).toFixed(2)}t 누적`, source: '연료 × 배출계수 2.2 (CNG)', sample: `실증 ${n}대`, cross: '연비 기반', status: '검증' },
     { icon: '🛡️', name: '안전운전 개선', result: `평균 ${kpi.avgScore.toFixed(1)}점`, source: 'DTG 409 위험운전', sample: `실증 ${n}대`, cross: '상황 반영', status: '검증' },
     { icon: '🔧', name: '예지정비', result: '결행·긴급출동 예방', source: 'OBD/CAN 센서 시계열', sample: '고장 시나리오', cross: '센서 점검', status: '교차' },
-    { icon: '♻️', name: '탄소 크레딧', result: '321.1 t · 285만원', source: 'OBD×DTG 실측', sample: '2~6월 확정', cross: '검증기관 제출', status: '제출' },
+    { icon: '♻️', name: '감축량 인증', result: '321.1 tCO₂ 인증 대상', source: 'OBD×DTG 실측', sample: '2~6월 확정', cross: '검증기관 제출', status: '제출' },
   ]
   const STATUS_CLS = {
     교차: 'bg-sky-500/15 text-sky-300',
@@ -154,8 +155,9 @@ export default function PerformanceProof() {
             </ResponsiveContainer>
           </div>
           <div className="mt-2 rounded-md border border-amber-500/15 bg-amber-500/5 px-3 py-2 text-[11px] leading-relaxed text-gray-400">
-            <b className="text-amber-300">개선 대상군(C)의 절감폭이 가장 큽니다.</b> "개선 여지가 큰 군에서 효과가 크다"는 패턴은
-            우연·외부요인이 아니라 <b className="text-gray-200">코칭이 실제 원인</b>이라는 분명한 증거예요.
+            <b className="text-amber-300">절감 여지가 큰 유형(C)의 절감폭이 가장 큽니다.</b> 외부 요인만으로는 세 유형이 같이 움직여야 하므로,
+            이 순서가 <b className="text-gray-200">실차에서 재현되면 코칭이 원인</b>이라는 근거가 됩니다 — 파일럿의 1차 확인 항목이에요.
+            <div className="mt-1.5 text-[10px] text-gray-500">이 구분은 코칭 효과를 가려내기 위한 분석 단위이며, 개인 평가·인사에 사용하지 않습니다.</div>
           </div>
         </Panel>
 
@@ -164,16 +166,16 @@ export default function PerformanceProof() {
             <KpiCard label="연비 개선 (도입 전 대비)" value={`+${kpi.fuelSavedPct.toFixed(1)}`} unit="%" sub="도입 전 12개월 노선별 연비 기준" accent="text-emerald-400" />
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-lg bg-gray-800/40 px-3 py-2">
-                <div className="text-[10px] text-gray-500">도입 전 (경유)</div>
-                <div className="text-base font-bold tabular-nums text-gray-400">2.42<span className="text-[10px]"> km/L</span></div>
+                <div className="text-[10px] text-gray-500">도입 전 (CNG)</div>
+                <div className="text-base font-bold tabular-nums text-gray-400">2.42<span className="text-[10px]"> km/m³</span></div>
               </div>
               <div className="rounded-lg bg-emerald-500/10 px-3 py-2">
                 <div className="text-[10px] text-gray-500">도입 후 (현재)</div>
-                <div className="text-base font-bold tabular-nums text-emerald-400">2.53<span className="text-[10px]"> km/L</span></div>
+                <div className="text-base font-bold tabular-nums text-emerald-400">2.53<span className="text-[10px]"> km/m³</span></div>
               </div>
             </div>
             <div className="text-[10px] leading-relaxed text-gray-600">
-              기준선(도입 전 12개월) 산정이 외부사업(KOC) 방법론 요건에 부합 — 그래서 이 개선분이 곧 크레딧 자산이 됩니다.
+              도입 전·후 모두 같은 CNG 차량이라 연료 전환 효과가 섞이지 않습니다. 기준선(도입 전 12개월) 산정 방식은 외부사업(KOC) 방법론 요건에 부합해, 감축량 인증 절차에 그대로 제출할 수 있습니다.
             </div>
           </div>
         </Panel>

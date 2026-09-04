@@ -151,7 +151,7 @@ export default function ReportView() {
             {
               n: '대구 CNG 전체 1,513대',
               co2: '약 2,100 톤/년',
-              note: '연료비 절감 ~2.1억 + 배출권*',
+              note: '연료비 절감 ~2.1억원/년*',
               cls: 'border-amber-500/30',
             },
           ].map((c) => (
@@ -163,13 +163,12 @@ export default function ReportView() {
           ))}
         </div>
         <div className="mt-3 text-[11px] leading-relaxed text-gray-600">
-          * 배출권 수익은 전기버스 전환분 한정·방법론 검토단계로 보수적으로 표기 (탄소배출권(KAU) 시세 2026.6 기준
-          약 2만원/톤).
+          * 연료비 절감액은 실증 실측치를 대수 기준으로 선형 환산한 값입니다. 확산 판단은 파일럿 실차 재검증 후에 합니다.
         </div>
       </Panel>
 
-      {/* 탄소배출권 — qdrive.co.kr 탄소배출권 페이지 반영 */}
-      <Panel title="♻️ 탄소중립과 배출권 — 실측이 자산이 되는 구조" right={<span className="text-[11px] text-gray-500">qdrive.co.kr 서비스 연계</span>}>
+      {/* 감축 실적 절차 — 실측이 온실가스 감축 실적으로 이어지는 경로 */}
+      <Panel title="♻️ 실측이 온실가스 감축 실적이 되는 절차" right={<span className="text-[11px] text-gray-500">외부사업 방법론 기준</span>}>
         <div className="mb-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs leading-relaxed text-gray-300">
           <b className="text-emerald-400">탄소중립이란</b> — "인간의 활동으로 인해 발생하는
           온실가스(특히 이산화탄소)를 최대한 줄이고, 남은 배출량은 흡수하거나 제거해서 실질적인
@@ -180,7 +179,7 @@ export default function ReportView() {
             ['1. 감축 활동', '에코드라이빙 코칭으로 연료 절감 (본 플랫폼)', 'text-sky-400'],
             ['2. 측정·보고·검증', '실측 데이터로 검증 — 실증 리포트 포맷 그대로', 'text-sky-400'],
             ['3. 인증', '외부사업 방법론 승인·감축량 인증 (6~12개월)', 'text-amber-400'],
-            ['4. 거래·리워드', '배출권 판매 수익 → 운수사·기사 리워드 환원', 'text-emerald-400'],
+            ['4. 실적 반영', '인증된 감축량을 시 온실가스 감축 실적으로 반영', 'text-emerald-400'],
           ].map(([step, desc, cls]) => (
             <div key={step as string} className="rounded-lg bg-gray-800/50 px-3 py-2.5">
               <div className={`text-[11px] font-bold ${cls}`}>{step}</div>

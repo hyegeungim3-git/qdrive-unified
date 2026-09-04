@@ -326,7 +326,7 @@ const runTripKind = (s: SimSnapshot, targetId?: string): QaResult => {
       })(),
       (() => {
         const inTrip = s.events.filter((e) => e.vehicleId === latest.vehicleId && e.simTime >= latest.startSimTime && e.simTime <= latest.endSimTime).length
-        return { a: 'DTG 409 (이벤트 시각)', b: 'DTG 521 (회차 구간)', what: '이벤트가 이 회차 구간 안에 들어가는가', result: `${inTrip}건이 구간 내로 귀속`, ok: true }
+        return { a: 'DTG 409 (이벤트 시각)', b: 'DTG 521 (회차 구간)', what: '이벤트가 이 회차 구간 안에 들어가는가', result: `${inTrip}건이 그 회차 구간 안에 들어감`, ok: true }
       })(),
     ],
     limits: [
@@ -707,7 +707,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
   const path = [
     '운행(Trip) ─측정치→ 연료(실측)',
     '운행(Trip) ─비교→ 기준선 연료(코칭을 안 했다면 썼을 양)',
-    '─귀속→ 성과(Attribution) ─대조→ 기사군(A/B/C)',
+    '두 값의 차이 ─가 곧→ 코칭이 만든 몫 ─대조→ 운전 유형(A/B/C)',
   ]
   const sources = [
     src(SRC.obd, '연료 실측(분사량) — 실측과 기준선의 비교 대상'),

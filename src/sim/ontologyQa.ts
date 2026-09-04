@@ -706,7 +706,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
   const q = '이 감축은 코칭 때문인가 유가 때문인가'
   const path = [
     '운행(Trip) ─측정치→ 연료(실측)',
-    '운행(Trip) ─반사실→ 기준선 연료(코칭 미적용 가정)',
+    '운행(Trip) ─비교→ 기준선 연료(코칭을 안 했다면 썼을 양)',
     '─귀속→ 성과(Attribution) ─대조→ 기사군(A/B/C)',
   ]
   const sources = [
@@ -722,8 +722,8 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
   if (base <= 0) {
     return {
       id, q, path, sources, sections: [], follow: [], empty: true,
-      headline: '아직 주행이 쌓이지 않아 귀속을 계산할 수 없습니다',
-      detail: '배속을 올려 주행이 누적되면 반사실(코칭 미적용 가정) 대비 순효과가 계산됩니다.',
+      headline: '아직 주행이 쌓이지 않아 코칭 효과를 계산할 수 없습니다',
+      detail: '주행이 쌓이면 코칭을 안 했을 때 썼을 연료와 견주어 순수 절감분이 계산됩니다.',
       evidence: [],
     }
   }
@@ -755,12 +755,12 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
             { k: 'persona (기사군)', v: `${one.persona} · ${PERSONA_LABEL[one.persona]}` },
             { k: 'distanceKm', v: one.distanceKm.toFixed(2) },
             { k: 'fuelM3 (실측)', v: one.fuelM3.toFixed(3) },
-            { k: 'baselineFuelM3 (반사실)', v: one.baselineFuelM3.toFixed(3) },
+            { k: 'baselineFuelM3 (코칭을 안 했다면 썼을 양)', v: one.baselineFuelM3.toFixed(3) },
             { k: 'fuelWaste 분해', v: `습관 ${one.fuelWaste.habit.toFixed(3)} · 급조작 ${one.fuelWaste.harsh.toFixed(3)} · 공회전 ${one.fuelWaste.idle.toFixed(3)} · 냉방 ${one.fuelWaste.ac.toFixed(3)}` },
           ],
         }
       : undefined,
-    headline: `코칭 귀속 −${pct.toFixed(2)}% — 유가 효과 아님 (연료 «양»이 줄었음)`,
+    headline: `코칭이 만든 절감 −${pct.toFixed(2)}% — 유가 때문이 아님 (연료 «양»이 줄었음)`,
     sections: [
       {
         h: '무엇과 무엇을 비교했나',
@@ -835,7 +835,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
           ok,
         }
       })(),
-      { a: 'OBD/CAN (실측)', b: '반사실 기준선', what: '기준선이 실측보다 큰가 (절감이 성립하는가)', result: `기준선 ${base.toFixed(1)}m³ > 실측 ${act.toFixed(1)}m³ — 절감 성립`, ok: base > act },
+      { a: 'OBD/CAN (실측)', b: '기준선(코칭을 안 했다면)', what: '기준선이 실측보다 큰가 (절감이 성립하는가)', result: `기준선 ${base.toFixed(1)}m³ > 실측 ${act.toFixed(1)}m³ — 절감 성립`, ok: base > act },
       (() => {
         /* 서로 다른 원천이 같은 사람을 같은 방향으로 가리키는가 — 급조작이 잦은 차가 점수도 낮아야 한다 */
         const rank = [...s.vehicles].sort((a, b) => b.score - a.score)
@@ -889,11 +889,11 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
     evidence: [
       { k: '기준선 (코칭 미적용 가정)', v: `${base.toFixed(1)}m³`, src: 'DTG 521' },
       { k: '실측', v: `${act.toFixed(1)}m³`, src: 'OBD/CAN' },
-      { k: '순효과 (코칭 귀속)', v: `−${saved.toFixed(1)}m³ · −${pct.toFixed(2)}%`, src: 'OBD/CAN' },
+      { k: '순효과 (코칭이 만든 몫)', v: `−${saved.toFixed(1)}m³ · −${pct.toFixed(2)}%`, src: 'OBD/CAN' },
       ...byPersona.map((g) => ({ k: `${g.label} (${g.n}대)`, v: `−${g.pct.toFixed(2)}%`, src: 'OBD/CAN' })),
       { k: '낭비 분해', v: `습관 ${waste.habit.toFixed(2)} · 급조작 ${waste.harsh.toFixed(2)} · 공회전 ${waste.idle.toFixed(2)} · 냉방 ${waste.ac.toFixed(2)} m³`, src: 'DTG 409' },
     ],
-    caveat: '유가는 이 데모의 엔진 변수가 아닙니다. 반사실 비교가 연료 «양»을 대상으로 하므로, 유가가 어떻게 변하든 이 귀속 결과는 바뀌지 않습니다.',
+    caveat: '유가는 이 데모의 엔진 변수가 아닙니다. 코칭을 안 했을 때와 견주는 계산이 연료 «양»을 대상으로 하므로, 유가가 어떻게 변하든 이 결과는 바뀌지 않습니다.',
   }
 }
 
@@ -932,7 +932,7 @@ export const QA_TOPICS: QaTopic[] = [
     q: '이 감축은 코칭 때문인가 유가 때문인가',
     qOf: (t) => `${t.label}의 감축은 코칭 때문인가 유가 때문인가`,
     targets: vehicleTargets,
-    tag: '성과 귀속',
+    tag: '성과의 원인',
     keywords: ['감축', '코칭', '유가', '절감', '귀속', '기준선', '반사실'],
     run: runAttribution,
   },
@@ -971,6 +971,6 @@ export function runTopic(s: SimSnapshot, topicId: string, targetId?: string): Qa
 export const UNANSWERABLE = {
   headline: '왼쪽 네 질문은 지금 바로 계산해 답합니다',
   detail:
-    '지금 연결된 1차 데이터(DTG·OBD·RTK·BIS + 차고지 축)로 운행유형·이벤트 맥락·차고지 공차·성과 귀속을 실제로 계산합니다. ' +
+    '지금 연결된 1차 데이터(DTG·OBD·RTK·BIS + 차고지 축)로 운행유형·이벤트 맥락·차고지 공차·성과의 원인을 실제로 계산합니다. ' +
     '이 질문은 그 축 밖이라 수치를 지어내지 않고 비워 둡니다 — 해당 데이터가 연동되면 같은 방식으로 답합니다.',
 }

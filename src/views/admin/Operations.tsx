@@ -17,7 +17,7 @@ export default function Operations({ snap, total, failed }: { snap: SimSnapshot;
     { name: '품질 검사', kind: '상시', last: clock(Math.max(0, t - 2)), next: '연속', done: total, state: '정상' as const,
       note: '6개 규칙 검사 → 통과분 정제 저장소 · 실패분 격리함' },
     { name: '온톨로지 적재', kind: '상시', last: clock(Math.max(0, t - 5)), next: '연속', done: passed, state: '정상' as const,
-      note: '운행 단위에 귀속 · 인스턴스·관계 생성' },
+      note: '운행 단위에 붙임 · 인스턴스·관계 생성' },
     { name: '학습 항목 생성', kind: '회차/이벤트', last: snap.trips.length ? clock(snap.trips[0].endSimTime) : '—', next: '다음 회차 종료 시',
       done: snap.trips.length, state: snap.trips.length ? ('정상' as const) : ('대기' as const),
       note: '회차 종료 시 연비·탄소 학습 항목 생성 · 이벤트 발생 시 안전 항목 갱신' },

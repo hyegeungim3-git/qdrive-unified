@@ -117,7 +117,7 @@ export default function Ingest({ snap, total }: { snap: SimSnapshot; total: numb
           <div className="space-y-2">
             {[
               ['차량번호', 'vehicleId', 'DTG 409 · DTG 521 · OBD/CAN · RTK · BIS · 정비이력 · 단말 상태', '표기가 제각각이라 정규화 후 결합 — 통합의 1차 키'],
-              ['운행 단위', 'Trip (start~end)', 'DTG 521이 정의 · 나머지 원천이 시각으로 귀속', '"언제의 데이터인가"를 운행 단위로 묶는 축'],
+              ['운행 단위', 'Trip (start~end)', 'DTG 521이 정의 · 나머지 원천이 시각을 맞춰 붙는다', '"언제의 데이터인가"를 운행 단위로 묶는 축'],
               ['시각', 'simTime (1초)', 'DTG · OBD · RTK 3소스 교차 · BIS 3초', '단말 시계 오차를 3소스로 보정 (품질 규칙 Q4)'],
               ['정류장', 'stopName', 'BIS 정류소명 ↔ 노선 정류장 사전', '미매칭은 보류함으로 — 임의 매칭 금지'],
             ].map(([k, key, srcs, why]) => (

@@ -521,9 +521,12 @@ AI 업무센터·에이전트 플랫폼은 최상위 탭에서 해체돼 각 소
 - **폴백이 왜 안 걸렸나**: 카나리아가 401·403에만 내렸고 429는 «일시적일 수 있다»며 넘겼다. 근거는 «그런 실패는 타일도 함께 깨지므로 tileerror가 잡는다»였는데 **틀렸다** — 429도 본문이 그림이라 `<img>`는 load, tileerror 0회. 지도는 «정상 로드» 상태로 안내 그림을 그렸다.
 - **수정(`d305d8b`)**: ①판정을 상태 코드 목록이 아니라 **«실패인데 본문이 그림인가»**(`!res.ok` + `content-type: image/*`)로 바꿨다. 제공자가 다음에 어떤 코드로 그림을 보내도 잡힌다. 곧바로 내린다 — 다음 순위 VWorld는 탁하지 않아 잘못 내려도 잃는 것이 적다. ②**카나리아 확인 전에는 타일을 부르지 않는다**(`cleared`). 먼저 부르면 한도 초과 동안 지도를 열 때마다 안내 그림이 번쩍인다. 1.5초 안에 답이 없으면 그냥 연다. ③**1분마다 재확인 + `cache: 'no-store'`** — 남의 계정 한도라 시연 도중에 찰 수도 있다.
 - **검증**(로컬 `vite preview`, fetch 가로채기로 429 재현): 정상이면 Stadia 유지 / 로드 시 429 → VWorld 즉시 전환, Stadia 타일 요청 **0건** / 사용 중 429 → 60.1초 재확인에서 VWorld 전환. 콘솔 에러 0.
-- **배포: 미완** — 자동 모드 분류기가 프로덕션 배포를 막아 사용자 승인 대기 중이다. 배포하면 이 줄을 고칠 것.
+- **배포·라이브 검증 완료**(사용자 승인 후 `wrangler pages deploy`, 번들 `index-BzEj1R_C.js`): VWorld 타일 12장 로드, Stadia 요청은 카나리아 1건뿐, 안내 그림 없음. GitHub에는 아직 push하지 않았다.
+- **라이브 검증 함정**: 브라우저 패널에서 탭이 비활성이면 `requestAnimationFrame`이 초당 0회라 Leaflet 타일 페이드인이 중간(불투명도 0~0.61)에서 멈춰 «바탕 지도가 흐리다/없다»로 보인다. 판정 전에 그 탭을 앞으로 가져오고(`tabs_select`) 타일 `opacity`가 1인지 볼 것.
 - **Stadia를 되찾으려면 우리 계정으로 도메인을 등록해야 한다**(계정 생성은 사용자 몫). 등록 뒤 응답 헤더 `stadia-property`가 8052에서 우리 번호로 바뀌는지 확인할 것 — 남의 `pages.dev` 등록보다 우리 하위 도메인 등록이 우선하는지는 아직 확인하지 못했다.
-- **형제 저장소도 같은 결함**: qdrive-proto(`MapView.tsx`)·qdrive-carbon-platform(`.dc.html` 2개)도 401·403만 잡는 카나리아가 라이브에 올라가 있다(2026-09-28 번들 확인). qdrive-ontology는 Stadia를 쓰지 않는다.
+- **형제 저장소도 같은 결함이었고 같이 고쳐 배포했다**: qdrive-proto(`MapView.tsx`, `008b343`) · qdrive-carbon-platform(`.dc.html` 2개, `c0754a6`). 각각 로컬 3경로 검증 + 라이브 VWorld 전환 확인. qdrive-ontology는 Stadia를 쓰지 않는다.
+  - qdrive-proto 폴더 안에서 `wrangler pages deploy`를 돌리면 업로드 직전 조용히 exit 127로 죽는다(원인 미상). `dist`를 저장소 밖으로 복사해 `--commit-hash`·`--commit-message`를 넘기면 된다.
+  - qdrive-carbon-platform은 저장소 추적 파일을 그대로 올린다 — `git -c core.autocrlf=false archive HEAD`로 풀 것. autocrlf를 끄지 않으면 텍스트 파일이 전부 CRLF로 바뀌어 배포 차이가 21개로 부푼다(내용은 같다).
 - **교훈**: «이런 실패는 다른 장치가 잡는다»는 주석은 그 장치로 **실제로 재현해 본 뒤에만** 쓸 것. 이번엔 검증 안 된 가정 하나가 폴백을 통째로 꺼 두었다.
 - 로컬 검증용 launch 설정 `qdrive-unified-dist`(`vite preview`, 포트 4317)를 루트 `.claude/launch.json`에 추가했다. 5199는 다른 채팅의 dev 서버가 자주 점유한다.
 

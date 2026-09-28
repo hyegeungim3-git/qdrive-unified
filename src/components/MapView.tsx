@@ -573,45 +573,65 @@ function BaseTileLayer({ theme }: { theme: Theme }) {
   /*
     카나리아 — <img>로는 못 잡는 실패를 잡는다.
 
-    Stadia는 등록되지 않은 도메인에 «401 Error / Invalid Authentication»이 그려진
-    512×512 정상 PNG를 HTTP 401과 함께 돌려준다. 본문이 유효한 이미지라
-    브라우저 <img>는 이것을 load로 처리하고 Leaflet tileerror는 한 번도 안 뜬다 —
-    지도 전체가 에러 안내 그림으로 덮이는데 코드는 «정상»이라고 믿는다.
-    CARTO 워터마크와 정확히 같은 계열의 사고다.
+    Stadia는 실패를 «그림»으로 알린다. 등록되지 않은 도메인에는 HTTP 401과
+    «401 Error / Invalid Authentication» 그림을, 계정 한도를 넘기면 HTTP 429와
+    «Account Limit Exceeded» 그림을 준다. 둘 다 512×512 정상 PNG라 브라우저 <img>는
+    load로 처리하고 Leaflet tileerror는 한 번도 안 뜬다 — 지도 전체가 안내 그림으로
+    덮이는데 코드는 «정상»이라고 믿는다. CARTO 워터마크와 같은 계열의 사고다.
 
-    다행히 그 401 응답에도 access-control-allow-origin: *가 붙어 있어
-    fetch로는 상태 코드를 볼 수 있다(체인의 세 제공자 모두 확인). 한 장만 찔러 본다.
-    상태를 못 읽는 경우(CORS 거부·네트워크 단절)에는 아무것도 하지 않는다 —
-    그쪽은 tileerror가 잡는 영역이고, 여기서 섣불리 내리면 멀쩡한 제공자를 버린다.
+    그래서 상태 코드를 목록으로 고르지 않고 «실패인데 본문이 그림인가»로 판정한다.
+    예전에는 401·403만 내리고 429는 «일시적일 수 있다»며 버텼는데, 그러는 동안 화면에
+    그려진 것은 지도가 아니라 한도 초과 그림이었다(2026-09-28 라이브에서 실제로 그랬다).
+    - 실패 + 그림       → <img>가 그 그림을 지도 자리에 그리는 중이다. 곧바로 내린다.
+                          다음 순위 VWorld는 탁하지 않아서, 잘못 내려도 잃는 것이 적다.
+    - 실패 + 그림 아님  → <img>도 error를 내므로 tileerror가 잡는다. 여기서는 손대지 않는다.
+    - 상태를 못 읽음    → CORS 거부·네트워크 단절도 tileerror의 영역이다.
+    상태 코드와 content-type은 교차 출처라도 읽힌다(access-control-allow-origin: *, 세 제공자 확인).
+
+    확인 전에는 타일을 부르지 않는다(cleared). 먼저 부르면 한도 초과 동안 지도를 열 때마다
+    안내 그림이 한순간 번쩍인다. 카나리아가 늦으면 1.5초 뒤 그냥 연다 — 지도를 붙잡지 않는다.
+
+    한도 초과는 시연 도중에도 시작될 수 있다. 우리 계정이 아니라 pages.dev를 등록한
+    남의 계정 한도라 그 시점을 우리가 모른다. 그래서 1분마다 다시 찌르고,
+    캐시된 200을 보지 않도록 no-store로 부른다.
   */
+  const isLast = rank >= chain.length - 1
+  const [cleared, setCleared] = useState<string | null>(null)
   useEffect(() => {
+    // 맨 끝 제공자는 확인해 봐야 내려갈 곳이 없다
+    if (isLast) return
     const canary = src.url
       .replace('{s}', 'a')
       .replace('{r}', '')
       .replace('{z}', String(CANARY_TILE.z))
       .replace('{x}', String(CANARY_TILE.x))
       .replace('{y}', String(CANARY_TILE.y))
-    const ac = new AbortController()
-    fetch(canary, { signal: ac.signal })
-      .then((res) => {
-        if (res.ok) return
-        /*
-          401·403에만 내려간다.
-
-          이 카나리아의 존재 이유는 «인증은 거부됐는데 그림은 정상으로 오는» 실패 하나다.
-          그 외(429·5xx·404)까지 내리면 일시적인 응답 한 번에 지도가 폴백(회색 보정 OSM)으로
-          굳어 시연 내내 탁한 지도를 보게 된다 — 실제로 그렇게 됐다.
-          그런 실패는 타일 자체도 함께 깨지므로 tileerror가 잡는 영역이다.
-        */
-        if (res.status !== 401 && res.status !== 403) {
-          console.warn(`[basemap] ${src.label} 카나리아 HTTP ${res.status} — 일시적일 수 있어 그대로 둔다`)
-          return
-        }
-        console.warn(`[basemap] ${src.label} 인증 거부(HTTP ${res.status}) — 그림은 와도 지도가 아니다`)
-        demote()
-      })
-      .catch(() => {})
-    return () => ac.abort()
+    let ac: AbortController | undefined
+    const probe = () => {
+      ac?.abort()
+      const cur = (ac = new AbortController())
+      fetch(canary, { signal: cur.signal, cache: 'no-store' })
+        .then((res) => {
+          if (cur.signal.aborted) return
+          if (!res.ok && res.headers.get('content-type')?.startsWith('image/')) {
+            console.warn(`[basemap] ${src.label} HTTP ${res.status} — 지도 대신 안내 그림이 온다`)
+            demote()
+            return
+          }
+          setCleared(src.id)
+        })
+        .catch(() => {
+          if (!cur.signal.aborted) setCleared(src.id)
+        })
+    }
+    probe()
+    const slow = window.setTimeout(() => setCleared(src.id), 1500)
+    const again = window.setInterval(probe, 60_000)
+    return () => {
+      ac?.abort()
+      clearTimeout(slow)
+      clearInterval(again)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src.id])
 
@@ -634,6 +654,9 @@ function BaseTileLayer({ theme }: { theme: Theme }) {
   const hiDpi = useDevicePixelRatio() > 1
   const url2x = hiDpi && src.hiDpi === 'url'
   const zoom2x = hiDpi && src.hiDpi === 'zoom'
+
+  // 카나리아가 확인하기 전에는 타일을 부르지 않는다 — 훅을 다 부른 뒤에 끊어야 훅 순서가 안 흔들린다
+  if (!isLast && cleared !== src.id) return null
 
   return (
     <TileLayer

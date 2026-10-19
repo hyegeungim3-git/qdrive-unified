@@ -218,7 +218,7 @@ export const CONNECTORS: Conn[] = [
       })),
   },
   {
-    code: 'AFC', name: '교통카드 요금 정산', owner: 'iM유페이 (컨소시엄)', stage: '2차',
+    code: 'AFC', name: '교통카드 요금 정산', owner: '교통카드 정산사업자', stage: '2차',
     hz: '이벤트', schemaVer: '—', since: '협약 시', latency: [0, 0],
     note: '승하차 수요·OD — 배차 최적화의 근거',
     fields: [
@@ -230,7 +230,7 @@ export const CONNECTORS: Conn[] = [
     count: () => 0, sample: () => [],
   },
   {
-    code: 'APC', name: '자동 승객 계수', owner: '컨소시엄 자산', stage: '2차',
+    code: 'APC', name: '자동 승객 계수', owner: '차내 계수 장비', stage: '2차',
     hz: '정류장', schemaVer: '—', since: '협약 시', latency: [0, 0],
     note: '재차율 실측 (데모는 시뮬 추정)',
     fields: [

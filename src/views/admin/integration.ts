@@ -182,8 +182,8 @@ export const INTEGRATION: Record<string, Integration> = {
 
 /** 미연결(2·3차) 원천의 연동 준비 상태 — "무엇이 준비됐고 무엇이 막혔나" */
 export const PENDING_PREP: Record<string, { need: string; ready: string; blocked: string }> = {
-  AFC: { need: 'iM유페이 데이터 제공 협약', ready: '데이터 형식 정의·가명처리 설계 완료', blocked: '협약 체결 대기' },
-  APC: { need: '컨소시엄 APC 장비 연동', ready: '재차율 필드 자리 확보 (지금은 시뮬 추정값)', blocked: '장비 사양 확정 대기' },
+  AFC: { need: '교통카드 정산사업자 데이터 제공 협약', ready: '데이터 형식 정의·가명처리 설계 완료', blocked: '협약 체결 대기' },
+  APC: { need: 'APC 장비 연동', ready: '재차율 필드 자리 확보 (지금은 시뮬 추정값)', blocked: '장비 사양 확정 대기' },
   민원: { need: '대구시 민원 채널 API 연동', ready: '증빙 자동매칭 로직은 1차에서 이미 동작', blocked: '연동 승인 대기' },
   'BMS 배차원장': { need: '대구시 BMS 조회 권한', ready: '계획-실적 대조 형식 설계 완료', blocked: '시 협조 대기' },
   ITS: { need: '신호 정보 실시간 제공', ready: '신호 예측 코칭 설계 완료', blocked: '시 협조 대기' },

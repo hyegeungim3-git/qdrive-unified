@@ -281,7 +281,7 @@ export default function Lineage({ onNavigate }: { onNavigate?: (tab: string) => 
         <Panel title="확장 — 데이터가 늘어도 구조는 그대로">
           <div className="space-y-2.5">
             {[
-              ['2차 · 컨소시엄 자산', 'AFC · APC · 민원', '수요·혼잡 축이 붙으면 배차 최적화·혼잡 안내가 열립니다', 'sky'],
+              ['2차 · 데이터 제공 협약', 'AFC · APC · 민원', '수요·혼잡 축이 붙으면 배차 최적화·혼잡 안내가 열립니다', 'sky'],
               ['3차 · 대구시 소관', 'BMS · ITS · DVR', '계획-실적 대조·신호 예측·영상 안전 — 도시 통합 레이어', 'violet'],
             ].map(([t, srcs, d, tone]) => (
               <div

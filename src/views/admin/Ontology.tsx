@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Panel } from '../../components/ui'
 import type { SimSnapshot } from '../../sim/types'
 import { ONTO, ONTO_QUERIES, fmt } from './catalog'
-import { EDGES, NODES, trim } from './graph'
+import { EDGES, NODES, graphInk, trim } from './graph'
 import Explorer from './Explorer'
 import { Drawer, RecordTable, Sec } from './ui'
 
@@ -72,8 +72,8 @@ export default function Ontology({ snap }: { snap: SimSnapshot }) {
                     textAnchor="middle"
                     fontSize={7.5}
                     fontWeight={700}
-                    fill={cls(e.to).color}
-                    fillOpacity={on ? 0.9 : 0.12}
+                    fill={graphInk(cls(e.to).color)}
+                    fillOpacity={on ? 1 : 0.12}
                     style={{ paintOrder: 'stroke', stroke: 'var(--color-gray-900)', strokeWidth: 3, strokeLinejoin: 'round' }}
                   >
                     {e.label}
@@ -112,11 +112,11 @@ export default function Ontology({ snap }: { snap: SimSnapshot }) {
                       textAnchor="middle"
                       fontSize={isHub ? 15 : 10.5}
                       fontWeight={isHub ? 900 : 800}
-                      fill={c.color}
+                      fill={graphInk(c.color)}
                     >
                       {fmt(c.count(snap))}
                     </text>
-                    <text x={n.x} y={n.y + (isHub ? 11 : 9)} textAnchor="middle" fontSize={isHub ? 9 : 7.5} fill={c.color} fillOpacity={0.85}>
+                    <text x={n.x} y={n.y + (isHub ? 11 : 9)} textAnchor="middle" fontSize={isHub ? 9 : 7.5} fill={graphInk(c.color)}>
                       {c.en}
                     </text>
                   </g>

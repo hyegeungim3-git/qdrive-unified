@@ -427,7 +427,7 @@ function MsgView({
             {shown}
             {stream?.id === m.id && <Caret />}
           </div>
-          <div className="mt-2 text-[10.5px] text-amber-400/90">
+          <div className="mt-2 text-[10.5px] text-amber-400">
             ⚠ 이 답은 라이브 AI가 <b>설명</b>한 것입니다 — 왼쪽 네 질문처럼 엔진에서 계산한 값이 아닙니다.
           </div>
         </div>

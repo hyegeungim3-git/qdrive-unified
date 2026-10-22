@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Panel } from '../../components/ui'
 import type { SimSnapshot } from '../../sim/types'
 import { ONTO } from './catalog'
+import { graphInk } from './graph'
 import { entryPoints, neighborhood, type InstNode } from './instance'
 
 /**
@@ -10,8 +11,8 @@ import { entryPoints, neighborhood, type InstNode } from './instance'
  */
 
 const colorOf = (cls: string) => ONTO.find((c) => c.key === cls)?.color ?? '#94a3b8'
-/* 글자에 쓸 때는 클래스 색을 본문색과 반씩 섞는다 — 파스텔 원색 그대로는 흰 바탕에서 2:1이었다(라이트에서 진해지고 다크에서 밝아진다) */
-const textColorOf = (cls: string) => `color-mix(in srgb, ${colorOf(cls)} 50%, var(--color-gray-100))`
+/* 글자에 쓸 때는 클래스 색 35%를 본문색에 섞는다(graphInk) — 파스텔 원색 그대로는 흰 바탕에서 2:1, 반반 섞어도 4.4:1이었다 */
+const textColorOf = (cls: string) => graphInk(colorOf(cls))
 const nameOf = (cls: string) => ONTO.find((c) => c.key === cls)?.label ?? cls
 
 export default function Explorer({ snap }: { snap: SimSnapshot }) {
@@ -129,8 +130,7 @@ export default function Explorer({ snap }: { snap: SimSnapshot }) {
                   textAnchor="middle"
                   fontSize={8}
                   fontWeight={700}
-                  fill={colorOf(n.cls)}
-                  fillOpacity={0.95}
+                  fill={textColorOf(n.cls)}
                   style={{ paintOrder: 'stroke', stroke: 'var(--color-gray-900)', strokeWidth: 3.5, strokeLinejoin: 'round' }}
                 >
                   {rel}
@@ -146,11 +146,11 @@ export default function Explorer({ snap }: { snap: SimSnapshot }) {
                 <g key={n.id} onClick={() => go(n)} style={{ cursor: 'pointer' }}>
                   <rect x={x - NW / 2} y={y - NH / 2} width={NW} height={NH} rx={7} fill="var(--color-gray-900)" stroke={c} strokeWidth={1.3} strokeOpacity={0.8} />
                   <rect x={x - NW / 2} y={y - NH / 2} width={NW} height={NH} rx={7} fill={c} fillOpacity={0.12} />
-                  <text x={x} y={y - 2} textAnchor="middle" fontSize={9.5} fontWeight={800} fill={c}>
+                  <text x={x} y={y - 2} textAnchor="middle" fontSize={9.5} fontWeight={800} fill={textColorOf(n.cls)}>
                     {n.label.length > 13 ? n.label.slice(0, 12) + '…' : n.label}
                   </text>
                   {n.sub && (
-                    <text x={x} y={y + 9} textAnchor="middle" fontSize={7.5} fill="var(--color-gray-500)">
+                    <text x={x} y={y + 9} textAnchor="middle" fontSize={7.5} fill="var(--color-gray-400)">
                       {n.sub.length > 18 ? n.sub.slice(0, 17) + '…' : n.sub}
                     </text>
                   )}
@@ -161,7 +161,7 @@ export default function Explorer({ snap }: { snap: SimSnapshot }) {
             <g>
               <rect x={cx - CW / 2} y={cy - CH / 2} width={CW} height={CH} rx={9} fill="var(--color-gray-900)" stroke={colorOf(hood.center.cls)} strokeWidth={2.2} />
               <rect x={cx - CW / 2} y={cy - CH / 2} width={CW} height={CH} rx={9} fill={colorOf(hood.center.cls)} fillOpacity={0.2} />
-              <text x={cx} y={cy - 3} textAnchor="middle" fontSize={11.5} fontWeight={900} fill={colorOf(hood.center.cls)}>
+              <text x={cx} y={cy - 3} textAnchor="middle" fontSize={11.5} fontWeight={900} fill={textColorOf(hood.center.cls)}>
                 {hood.center.label}
               </text>
               {hood.center.sub && (

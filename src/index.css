@@ -141,12 +141,17 @@ html.light body {
   background: #0b0f17;
   font: inherit;
 }
+/* 지도 출처 표기 — 글자 대비 4.5:1, 링크는 손가락으로 누를 수 있는 높이(24px)로 */
 .leaflet-control-attribution {
   background: #0b0f17 !important;
-  color: #6b7280 !important;
+  color: #9ca3af !important;
+  line-height: 24px !important;
+  padding: 0 6px !important;
 }
 .leaflet-control-attribution a {
-  color: #9ca3af !important;
+  color: #cbd5e1 !important;
+  display: inline-block;
+  min-height: 24px;
 }
 html.light .leaflet-container {
   background: #dde3ea;
@@ -183,7 +188,10 @@ html.light .map-on-red {
 
 html.light .leaflet-control-attribution {
   background: #ffffff !important;
-  color: #64748b !important;
+  color: #475569 !important;
+}
+html.light .leaflet-control-attribution a {
+  color: #334155 !important;
 }
 
 /*
@@ -333,7 +341,7 @@ html.light .bus-marker .bus-svg {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 .incident-marker .tag {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   padding: 0 5px;
   border-radius: 4px;

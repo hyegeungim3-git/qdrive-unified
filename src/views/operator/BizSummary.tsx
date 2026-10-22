@@ -254,7 +254,7 @@ export default function BizSummary() {
           <ResponsiveContainer>
             <LineChart data={planCurve} margin={{ top: 8, right: 12, left: -14, bottom: 4 }}>
               <CartesianGrid stroke={chartTheme.grid} strokeOpacity={0.2} strokeDasharray="3 3" vertical={false} />
-              <XAxis type="number" dataKey="x" domain={[1, 50]} tick={chartTheme.tick} axisLine={false} tickLine={false} label={{ value: '전환 대수', position: 'insideBottom', offset: -2, fill: '#8899a6', fontSize: 11 }} />
+              <XAxis type="number" dataKey="x" domain={[1, 50]} tick={chartTheme.tick} axisLine={false} tickLine={false} label={{ value: '전환 대수', position: 'insideBottom', offset: -2, fill: 'var(--color-gray-500)', fontSize: 11 }} />
               <YAxis tick={chartTheme.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}t`} />
               <Tooltip {...chartTheme.tooltip} formatter={(v) => [`${v}t/년`, 'CO₂ 감축']} labelFormatter={(l) => `${l}대 전환`} />
               <Line type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2.5} dot={false} fill="rgba(56,189,248,.06)" isAnimationActive={false}/>

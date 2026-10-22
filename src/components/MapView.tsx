@@ -8,7 +8,7 @@ import { DAEGU_CENTER, EXTRA_ROUTES, ROUTES } from '../sim/routes'
 import type { BusRoute } from '../sim/routes'
 import { MAJOR_ROADS } from '../sim/roads'
 import { backgroundBuses } from '../sim/traffic'
-import { mapColor } from './mapColors'
+import { mapColor, readableText } from './mapColors'
 import { indexPolyline, pointAt } from '../sim/geo'
 import type { LatLng } from '../sim/geo'
 import type { RealBus } from '../sim/bis'
@@ -38,7 +38,7 @@ function incidentIcon(inc: Incident, light: boolean): L.DivIcon {
     className: '',
     html: `<div class="incident-marker${inc.status === '발생' ? ' fresh' : ''}">
       <span class="badge" style="border-color:${c};background:${tintOn(c, light)}">${INCIDENT_ICON[inc.kind]}</span>
-      <span class="tag" style="color:${c};border-color:${c}66">${inc.kind} · ${inc.status}</span>
+      <span class="tag" style="color:${readableText(c, light)};border-color:${c}66">${inc.kind} · ${inc.status}</span>
     </div>`,
     iconSize: [0, 0],
   })
@@ -222,6 +222,27 @@ function MapHud({
     if (!el) return
     L.DomEvent.disableScrollPropagation(el)
   }
+  /*
+   * 출처 표기(우하단)는 지도 제공자 약관상 가리면 안 되는데, 좁은 지도에서는 두세 줄로 늘어나 왼쪽 끝까지 온다.
+   * 그 높이를 지도를 감싼 상자에 --map-attrib-h로 알려, 아래쪽에 띄운 것(확대·축소·히트맵 범례, 화면 쪽 노선 범례)이
+   * 그만큼 위로 비켜 서게 한다. 아래 것들이 올라간 만큼 팝업이 비켜야 할 아래 여백도 늘린다.
+   */
+  useEffect(() => {
+    const el = map.attributionControl?.getContainer()
+    const box = map.getContainer().parentElement
+    if (!el || !box) return
+    const set = () => {
+      box.style.setProperty('--map-attrib-h', `${el.offsetHeight}px`)
+      POPUP_PAD_BR[1] = POPUP_PAD_BOTTOM + el.offsetHeight
+    }
+    const ro = new ResizeObserver(set)
+    ro.observe(el)
+    set()
+    return () => {
+      ro.disconnect()
+      box.style.removeProperty('--map-attrib-h')
+    }
+  }, [map])
   return (
     <>
       {/*
@@ -344,7 +365,7 @@ function MapHud({
       {showHeat && (
         <div
           ref={stop}
-          className="pointer-events-auto absolute bottom-[104px] right-3 z-[1000] rounded-lg border border-gray-700 bg-gray-900 px-2.5 py-2 text-[10px] shadow-xl"
+          className="pointer-events-auto absolute bottom-[calc(var(--map-attrib-h,0px)_+_104px)] right-3 z-[1000] rounded-lg border border-gray-700 bg-gray-900 px-2.5 py-2 text-[10px] shadow-xl"
         >
           <div className="mb-1 font-bold text-red-300">🔥 위험운전 밀도</div>
           <div
@@ -361,7 +382,7 @@ function MapHud({
       {/* 줌 컨트롤 — 우하단, 44px 터치 타깃 (기본 zoomControl 대체) */}
       <div
         ref={stop}
-        className="pointer-events-auto absolute bottom-3 right-3 z-[1000] flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-900 shadow-xl"
+        className="pointer-events-auto absolute bottom-[calc(var(--map-attrib-h,0px)_+_0.75rem)] right-3 z-[1000] flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-900 shadow-xl"
       >
         <button
           onClick={() => map.setZoom(Math.min(map.getMaxZoom(), map.getZoom() + 1), { animate: false })}
@@ -463,9 +484,11 @@ const HIT_WEIGHT = 16
  * — Leaflet 팝업 pane은 지도 pane 안(z-400 아래)이라 z-index를 올려도 HUD 위로 못 올라온다.
  * 그래서 «가리지 않게» 대신 «그 자리를 피하게» 한다: 팝업이 열릴 때 지도가 이만큼 밀려난다.
  * 위쪽은 날씨 줄 + 노선 칩 두 줄, 아래쪽은 범례·확대축소 버튼을 비운 값이다.
+ * 아래쪽에는 출처 표기 높이(지도 폭에 따라 1~3줄)를 MapHud가 재서 더한다 — 그 위로 범례·버튼이 올라가 있다.
  */
 const POPUP_PAD_TL: [number, number] = [16, 112]
-const POPUP_PAD_BR: [number, number] = [16, 76]
+const POPUP_PAD_BOTTOM = 76
+const POPUP_PAD_BR: [number, number] = [16, POPUP_PAD_BOTTOM]
 
 const ALL_ROUTES = [...ROUTES, ...EXTRA_ROUTES]
 

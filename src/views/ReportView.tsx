@@ -36,7 +36,8 @@ const improvement = ((avgAfter - avgBefore) / avgBefore) * 100
 
 const chartTheme = {
   grid: '#1f2937',
-  tick: { fill: '#6b7280', fontSize: 11 },
+  // 축 글자는 테마를 따라가는 회색 토큰으로 — #6b7280 고정이면 다크 카드 위 3.8:1이었다
+  tick: { fill: 'var(--color-gray-500)', fontSize: 11 },
   tooltip: {
     contentStyle: { background: '#111827', border: '1px solid #374151', borderRadius: 8, fontSize: 12 },
   },
@@ -105,7 +106,7 @@ export default function ReportView() {
                   x="W+1"
                   stroke="#38bdf8"
                   strokeDasharray="4 3"
-                  label={{ value: '도입', fill: '#38bdf8', fontSize: 11, fontWeight: 700, position: 'insideTopLeft', offset: 6 }}
+                  label={{ value: '도입', fill: 'var(--color-sky-400)', fontSize: 11, fontWeight: 700, position: 'insideTopLeft', offset: 6 }}
                 />
                 <ReferenceLine y={avgBefore} stroke="#4b5563" strokeDasharray="4 3" />
                 <Line type="monotone" dataKey="kmPerM3" name="연비" stroke="#34d399" strokeWidth={2.5} dot={{ r: 3.5 }} isAnimationActive={false}/>

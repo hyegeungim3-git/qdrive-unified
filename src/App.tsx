@@ -74,7 +74,9 @@ export default function App() {
     if (tabFromHash(window.location.hash) !== tab) window.history.replaceState(null, '', `#${tab}`)
   }, [tab, hash])
 
-  /* 좁은 화면의 탭 줄은 가로로 밀린다 — 주소·바로가기로 들어온 탭이 줄 밖에 숨지 않게 (탭 줄만 움직인다) */
+  /* 좁은 화면의 탭 줄은 가로로 밀린다 — 주소·바로가기로 들어온 탭이 줄 밖에 숨지 않게 (탭 줄만 움직인다).
+     시민 페이지에서 돌아오면 머리글이 새로 그려져 탭 줄이 왼쪽 끝에서 다시 시작한다 — 탭이 그대로여도 셸이 다시 나타날 때 한 번 더 끌어온다 */
+  const inShell = hash !== '#citizen'
   const navRef = useRef<HTMLElement>(null)
   useEffect(() => {
     const nav = navRef.current
@@ -83,7 +85,7 @@ export default function App() {
     const n = nav.getBoundingClientRect()
     const c = cur.getBoundingClientRect()
     if (c.left < n.left || c.right > n.right) nav.scrollLeft += c.left - n.left - 16
-  }, [tab])
+  }, [tab, inShell])
 
   // 시민 공개 페이지 — 독립 진입점(공유·배포용), 앱 셸 없이 전체화면 렌더
   if (hash === '#citizen') return <CitizenPublic />

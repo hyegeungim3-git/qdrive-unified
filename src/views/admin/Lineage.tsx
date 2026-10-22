@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Panel } from '../../components/ui'
 import { setOperatorSubtabIntent } from '../../sim/navIntent'
 import { CONNECTORS, LINEAGE, stageTone, type Stage } from './catalog'
+import { graphInk } from './graph'
 
 /**
  * ⑤ 서비스 연결 — 계보를 표가 아니라 **온톨로지와 같은 데이터 맵**으로 관리한다.
@@ -161,7 +162,7 @@ export default function Lineage({ onNavigate }: { onNavigate?: (tab: string) => 
                   >
                     <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={6} fill="var(--color-gray-900)" stroke={c} strokeWidth={isSel ? 2 : 1.2} strokeOpacity={isSel ? 1 : 0.7} />
                     <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={6} fill={c} fillOpacity={isSel ? 0.22 : 0.1} />
-                    <text x={n.x + 10} y={n.y + (n.sub ? 15 : n.h / 2 + 3.5)} fontSize={10} fontWeight={700} fill={c}>
+                    <text x={n.x + 10} y={n.y + (n.sub ? 15 : n.h / 2 + 3.5)} fontSize={10} fontWeight={700} fill={graphInk(c)}>
                       {n.label}
                     </text>
                     {n.sub && (

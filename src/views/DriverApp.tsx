@@ -534,30 +534,31 @@ export default function DriverApp() {
                   </div>
                   <div className="mt-2 flex items-stretch gap-2 text-center">
                     <div className="flex-1 rounded-lg bg-gray-800/50 py-1.5">
-                      <div className="text-[9px] text-gray-500">뒤차 {hw.rearId ? `${hw.rearId.slice(-4)}호` : '없음'}</div>
+                      <div className="text-[9px] text-gray-400">뒤차 {hw.rearId ? `${hw.rearId.slice(-4)}호` : '없음'}</div>
                       <div className="text-lg font-extrabold tabular-nums text-gray-200">
                         {hw.rearId ? `${hw.rearGapMin.toFixed(1)}` : '—'}
-                        {hw.rearId && <span className="text-[10px] font-medium text-gray-500">분</span>}
+                        {hw.rearId && <span className="text-[10px] font-medium text-gray-400">분</span>}
                       </div>
                     </div>
                     <div className="flex flex-col items-center justify-center px-1">
-                      <span className="text-[9px] text-gray-500">적정</span>
+                      <span className="text-[9px] text-gray-400">적정</span>
                       <span className="text-xs font-bold tabular-nums text-gray-400">{hw.idealMin.toFixed(1)}분</span>
                     </div>
                     <div
                       className={`flex-1 rounded-lg py-1.5 ${hw.status === 'bunching' ? 'bg-amber-500/15' : 'bg-gray-800/50'}`}
                     >
-                      <div className="text-[9px] text-gray-500">앞차 {hw.frontId ? `${hw.frontId.slice(-4)}호` : '없음'}</div>
+                      {/* 몰림이면 앞차 칸이 주황 바탕이 되어 gray-500 대비가 4.3까지 떨어진다(하루치 운행 뒤 실측) — 작은 글씨는 gray-400 */}
+                      <div className="text-[9px] text-gray-400">앞차 {hw.frontId ? `${hw.frontId.slice(-4)}호` : '없음'}</div>
                       <div
                         className={`text-lg font-extrabold tabular-nums ${hw.status === 'bunching' ? 'text-amber-300' : 'text-gray-200'}`}
                       >
                         {hw.frontId ? `${hw.frontGapMin.toFixed(1)}` : '—'}
-                        {hw.frontId && <span className="text-[10px] font-medium text-gray-500">분</span>}
+                        {hw.frontId && <span className="text-[10px] font-medium text-gray-400">분</span>}
                       </div>
                     </div>
                   </div>
                   {hw.status === 'bunching' && (
-                    <div className="mt-1.5 text-[10px] leading-relaxed text-amber-200/80">
+                    <div className="mt-1.5 text-[10px] leading-relaxed text-amber-200">
                       앞차와 간격이 좁습니다 — 정류장에서 잠시 여유를 두면 배차가 고르게 유지됩니다 (관제 배차
                       권고와 연동)
                     </div>
@@ -596,7 +597,7 @@ export default function DriverApp() {
               {isFaulty && (
                 <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
                   <div className="text-xs font-bold text-amber-300">🔧 차량 점검 예정</div>
-                  <div className="mt-1 text-[11px] leading-relaxed text-amber-200/70">
+                  <div className="mt-1 text-[11px] leading-relaxed text-amber-200">
                     냉각계통 예방정비 — 금일 2회차 종료 후 차고지 입고. 무리한 운행 없이 정상 주행하세요.
                   </div>
                 </div>
@@ -606,7 +607,7 @@ export default function DriverApp() {
                   <div className="text-xs font-bold text-sky-300">
                     {WEATHER_ICON[w.condition]} {w.condition} 운행 지침
                   </div>
-                  <div className="mt-1 text-[11px] leading-relaxed text-sky-200/70">
+                  <div className="mt-1 text-[11px] leading-relaxed text-sky-200">
                     {w.condition === '폭우'
                       ? '제동거리 1.5배 — 차간거리 확보, 정류장 접근 시 조기 감속하세요.'
                       : '냉방부하 증가 — 공회전 최소화, 승객 안내방송이 자동 송출됩니다.'}
@@ -696,7 +697,7 @@ export default function DriverApp() {
                 <div className={`text-[11px] font-bold ${restDue ? 'text-amber-300' : 'text-gray-500'}`}>
                   ☕ 휴게·교대
                 </div>
-                <div className={`mt-1 text-xs leading-relaxed ${restDue ? 'text-amber-200/80' : 'text-gray-400'}`}>
+                <div className={`mt-1 text-xs leading-relaxed ${restDue ? 'text-amber-200' : 'text-gray-400'}`}>
                   {restDue
                     ? `연속운행 ${Math.floor(snap.simTime / 3600)}시간 ${Math.floor((snap.simTime % 3600) / 60)}분 — 휴게 권장`
                     : '다음 휴게 회차 종료 후 15분'}

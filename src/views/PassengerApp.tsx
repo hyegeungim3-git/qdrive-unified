@@ -316,12 +316,12 @@ export default function PassengerApp() {
                 {arrivedNow ? (
                   <div className="mt-2 text-center">
                     <div className="text-lg font-black text-emerald-400">🚏 {riding.stopName} 도착!</div>
-                    <div className="text-[11px] text-emerald-300/80">안녕히 가세요 👋 소지품을 확인하세요</div>
+                    <div className="text-[11px] text-emerald-300">안녕히 가세요 👋 소지품을 확인하세요</div>
                   </div>
                 ) : alarmNow ? (
                   <div className="mt-2 text-center">
                     <div className="text-lg font-black text-red-300">⏰ 다음 정류장에서 내리세요!</div>
-                    <div className="mb-2 text-[11px] tabular-nums text-red-200/80">
+                    <div className="mb-2 text-[11px] tabular-nums text-red-200">
                       {riding.stopName}까지 약 {Math.max(0, Math.round(ridingBus.nextStopDistM))}m
                     </div>
                     {riding.auto ? (
@@ -394,8 +394,8 @@ export default function PassengerApp() {
                   return (
                     <span
                       key={s}
-                      className={`rounded px-1.5 py-0.5 text-[9px] font-semibold ${
-                        done ? 'bg-violet-500/25 text-violet-300' : 'bg-gray-800 text-gray-600'
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                        done ? 'bg-violet-500/25 text-violet-300' : 'bg-gray-800 text-gray-400'
                       }`}
                     >
                       {s === '원인식별' ? '확인' : s}

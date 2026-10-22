@@ -169,7 +169,7 @@ export default function TripsLog() {
                           : 'cursor-default bg-gray-800/50'
                     }`}
                   >
-                    <div className="text-[9px] text-gray-500">{t}</div>
+                    <div className="text-[10px] text-gray-400">{t}</div>
                     <div className={`text-sm font-bold tabular-nums ${v.eventCounts[t] > 0 ? 'text-red-400' : 'text-gray-600'}`}>
                       {v.eventCounts[t]}
                     </div>
@@ -208,9 +208,9 @@ export default function TripsLog() {
                           open ? 'bg-sky-500/20 ring-1 ring-sky-500/40' : 'bg-gray-800/50 hover:bg-gray-800'
                         }`}
                       >
-                        <span className="shrink-0 text-gray-500">{open ? '▾' : '▸'}</span>
+                        <span className="shrink-0 text-gray-400" aria-hidden>{open ? '▾' : '▸'}</span>
                         <span className="font-mono text-gray-400">{simClock(e.simTime)}</span>
-                        <span className="tabular-nums text-gray-500">
+                        <span className="tabular-nums text-gray-400">
                           {e.speedKmh}km/h · {e.rpm}rpm
                         </span>
                         <span className="truncate text-gray-300">{nearestStop(e.lat, e.lng)}</span>
@@ -222,7 +222,7 @@ export default function TripsLog() {
                             🛡 {e.justifyReason}
                           </span>
                         ) : (
-                          <span className="ml-auto shrink-0 rounded bg-red-500/15 px-1 font-bold text-red-400">감점</span>
+                          <span className="ml-auto shrink-0 rounded bg-red-500/15 px-1 font-bold text-red-200">감점</span>
                         )}
                         <span className="shrink-0 text-gray-600">🗺</span>
                       </button>

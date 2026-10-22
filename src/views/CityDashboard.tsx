@@ -179,9 +179,10 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
     .filter((x): x is Triage => x !== null)
     .sort((a, b) => a.order - b.order)
   const SEV_CLS = {
-    위험: 'bg-red-500/20 text-red-300 border-red-500/40',
-    주의: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-    정보: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+    // 색 칩 글자는 -200 — 라이트 모드에서 -300은 빨강 칩 위 4.3:1로 모자랐다(실측)
+    위험: 'bg-red-500/20 text-red-200 border-red-500/40',
+    주의: 'bg-amber-500/20 text-amber-200 border-amber-500/40',
+    정보: 'bg-sky-500/15 text-sky-200 border-sky-500/30',
   } as const
 
   /* ── AI 3카드 (운행·안전·정비 맥락) — 엔진 파생 ── */
@@ -374,7 +375,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                   >
                     <span
                       className={`shrink-0 rounded px-1 font-bold ${
-                        i.status === '발생' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/15 text-amber-400'
+                        i.status === '발생' ? 'bg-red-500/20 text-red-200' : 'bg-amber-500/15 text-amber-200'
                       }`}
                     >
                       {i.status}
@@ -660,7 +661,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
             })}
           </div>
         )}
-        <div className="absolute bottom-3 left-3 z-[1000] flex gap-3 rounded-md border border-gray-800 bg-gray-900 px-3 py-2 text-[11px]">
+        <div className="absolute bottom-[calc(var(--map-attrib-h,0px)_+_0.75rem)] left-3 z-[1000] flex gap-3 rounded-md border border-gray-800 bg-gray-900 px-3 py-2 text-[11px]">
           {ROUTES.map((r) => (
             <span key={r.id} className="flex items-center gap-1.5 text-gray-300">
               <span className="h-2 w-2 rounded-full" style={{ background: r.color }} />
@@ -843,7 +844,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
               </div>
             </div>
             {snap.weather.condition === '폭우' && (
-              <div className="mt-2 rounded-md border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-[10px] leading-relaxed text-red-300/80">
+              <div className="mt-2 rounded-md border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-[10px] leading-relaxed text-red-300">
                 ⚠ 사고위험 예측: 18~20시 급행1 아양교~불로 구간 — 사유: 강우 + 정체 + 과거 급감속 빈도.
                 해당 구간 기사 태블릿에 감속 지침 자동 표출 · 차고지 예비차 선배정 권고 (예측 예시)
               </div>
@@ -866,7 +867,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                         <span
                           key={s}
                           className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                            done ? 'bg-violet-500/20 text-violet-300' : 'bg-gray-800 text-gray-600'
+                            done ? 'bg-violet-500/20 text-violet-300' : 'bg-gray-800 text-gray-400'
                           }`}
                         >
                           {s}
@@ -958,7 +959,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
               </tbody>
             </table>
             {snap.trips.length > 4 && (
-              <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-[10px] leading-relaxed text-amber-300/80">
+              <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-[10px] leading-relaxed text-amber-300">
                 ⚠ 정산 검증 에이전트: 5563호 3회차 — 배차기록상 정상운행, DTG 위치이력상 인가노선{' '}
                 <b>87% 운행</b>. 검토 필요 (최종 판단: 담당자)
               </div>

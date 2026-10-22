@@ -82,7 +82,10 @@ export default function OperatorView() {
           }`}
         >
           {t.label}
-          {t.id === 'scanner' && fault?.predicted && <span className="ml-1 text-red-400">●</span>}
+          {/* 고장 예측 알림 점 — 선택된 탭(하늘색 바탕) 위에서도 보이게 흰 테두리를 두르고, 글로도 밝힌다 */}
+          {t.id === 'scanner' && fault?.predicted && (
+            <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-red-500 align-middle ring-2 ring-white/90" role="img" aria-label="고장 예측 알림" />
+          )}
         </button>
       ))}
     </div>
@@ -312,7 +315,7 @@ export default function OperatorView() {
             <div className="text-sm font-bold text-amber-300">
               고장예측 알림 — {fault.vehicleId} {fault.kind}
             </div>
-            <div className="mt-1 text-xs leading-relaxed text-amber-200/70">
+            <div className="mt-1 text-xs leading-relaxed text-amber-200">
               냉각수온이 정상범위(88~95°C)를 벗어나 상승 중입니다. 현재{' '}
               <b className="tabular-nums">{fault.coolantTemp.toFixed(1)}°C</b> — 써모스탯/워터펌프 점검
               권장. <b>운행 중단 전 예방 정비로 대응 가능</b> (예상 절감: 긴급출동 + 대차 비용 약 180만원)

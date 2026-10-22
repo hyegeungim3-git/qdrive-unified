@@ -59,3 +59,10 @@ export function trim(a: NodePos, b: NodePos, gap = 3) {
     y2: b.y - uy * (b.r + gap),
   }
 }
+
+/**
+ * 그래프 글자색 — 클래스·단계 색 35%를 본문색(gray-100)에 섞는다.
+ * 원색(400단계) 그대로는 흰 바탕·옅은 틴트 위 1.5~2.5:1, 다크에서도 투명도를 주면 4.2~4.4:1이었다(2026-10-22 SVG 글자 측정).
+ * gray-100이 테마마다 뒤집히므로 라이트에서는 진해지고 다크에서는 밝아진다. 선·테두리·틴트에는 쓰지 않는다 — 글자에만.
+ */
+export const graphInk = (c: string) => `color-mix(in srgb, ${c} 35%, var(--color-gray-100))`

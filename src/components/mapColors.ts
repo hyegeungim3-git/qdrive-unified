@@ -102,3 +102,29 @@ export function onDarkTile(hex: string, alpha = 1): string {
 /** 테마에 맞는 색 — 어느 쪽이든 타일 대비 3:1(WCAG 1.4.11)을 넘기도록 민다 */
 export const mapColor = (hex: string, light: boolean, alpha = 1) =>
   light ? onLightTile(hex, alpha) : onDarkTile(hex, alpha)
+
+/** 지도 위 작은 글자(돌발 표지 등)의 배경 — index.css의 .incident-marker .tag 배경과 같아야 계산이 맞는다 */
+const TAG_BG_LIGHT: [number, number, number] = [255, 255, 255]
+const TAG_BG_DARK: [number, number, number] = [11, 15, 23]
+
+/**
+ * 글자색으로 쓸 때 — 본문 글자 대비 4.5:1(WCAG 1.4.3)을 넘길 때까지 라이트는 어둡게, 다크는 밝게 민다.
+ * 선·점(3:1)과 달리 글자는 더 높은 대비가 필요하다. 색상은 남겨 «고장은 주황»이 그대로 읽힌다.
+ */
+export function readableText(hex: string, light: boolean): string {
+  const key = `t:${light ? 'l' : 'd'}:${hex}`
+  const hit = cache.get(key)
+  if (hit) return hit
+  const base = hexToRgb(hex)
+  const bg = light ? TAG_BG_LIGHT : TAG_BG_DARK
+  let out = hex
+  for (let k = 0; k <= 100; k += 5) {
+    const c: [number, number, number] = light
+      ? [base[0] * (1 - k / 100), base[1] * (1 - k / 100), base[2] * (1 - k / 100)]
+      : [base[0] + (255 - base[0]) * (k / 100), base[1] + (255 - base[1]) * (k / 100), base[2] + (255 - base[2]) * (k / 100)]
+    out = toHex(c)
+    if (ratio(c, bg) >= 4.5) break
+  }
+  cache.set(key, out)
+  return out
+}

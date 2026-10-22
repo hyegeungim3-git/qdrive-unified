@@ -96,7 +96,7 @@ export default function EcoFuel() {
                       코칭 가능
                     </span>
                   ) : (
-                    <span className="rounded bg-gray-700/50 px-1.5 py-0.5 text-[9px] text-gray-500">환경 요인</span>
+                    <span className="rounded bg-gray-700/50 px-1.5 py-0.5 text-[10px] text-gray-400">환경 요인</span>
                   )}
                 </div>
               ))}

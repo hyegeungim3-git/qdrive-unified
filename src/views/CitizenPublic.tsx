@@ -69,7 +69,8 @@ function toast(msg: string) {
 
 const chartTheme = {
   grid: '#94a3b8',
-  tick: { fill: '#94a3b8', fontSize: 11, fontWeight: 600 },
+  // 축 글자는 테마를 따라가는 회색 토큰으로 — #94a3b8 고정이면 라이트 흰 바탕에서 2.6:1이었다
+  tick: { fill: 'var(--color-gray-500)', fontSize: 11, fontWeight: 600 },
   tooltip: {
     contentStyle: {
       background: '#191f28',

@@ -260,7 +260,7 @@ export default function PassengerApp() {
                   <button
                     onClick={board}
                     disabled={!destSel}
-                    className="rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500 disabled:opacity-40"
+                    className="rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-800 disabled:opacity-40"
                   >
                     {autoSel ? '예약' : '알림 시작'}
                   </button>
@@ -343,7 +343,7 @@ export default function PassengerApp() {
                         className={`w-full rounded-xl py-2.5 text-sm font-black ${
                           ridingBus.bellPressed
                             ? 'bg-emerald-600/30 text-emerald-300'
-                            : 'bg-red-600 text-white hover:bg-red-500'
+                            : 'bg-red-600 text-white hover:bg-red-700'
                         }`}
                       >
                         {ridingBus.bellPressed ? '✓ 하차벨 눌림 — 기사님께 전달됨' : '🔴 하차벨 누르기'}
@@ -425,7 +425,7 @@ export default function PassengerApp() {
               }}
               disabled={filed}
               className={`w-full rounded-xl py-2.5 text-xs font-bold text-white transition-colors ${
-                filed ? 'bg-emerald-600' : 'bg-violet-600 hover:bg-violet-500'
+                filed ? 'bg-emerald-700' : 'bg-violet-600 hover:bg-violet-700'
               }`}
             >
               {filed ? '✓ 접수됐어요 — 위 처리 현황에서 추적할 수 있어요' : '📢 불편사항 접수하기'}

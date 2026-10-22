@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Panel } from '../../components/ui'
+import { setOperatorSubtabIntent } from '../../sim/navIntent'
 import { CONNECTORS, LINEAGE, stageTone, type Stage } from './catalog'
 
 /**
@@ -225,7 +226,10 @@ export default function Lineage({ onNavigate }: { onNavigate?: (tab: string) => 
                   {l.svc.map((s) => (
                     <button
                       key={s.name}
-                      onClick={() => onNavigate?.(s.tab)}
+                      onClick={() => {
+                        if (s.sub) setOperatorSubtabIntent(s.sub)
+                        onNavigate?.(s.tab)
+                      }}
                       className="rounded border border-gray-800 px-1.5 py-0.5 text-[11px] text-gray-400 transition-colors hover:border-sky-600 hover:text-sky-300"
                     >
                       {s.name} →

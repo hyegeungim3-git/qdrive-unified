@@ -215,6 +215,8 @@ export interface DispatchRecommendation {
   id: number
   routeId: string
   vehicleId: string
+  /** 승인 시 다음 정류장에서 더 머무는 시간(초) */
+  holdSec: number
   action: string
   reason: string
   effect: string

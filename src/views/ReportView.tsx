@@ -122,7 +122,7 @@ export default function ReportView() {
                 <XAxis dataKey="week" tick={chartTheme.tick} axisLine={false} tickLine={false} />
                 <YAxis tick={chartTheme.tick} axisLine={false} tickLine={false} />
                 <Tooltip {...chartTheme.tooltip} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v: string) => <span className="text-gray-400">{v}</span>} />
                 <Bar dataKey="events" name="위험운전 이벤트" radius={[4, 4, 0, 0]}
                   fill="#f87171"
                 isAnimationActive={false}/>

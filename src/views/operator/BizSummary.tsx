@@ -173,8 +173,8 @@ export default function BizSummary() {
           </div>
           <div className="flex justify-around text-[12px] font-semibold">
             {DIST.map((d) => (
-              <span key={d.name} style={{ color: d.color }}>
-                ● {d.name} {d.v}
+              <span key={d.name} className="text-gray-300">
+                <span aria-hidden style={{ color: d.color }}>●</span> {d.name} {d.v}
               </span>
             ))}
           </div>
@@ -198,7 +198,7 @@ export default function BizSummary() {
             <div key={b.name} className="flex items-center gap-2.5">
               <span className="flex w-32 flex-none items-center whitespace-nowrap text-[13px] font-bold text-gray-200">
                 {b.name}
-                {b.me && <span className="ml-1.5 shrink-0 rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">우리</span>}
+                {b.me && <span className="ml-1.5 shrink-0 rounded bg-emerald-700 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">우리</span>}
               </span>
               <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-800">
                 <div className="h-full rounded-full" style={{ width: `${b.w}%`, background: b.me ? '#34d399' : 'rgba(52,211,153,0.4)' }} />
@@ -308,7 +308,7 @@ export default function BizSummary() {
         <div className="flex flex-col gap-2">
           {PLAN_TARGETS.map((t) => (
             <div key={t.rank} className="flex items-center gap-3 rounded-lg bg-gray-900/40 px-3 py-2">
-              <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-md text-xs font-bold ${t.rank <= 3 ? 'bg-violet-500 text-white' : 'bg-gray-800 text-gray-300'}`}>{t.rank}</span>
+              <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-md text-xs font-bold ${t.rank <= 3 ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-300'}`}>{t.rank}</span>
               <div className="flex-1">
                 <div className="text-[13px] font-semibold text-gray-100">{t.no}</div>
                 <div className="text-[11px] text-gray-500">{t.detail}</div>

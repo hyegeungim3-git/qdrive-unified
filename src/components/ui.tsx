@@ -101,6 +101,19 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+/**
+ * 앞말 받침에 맞춘 조사 — josa('급정지', '이/가') → '가', josa('운수사 관제', '으로/로') → '로'.
+ * 낱말이 바뀌는 문장(이벤트 종류·화면 이름)에 «급정지이», «관제으로»가 찍히던 것을 막는다.
+ */
+export function josa(word: string, pair: '이/가' | '은/는' | '을/를' | '과/와' | '으로/로'): string {
+  const [withFinal, withoutFinal] = pair.split('/')
+  const c = word.charCodeAt(word.length - 1) - 0xac00
+  if (c < 0 || c > 11171) return withFinal
+  const jong = c % 28
+  // «(으)로»는 ㄹ 받침(8) 뒤에서도 «로»
+  return jong === 0 || (pair === '으로/로' && jong === 8) ? withoutFinal : withFinal
+}
+
 /** 시뮬레이션 시각 → HH:MM 표기 (데모는 06:00 출발 가정) */
 export function simClock(simTime: number): string {
   const base = 6 * 3600

@@ -288,12 +288,15 @@ export class SimEngine {
 
   /* ── Agentic: 배차간격(버스 몰림) 권고 ─────────────────────── */
 
-  /** 데모 트리거: 현재 지오메트리 기준 배차 권고 강제 생성. 이미 대기 중이면 'pending' 반환 */
-  forceRecommendation(): 'created' | 'pending' {
+  /**
+   * 데모 트리거: 현재 지오메트리 기준 배차 권고 강제 생성.
+   * 이미 대기 중이면 'pending', 앞뒤 간격 차이가 1분도 안 돼 세울 버스가 없으면 'balanced'
+   */
+  forceRecommendation(): 'created' | 'pending' | 'balanced' {
     if (this.recommendations.some((r) => r.status !== '실행완료')) return 'pending'
-    this.createBunchingRecommendation(true)
+    const made = this.createBunchingRecommendation(true)
     this.emit()
-    return 'created'
+    return made ? 'created' : 'balanced'
   }
 
   approveRecommendation(id: number) {
@@ -301,39 +304,52 @@ export class SimEngine {
     if (!r || r.status !== '대기') return
     r.status = '승인됨'
     const v = this.vehicles.find((x) => x.id === r.vehicleId)
-    if (v) v.pendingHoldSec = 70
+    if (v) v.pendingHoldSec = r.holdSec
     this.emit()
   }
 
-  private createBunchingRecommendation(force = false) {
-    // 순환2(R2) 폐곡선 기준 배차간격 분석
-    if (this.recommendations.some((r) => r.status !== '실행완료')) return
+  /**
+   * 순환2(R2) 폐곡선 배차간격 분석 → 정류장 대기 권고. 만들었으면 true.
+   * 한 버스를 더 세우면 그 버스의 앞차 간격은 늘고 뒷차 간격은 준다 — 그래서 «앞은 좁고 뒤는 넓은» 버스를 고르고,
+   * 근거·기대효과도 그 버스 자신의 앞뒤 간격으로 쓴다. (예전에는 전체 최소·최대 간격을 섞어 써서
+   * 간격이 고를 때 «앞 23분 / 뒤 23분 → 배차간격 23분 → 24분 완화»처럼 앞뒤가 안 맞는 권고가 나왔다)
+   */
+  private createBunchingRecommendation(force = false): boolean {
+    if (this.recommendations.some((r) => r.status !== '실행완료')) return false
     const ctx = this.routes.get('R2')!
     const total = ctx.idx.totalM
     const buses = this.vehicles.filter((v) => v.routeId === 'R2').sort((a, b) => a.odoOnRoute - b.odoOnRoute)
-    if (buses.length < 2) return
+    if (buses.length < 2) return false
     const AVG_M_PER_MIN = 416 // 25km/h
-    const gaps = buses.map((v, i) => {
+    const frontMin = buses.map((v, i) => {
       const next = buses[(i + 1) % buses.length]
-      const gapM = ((next.odoOnRoute - v.odoOnRoute) % total + total) % total
-      return { v, frontGapMin: gapM / AVG_M_PER_MIN }
+      return ((((next.odoOnRoute - v.odoOnRoute) % total) + total) % total) / AVG_M_PER_MIN
     })
     const ideal = total / buses.length / AVG_M_PER_MIN
-    const tight = gaps.reduce((a, b) => (a.frontGapMin < b.frontGapMin ? a : b))
-    const wide = gaps.reduce((a, b) => (a.frontGapMin > b.frontGapMin ? a : b))
-    if (!force && !(tight.frontGapMin < 0.45 * ideal && wide.frontGapMin > 1.5 * ideal)) return
-    const f = (n: number) => Math.max(1, Math.round(n))
+    // 뒷차 간격 = 바로 뒤 버스의 앞차 간격
+    const cands = buses.map((v, i) => ({ v, front: frontMin[i], rear: frontMin[(i - 1 + buses.length) % buses.length] }))
+    const pick = cands.reduce((a, b) => (b.rear - b.front > a.rear - a.front ? b : a))
+    const bunched = pick.front < 0.45 * ideal && pick.rear > 1.5 * ideal
+    // 세워서 고를 차이가 1분도 안 되면 강제 분석이어도 권고하지 않는다
+    if (pick.rear - pick.front < 1 || (!force && !bunched)) return false
+    // 차이의 절반만큼 세우면 앞뒤가 같아진다 — 한 정류장 대기는 30초~2분으로 제한(10초 단위)
+    const holdSec = Math.min(120, Math.max(30, Math.round(((pick.rear - pick.front) / 2) * 6) * 10))
+    const h = holdSec / 60
+    // 분 단위 반올림이면 1분 남짓한 조정이 «23분·24분 → 23분·24분»처럼 변화 없어 보인다 — 소수 한 자리
+    const m = (n: number) => `${Math.max(0.1, Math.round(n * 10) / 10).toFixed(1)}분`
     this.recommendations.unshift({
       id: this.recoSeq++,
       routeId: 'R2',
-      vehicleId: tight.v.id,
-      action: '다음 정류장에서 70초 대기',
-      reason: `앞차 간격 ${f(tight.frontGapMin)}분 / 뒷차 간격 ${f(wide.frontGapMin)}분 · 다음 2개 정류장 승차수요 낮음`,
-      effect: `배차간격 ${f(wide.frontGapMin)}분 → ${f((wide.frontGapMin + tight.frontGapMin) / 2 + 1)}분 완화 기대`,
+      vehicleId: pick.v.id,
+      holdSec,
+      action: `다음 정류장에서 ${holdSec}초 대기`,
+      reason: `앞차 간격 ${m(pick.front)} / 뒷차 간격 ${m(pick.rear)} (적정 ${m(ideal)})${bunched ? '' : ' — 몰림 전 예방 조정'} · 다음 2개 정류장 승차수요 낮음`,
+      effect: `앞뒤 간격 ${m(pick.front)}·${m(pick.rear)} → ${m(pick.front + h)}·${m(pick.rear - h)}`,
       status: '대기',
       createdAt: this.simTime,
     })
     if (this.recommendations.length > 8) this.recommendations.pop()
+    return true
   }
 
   /* ── 시뮬레이션 스텝 ─────────────────────────────────────── */

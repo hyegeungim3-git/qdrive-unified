@@ -6,7 +6,7 @@ import { DEMO_VEHICLE_ID } from '../sim/engine'
 import { ROUTES } from '../sim/routes'
 import { indexPolyline } from '../sim/geo'
 import { RISK_EVENT_TYPES, type SimSnapshot } from '../sim/types'
-import { simClock } from '../components/ui'
+import { josa, simClock } from '../components/ui'
 import { submitRequest, useAgentRequests } from '../sim/agentRequests'
 
 const ROUTE_TOTAL_M = new Map(ROUTES.map((r) => [r.id, indexPolyline(r.points).totalM]))
@@ -40,11 +40,12 @@ function ScoreGauge({ score }: { score: number }) {
   const pct = s / 100
   const r = 74
   const circ = 2 * Math.PI * r
-  const color = s >= 90 ? '#34d399' : s >= 80 ? '#fbbf24' : '#f87171'
+  // 색 토큰을 쓴다 — 라이트 모드에서 원색(#34d399 등) 숫자는 흰 배경 위 1.6~2.7:1이었다
+  const color = s >= 90 ? 'var(--color-emerald-400)' : s >= 80 ? 'var(--color-amber-400)' : 'var(--color-red-400)'
   return (
     <div className="relative flex items-center justify-center">
       <svg width="190" height="190" viewBox="0 0 190 190">
-        <circle cx="95" cy="95" r={r} fill="none" stroke="#1f2937" strokeWidth="14" />
+        <circle cx="95" cy="95" r={r} fill="none" stroke="var(--color-gray-800)" strokeWidth="14" />
         <circle
           cx="95"
           cy="95"
@@ -753,7 +754,7 @@ export default function DriverApp() {
                   <div className="text-2xl font-black leading-tight" style={{ color: '#fecaca' }}>
                     {v.lastEvent.eventType} 감지
                   </div>
-                  <div className="text-xs" style={{ color: 'rgba(254, 202, 202, 0.75)' }}>
+                  <div className="text-xs" style={{ color: 'rgba(254, 202, 202, 0.9)' }}>
                     {v.lastEvent.speedKmh} km/h · 안전운전 부탁드립니다
                   </div>
                 </div>
@@ -834,7 +835,7 @@ function driverAnswer(qRaw: string, snap: SimSnapshot): string {
     return `오늘 배차는 ${route.name}(${v.id.slice(-4)}호)입니다. 현재 ${v.nextStopName} 방면 운행 중이며, 다음 교대는 14:00 성서차고지입니다.`
   if (has('점수', '안전', '경제운전', '에코', '순위')) {
     const top = RISK_EVENT_TYPES.map((t) => ({ t, c: v.eventCounts[t] })).sort((a, b) => b.c - a.c)[0]
-    return `오늘 안전점수는 ${Math.round(v.score)}점(사내 ${rank}위), 경제운전 점수는 ${Math.round(v.ecoScore)}점입니다. ${top.c > 0 ? `${top.t}이 개선 우선 항목이에요 — 정류장 접근 시 미리 발을 떼면 점수·연비가 함께 올라갑니다.` : '정속 주행이 잘 유지되고 있어요. 좋습니다!'}`
+    return `오늘 안전점수는 ${Math.round(v.score)}점(사내 ${rank}위), 경제운전 점수는 ${Math.round(v.ecoScore)}점입니다. ${top.c > 0 ? `${top.t}${josa(top.t, '이/가')} 개선 우선 항목이에요 — 정류장 접근 시 미리 발을 떼면 점수·연비가 함께 올라갑니다.` : '정속 주행이 잘 유지되고 있어요. 좋습니다!'}`
   }
   if (has('급여', '수당', '월급', '얼마'))
     return `이번 달 예상 급여는 기본급 + 무사고·안전운전 리워드로 구성됩니다. 현재 방어운전 크레딧 ${v.defenseCredits}점, 안전점수 상위 시 인센티브가 가산됩니다. (정확한 금액은 급여 정산일 확정)`
@@ -918,7 +919,7 @@ function MyAgent() {
                 placeholder="무엇이든 물어보세요…"
                 className="min-w-0 flex-1 rounded-lg border border-gray-700 bg-gray-900 px-2.5 py-1.5 text-[11px] text-gray-200 placeholder:text-gray-600 focus:border-sky-500/60 focus:outline-none"
               />
-              <button onClick={() => send(input)} className="rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500">
+              <button onClick={() => send(input)} className="rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-800">
                 →
               </button>
             </div>
@@ -1056,7 +1057,7 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
                 <XAxis dataKey="d" tick={{ fill: 'var(--color-gray-500)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis domain={[2.1, 2.8]} tick={{ fill: 'var(--color-gray-500)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: '#191f28', border: '1px solid #374151', borderRadius: 8, fontSize: 11 }} labelStyle={{ color: '#cbd5e1' }} />
-                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Legend wrapperStyle={{ fontSize: 10 }} formatter={(v: string) => <span className="text-gray-400">{v}</span>} />
                 <Line type="monotone" dataKey="me" name="내 연비" stroke="#38bdf8" strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false}/>
                 <Line type="monotone" dataKey="avg" name="회사 평균" stroke="#6b7280" strokeDasharray="6 5" strokeWidth={2} dot={false} isAnimationActive={false}/>
               </LineChart>
@@ -1108,14 +1109,14 @@ function ReportScreen({ rank, score, co2Saved, driverName }: { rank: number; sco
                 <div key={rv.id} className={`flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 ${me ? 'bg-sky-500/10' : ''}`}>
                   <div
                     className={`flex h-6 w-6 flex-none items-center justify-center rounded-md text-[11px] font-bold ${
-                      i === 0 ? 'bg-sky-500 text-white' : 'bg-gray-800 text-gray-400'
+                      i === 0 ? 'bg-sky-600 text-white' : 'bg-gray-800 text-gray-400'
                     }`}
                   >
                     {i + 1}
                   </div>
                   <div className="min-w-0 flex-1 truncate text-[12.5px] font-bold text-gray-200">
                     {rv.driverName}
-                    {me && <span className="ml-1.5 rounded bg-sky-500 px-1.5 py-0.5 text-[9px] font-bold text-white">나</span>}
+                    {me && <span className="ml-1.5 rounded bg-sky-600 px-1.5 py-0.5 text-[9px] font-bold text-white">나</span>}
                   </div>
                   <span className="flex-none text-[13px] font-bold tabular-nums text-gray-100">{Math.round(rv.score)}</span>
                 </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Panel } from '../../components/ui'
+import { setOperatorSubtabIntent } from '../../sim/navIntent'
 import { RISK_EVENT_TYPES, type SimSnapshot } from '../../sim/types'
 import { DATASETS, ONTO, fmt, type Dataset } from './catalog'
 import { Chips, Drawer, RecordTable, Sec, Stat } from './ui'
@@ -214,7 +215,10 @@ function DsDetail({ ds, snap, onNavigate }: { ds: Dataset; snap: SimSnapshot; on
           {ds.services.map((s) => (
             <button
               key={s.name}
-              onClick={() => onNavigate?.(s.tab)}
+              onClick={() => {
+                if (s.sub) setOperatorSubtabIntent(s.sub)
+                onNavigate?.(s.tab)
+              }}
               className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-[11.5px] font-semibold text-sky-300 transition-colors hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               {s.name} →

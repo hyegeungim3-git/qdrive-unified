@@ -274,7 +274,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
           onClick={() => onNavigate?.('policy')}
           className="w-full rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-left text-[11px] font-bold text-violet-300 hover:bg-violet-500/20"
         >
-          📑 정책 보고서 에이전트 <span className="float-right font-normal text-violet-400/60">보고서·부서 연계 →</span>
+          📑 정책 보고서 에이전트 <span className="float-right font-normal text-violet-400">보고서·부서 연계 →</span>
         </button>
         {/* 위젯 구성 */}
         <div className="relative">
@@ -345,7 +345,8 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                 const doing = snap.incidents.filter((i) => i.kind === kind && i.status === '처리중').length
                 return (
                   <div key={kind} className="rounded-md px-1 py-1.5" style={{ background: `${color}18`, border: `1px solid ${color}40` }}>
-                    <div className="text-[10px] font-bold" style={{ color }}>
+                    {/* 원색 그대로는 다크(회색·남색)·라이트(주황) 배경에서 대비가 4.5:1에 못 미친다 — 본문색과 섞어 양쪽 테마를 맞춘다 */}
+                    <div className="text-[10px] font-bold" style={{ color: `color-mix(in srgb, ${color} 50%, var(--color-gray-100))` }}>
                       {kind}
                     </div>
                     <div className="mt-0.5 text-[9px] leading-tight text-gray-400">
@@ -741,7 +742,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                     </span>
                     <button
                       onClick={() => (getBisKey() ? startBis() : setShowKeyForm(true))}
-                      className="shrink-0 whitespace-nowrap rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
+                      className="shrink-0 whitespace-nowrap rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-800"
                     >
                       연동 시작
                     </button>
@@ -753,7 +754,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                     </span>
                     <button
                       onClick={() => startBis()}
-                      className="shrink-0 whitespace-nowrap rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
+                      className="shrink-0 whitespace-nowrap rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-800"
                     >
                       연동 시작
                     </button>
@@ -808,7 +809,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                       setShowKeyForm(false)
                       startBis()
                     }}
-                    className="rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
+                    className="rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-800"
                   >
                     저장·시작
                   </button>
@@ -876,7 +877,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                   {c.status !== '해결' && (
                     <button
                       onClick={() => engine.advanceComplaint(c.id)}
-                      className="rounded-md bg-violet-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-violet-500"
+                      className="rounded-md bg-violet-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
                     >
                       {c.status === '접수' ? '데이터로 원인 확인 →' : '다음 단계 →'}
                     </button>

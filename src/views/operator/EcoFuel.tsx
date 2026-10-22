@@ -123,7 +123,7 @@ export default function EcoFuel() {
             <div className="mt-0.5 text-[10px] text-gray-500">현재 CO₂ 절감</div>
           </div>
         </div>
-        <div className="mt-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] leading-relaxed text-emerald-300/80">
+        <div className="mt-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] leading-relaxed text-emerald-300">
           🤖 AI 제안: 낭비 1위 요인({WASTE_META.slice().sort((a, b) => agg[b.key] - agg[a.key])[0].label})부터 4주
           집중 코칭 시 절감률 추가 개선 예상. 예측형 에코 코칭(정류장 전 관성주행 안내)은 급조작·공회전을
           발생 전에 억제합니다.

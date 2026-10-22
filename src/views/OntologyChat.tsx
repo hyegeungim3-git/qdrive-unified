@@ -243,7 +243,7 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
                 placeholder="sk-ant-..."
                 className="min-w-0 flex-1 rounded-lg border border-gray-700 bg-gray-900 px-2.5 py-1.5 text-xs text-gray-100 outline-none focus:border-sky-500"
               />
-              <button onClick={saveKey} className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-sky-500">
+              <button onClick={saveKey} className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-sky-800">
                 저장
               </button>
               {hasKey && (
@@ -286,7 +286,7 @@ export default function OntologyChat({ onNavigate }: { onNavigate?: (tab: string
               onClick={() => ask(input)}
               disabled={busy || !input.trim()}
               title={busy ? '답을 만드는 중입니다' : !input.trim() ? '질문을 입력하세요' : '보내기'}
-              className="shrink-0 rounded-lg bg-sky-600 px-3 py-1.5 text-[12px] font-bold text-white transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
+              className="shrink-0 rounded-lg bg-sky-600 px-3 py-1.5 text-[12px] font-bold text-white transition-colors hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {busy ? '…' : '↑'}
             </button>
@@ -397,7 +397,7 @@ function MsgView({
           <div className="space-y-1">
             {STEPS.map((s, i) => (
               <div key={s} className={`flex items-center gap-2 text-[11.5px] ${i <= m.step ? 'text-gray-300' : 'text-gray-600'}`}>
-                <span className={i < m.step ? 'text-emerald-400' : i === m.step ? 'animate-pulse text-sky-400' : 'text-gray-700'}>
+                <span className={i < m.step ? 'text-emerald-400' : i === m.step ? 'animate-pulse text-sky-400' : 'text-gray-500'}>
                   {i < m.step ? '✓' : '●'}
                 </span>
                 {s}

@@ -223,7 +223,7 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: 'scanner') => v
                 <td className="py-2 pr-3 tabular-nums text-gray-400">{r.odo.toLocaleString()} km</td>
                 <td className="py-2 pr-3 tabular-nums text-gray-500">{r.lastFix}</td>
                 <td className="py-2">
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${STATUS_CLS[r.status]}`}>{r.status}</span>
+                  <span className={`whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold ${STATUS_CLS[r.status]}`}>{r.status}</span>
                 </td>
               </tr>
             ))}

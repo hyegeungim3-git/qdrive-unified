@@ -10,7 +10,8 @@ import { useSim } from '../sim/store'
  */
 
 type Grade = 'A' | 'B' | 'C'
-const GRADE_COLOR: Record<Grade, string> = { A: '#03b26c', B: '#3182f6', C: '#fe9800' }
+// 흰 글씨(34px)를 얹는 배지 — 큰 글씨 기준 3:1 이상 (A #03b26c 2.8:1, C #fe9800 2.1:1이었다)
+const GRADE_COLOR: Record<Grade, string> = { A: '#03995c', B: '#3182f6', C: '#c76e00' }
 
 const ROUTES: {
   name: string
@@ -180,7 +181,7 @@ export default function CitizenPublic() {
             ].map(([v, l]) => (
               <div key={l} className="rounded-[14px] bg-white/10 p-4 text-center backdrop-blur-sm">
                 <div className="text-2xl font-bold tabular-nums">{v}</div>
-                <div className="mt-1 text-xs font-semibold text-[#a7d9bd]">{l}</div>
+                <div className="mt-1 text-xs font-semibold text-[#b8e6cc]">{l}</div>
               </div>
             ))}
           </div>
@@ -316,7 +317,7 @@ export default function CitizenPublic() {
               <div className="mt-2.5 text-[11.5px] font-semibold text-gray-500">승용차 170g/km vs 시내버스 1인당 24g/km 기준</div>
               <button
                 onClick={onShare}
-                className="mt-3.5 h-11 rounded-xl bg-emerald-600 px-[22px] text-[13.5px] font-bold text-white transition-colors hover:bg-emerald-500"
+                className="mt-3.5 h-11 rounded-xl bg-emerald-700 px-[22px] text-[13.5px] font-bold text-white transition-colors hover:bg-emerald-800"
               >
                 내 절감량 공유하기
               </button>

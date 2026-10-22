@@ -1,3 +1,4 @@
+import { tripKey } from '../../sim/ontologyGraph'
 import { DEPOTS } from '../../sim/depots'
 import { ROUTES } from '../../sim/routes'
 import type { SimSnapshot } from '../../sim/types'
@@ -13,7 +14,6 @@ export type InstNode = { id: string; cls: string; label: string; sub?: string }
 export type InstEdge = { from: string; to: string; rel: string }
 export type Hood = { center: InstNode; nodes: InstNode[]; edges: InstEdge[] }
 
-const tripId = (vid: string, start: number) => `trip:${vid}:${Math.round(start)}`
 const vehId = (vid: string) => `veh:${vid}`
 const drvId = (name: string) => `drv:${name}`
 const rtId = (id: string) => `rt:${id}`
@@ -32,7 +32,7 @@ export function entryPoints(s: SimSnapshot): InstNode[] {
   const out: InstNode[] = []
   // 공차도 «1회 운행»이다 — 시작 직후엔 출고 공차만 쌓여 있어서, 영업만 보면 시작점이 텅 빈다
   ;[...s.trips, ...s.deadheads].slice(0, 3).forEach((t) =>
-    out.push({ id: tripId(t.vehicleId, t.startSimTime), cls: 'trip', label: `운행 ${shortId(t.vehicleId)}`, sub: `${clock(t.startSimTime)}–${clock(t.endSimTime)} · ${t.routeName}` }),
+    out.push({ id: tripKey(t), cls: 'trip', label: `운행 ${shortId(t.vehicleId)}`, sub: `${clock(t.startSimTime)}–${clock(t.endSimTime)} · ${t.routeName}` }),
   )
   DEPOTS.slice(0, 2).forEach((d) => out.push({ id: depId(d.name), cls: 'depot', label: d.name, sub: `${d.company} · 편도 ${d.deadheadKm}km` }))
   s.vehicles.slice(0, 2).forEach((v) => out.push({ id: vehId(v.id), cls: 'vehicle', label: shortId(v.id), sub: `${v.driverName} · 안전 ${Math.round(v.score)}점` }))
@@ -40,8 +40,9 @@ export function entryPoints(s: SimSnapshot): InstNode[] {
   return out
 }
 
-const nodeOfTrip = (t: { vehicleId: string; startSimTime: number; endSimTime: number; routeName: string; distanceKm: number }): InstNode => ({
-  id: tripId(t.vehicleId, t.startSimTime),
+/* 영업 회차와 출고 공차가 같은 시각에 시작하면 «차량:시작시각»만으로는 겹친다(React key 충돌) — AI Q와 같은 tripKey(순번 포함)를 쓴다 */
+const nodeOfTrip = (t: { vehicleId: string; startSimTime: number; endSimTime: number; routeName: string; distanceKm: number; seq: number }): InstNode => ({
+  id: tripKey(t),
   cls: 'trip',
   label: `운행 ${shortId(t.vehicleId)}`,
   sub: `${clock(t.startSimTime)}–${clock(t.endSimTime)} · ${t.distanceKm}km`,
@@ -62,7 +63,8 @@ export function neighborhood(s: SimSnapshot, focusId: string): Hood | null {
   if (kind === 'trip') {
     const vid = rest[0]
     const start = Number(rest[1])
-    const t = [...s.trips, ...s.deadheads].find((x) => x.vehicleId === vid && Math.round(x.startSimTime) === start)
+    const seq = rest[2] != null ? Number(rest[2]) : null
+    const t = [...s.trips, ...s.deadheads].find((x) => x.vehicleId === vid && Math.round(x.startSimTime) === start && (seq == null || x.seq === seq))
     if (!t) return null
     const v = vOf(vid)
     const route = ROUTES.find((r) => r.name === t.routeName)

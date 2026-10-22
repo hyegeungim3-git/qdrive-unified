@@ -52,6 +52,17 @@
 /* ── 라이트 테마: Tailwind 색상 변수를 스코프 내에서 반전 ──
    다크 기준으로 작성된 유틸리티(text-gray-100, bg-gray-900 등)가
    그대로 라이트 팔레트로 매핑된다. */
+/* 다크(기본) — 캡션 회색이 어두운 카드 위에서 3.4~3.9:1(gray-500)·2.4:1(gray-600)이었다.
+   화면 코드를 고치지 않고 토큰만 올려 전 화면을 4.5:1 이상으로 맞춘다 (2026-10-20 전수 검수) */
+html:not(.light) {
+  --color-gray-500: #8a919e;
+  --color-gray-600: #828a97; /* #7e8693은 gray-800 카드 위 4.48:1로 경계에 걸렸다 */
+}
+/* 흰 글자 버튼 바탕(sky-600)은 양쪽 테마 모두 4.0:1이었다 → 5.0:1 */
+:root {
+  --color-sky-600: #0274b8;
+}
+
 html.light {
   color-scheme: light;
   /* 그레이 스케일 반전 */
@@ -60,32 +71,35 @@ html.light {
   --color-gray-200: #334155;
   --color-gray-300: #475569;
   --color-gray-400: #4c5768;
-  --color-gray-500: #556374;
+  --color-gray-500: #515f70; /* #556374는 보라·하늘 옅은 칩 위 4.44:1이었다 */
   /* 캡션 최저 등급 — 흰 카드 위 WCAG AA(≈4.6:1) 확보 (기존 #94a3b8는 ~2.6:1로 미달) */
-  --color-gray-600: #64748b;
+  --color-gray-600: #5d6c83;
   --color-gray-700: #cbd5e1;
   --color-gray-800: #e2e8f0;
   --color-gray-900: #ffffff;
   --color-gray-950: #f1f5f9;
-  /* 액센트 — 밝은 배경 대비 확보를 위해 진하게 */
+  /* 액센트 — 밝은 배경 대비 확보를 위해 진하게. 300·400은 옅은 색 바탕 칩(bg-*-500/15~20) 위에서도 4.5:1이 되게 맞췄다 (2026-10-20 전수 검수) */
   --color-sky-100: #0c4a6e;
   --color-sky-200: #075985;
-  --color-sky-300: #0369a1;
-  --color-sky-400: #0284c7;
+  --color-sky-300: #025f93; /* #03669d는 활성 탭(bg-sky-500/20) 위 4.32:1이었다 */
+  --color-sky-400: #025f93;
   --color-emerald-200: #065f46;
-  --color-emerald-300: #047857;
-  --color-emerald-400: #059669;
+  --color-emerald-300: #036b4c; /* #047352는 bg-emerald-500/20 칩 위 4.36:1이었다 */
+  --color-emerald-400: #036b4c;
   --color-amber-200: #92400e;
-  --color-amber-300: #b45309;
-  --color-amber-400: #d97706;
+  --color-amber-300: #a14908;
+  --color-amber-400: #994f05;
   --color-red-200: #991b1b;
   --color-red-300: #b91c1c;
-  --color-red-400: #dc2626;
+  --color-red-400: #bf2020;
+  /* 주황(사고 등)은 라이트 보정이 빠져 흰 배경에서 대비 1.9:1이었다 */
+  --color-orange-300: #9a3412;
+  --color-orange-400: #c2410c;
   /* violet-100은 오래 비어 있었다 — text-violet-100을 쓰면 라이트 모드에서 흰 배경에 흰 글씨가 된다 */
   --color-violet-100: #4c1d95;
   --color-violet-200: #5b21b6;
   --color-violet-300: #6d28d9;
-  --color-violet-400: #7c3aed;
+  --color-violet-400: #7533e2; /* #7c3aed는 bg-violet-500/10 위 4.3:1이었다 */
   --color-indigo-300: #4338ca;
 }
 
@@ -388,4 +402,16 @@ html.light ::-webkit-scrollbar-thumb {
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* 좁은 화면(640px 미만) 머리글 — 탭·시나리오 줄은 가로로 밀고, 단추는 엄지로 누를 수 있게 44px.
+   데스크톱 관제 밀도는 그대로 둔다 (2026-10-20 전수 검수: 375px에서 머리글이 426px, 단추 24~26px이었다) */
+@media (width < 40rem) {
+  header button {
+    min-height: 2.75rem;
+  }
+  /* 가로로 밀 수 있다는 표시만 남기는 얇은 막대 */
+  header ::-webkit-scrollbar {
+    height: 3px;
+  }
 }

@@ -24,6 +24,15 @@ interface Reply {
 }
 
 const fmt1 = (n: number) => Math.round(n * 10) / 10
+/** 배차 권고 강제 생성 결과를 문장으로 — 간격이 이미 고르면 만들지 않는다(engine.forceRecommendation) */
+const forceRecoMsg = () => {
+  const r = engine.forceRecommendation()
+  return r === 'created'
+    ? '✓ 배차 권고를 생성했습니다 — 운수사 관제에서 승인해 주세요.'
+    : r === 'pending'
+      ? '이미 대기 중인 배차 권고가 있어요 — 운수사 관제에서 먼저 승인해 주세요.'
+      : '순환2 배차간격이 이미 고릅니다(앞뒤 차이 1분 미만) — 세울 버스가 없어요.'
+}
 const KEY_LS = 'qdrive_api_key'
 
 /** 의도 매칭 → 실시간 데이터 조회 → 답변 */
@@ -81,10 +90,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
         evidence: [`몰림 ${bunched.length}대`, `앞차 간격 ${fmt1(b.headway!.frontGapMin)}분`],
         action: {
           label: '배차 권고 생성',
-          run: () =>
-            engine.forceRecommendation() === 'created'
-              ? '✓ 배차 권고를 생성했습니다 — 운수사 관제에서 승인해 주세요.'
-              : '이미 대기 중인 배차 권고가 있어요 — 운수사 관제에서 먼저 승인해 주세요.',
+          run: forceRecoMsg,
         },
         nav: { tab: 'operator', label: '운수사에서 승인', sub: 'ops' },
       }
@@ -94,10 +100,7 @@ function answer(qRaw: string, snap: SimSnapshot): Reply {
       evidence: [`운행 ${vehicles.length}대 · 몰림 0`],
       action: {
         label: '배차 권고 생성',
-        run: () =>
-          engine.forceRecommendation() === 'created'
-            ? '✓ 배차 권고를 생성했습니다 — 운수사 관제에서 승인해 주세요.'
-            : '이미 대기 중인 배차 권고가 있어요 — 운수사 관제에서 먼저 승인해 주세요.',
+        run: forceRecoMsg,
       },
     }
   }
@@ -330,7 +333,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
       {/* 플로팅 버튼 */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-5 right-5 z-[2500] flex items-center gap-2 rounded-full bg-gradient-to-tr from-sky-600 to-sky-400 px-4 py-3 text-sm font-bold text-white shadow-2xl hover:from-sky-500 hover:to-sky-300"
+        className="fixed bottom-5 right-5 z-[2500] flex items-center gap-2 rounded-full bg-gradient-to-tr from-sky-700 to-sky-600 px-4 py-3 text-sm font-bold text-white shadow-2xl hover:from-sky-800 hover:to-sky-700"
         title="AI Q — 무엇이든 물어보세요"
       >
         <span className="text-lg leading-none">{open ? '✕' : '✨'}</span>
@@ -379,7 +382,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
                   placeholder="sk-ant-..."
                   className="min-w-0 flex-1 rounded-md border border-gray-700 bg-gray-950 px-2.5 py-1.5 text-xs text-gray-100 outline-none focus:border-sky-500"
                 />
-                <button onClick={saveKey} className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-sky-500">저장</button>
+                <button onClick={saveKey} className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-sky-800">저장</button>
                 {hasKey && (
                   <button onClick={clearKey} className="rounded-md border border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-400 hover:text-gray-200">해제</button>
                 )}
@@ -433,7 +436,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
                             const result = m.reply!.action!.run()
                             setMsgs((prev) => [...prev, { role: 'ai', text: result || `✓ 실행했습니다: ${m.reply!.action!.label}` }])
                           }}
-                          className="rounded-md bg-emerald-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-500"
+                          className="rounded-md bg-emerald-700 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-800"
                         >
                           ⚡ {m.reply.action.label}
                         </button>
@@ -479,7 +482,7 @@ export default function Copilot({ onNavigate }: { onNavigate: (tab: string) => v
               placeholder={hasKey ? '무엇이든 물어보세요… (실제 Claude)' : '운영 현황을 물어보세요…'}
               className="min-w-0 flex-1 rounded-xl border border-gray-700 bg-gray-900 px-3 py-2 text-xs text-gray-200 placeholder:text-gray-600 focus:border-sky-500/60 focus:outline-none"
             />
-            <button onClick={send} className="rounded-xl bg-sky-600 px-3 py-2 text-xs font-bold text-white hover:bg-sky-500">→</button>
+            <button onClick={send} className="rounded-xl bg-sky-600 px-3 py-2 text-xs font-bold text-white hover:bg-sky-800">→</button>
           </div>
           <div className="px-3 pb-2 text-center text-[9px] text-gray-600">
             추천 질문: 즉시 데이터 조회 · 자유 입력: {hasKey ? '실제 Claude(라이브)' : 'LLM 연결 시 실제 답변'}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { engine } from '../sim/store'
 import type { SimSnapshot } from '../sim/types'
-import { simClock } from './ui'
+import { josa, simClock } from './ui'
 
 const SPEEDS = [1, 5, 20, 60]
 
@@ -36,8 +36,8 @@ export default function DemoControls({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="rounded-md border border-gray-800 bg-gray-900 px-2.5 py-1 font-mono text-sm text-emerald-400">
+    <div className="flex shrink-0 items-center gap-2 sm:shrink sm:flex-wrap">
+      <span className="rounded-md border border-gray-800 bg-gray-900 px-2.5 py-1 font-mono text-sm text-emerald-300">
         {simClock(snap.simTime)}
       </span>
 
@@ -48,7 +48,7 @@ export default function DemoControls({
             onClick={() => engine.setSpeed(s)}
             className={`px-2 py-1 text-xs font-semibold transition-colors ${
               snap.speedMultiplier === s
-                ? 'bg-sky-600 text-white'
+                ? 'bg-sky-700 text-white'
                 : 'bg-gray-900 text-gray-400 hover:text-gray-200'
             }`}
           >
@@ -66,13 +66,13 @@ export default function DemoControls({
 
       {/* 데모 트리거 — 발표 중 시나리오 구동용 */}
       <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-dashed border-gray-700/70 py-1 pl-2 pr-1.5">
-        <span className="shrink-0 whitespace-nowrap text-[9px] font-bold tracking-widest text-gray-600">시연</span>
+        <span className="shrink-0 whitespace-nowrap text-[9px] font-bold tracking-widest text-gray-400">시연</span>
         <button
           onClick={() => {
             engine.triggerRiskEvent('급감속')
             show({ msg: '⚡ 3742호 급감속 발생 — 기사 태블릿에 경고 표출 중', targetTab: 'driver', targetLabel: '기사 앱' })
           }}
-          className="whitespace-nowrap rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-400 hover:bg-red-500/20"
+          className="whitespace-nowrap rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-300 hover:bg-red-500/20"
           title="주인공 차량(3742)에 급감속 이벤트 발생"
         >
           ⚡ 급감속
@@ -86,7 +86,7 @@ export default function DemoControls({
               targetLabel: '운수사 관제',
             })
           }}
-          className="whitespace-nowrap rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-400 hover:bg-amber-500/20"
+          className="whitespace-nowrap rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-200 hover:bg-amber-500/20"
           title="냉각수온 상승 → 고장예측 시나리오 시작 (재클릭 시 처음부터 재시연)"
         >
           🔧 고장
@@ -107,10 +107,12 @@ export default function DemoControls({
             show(
               r === 'created'
                 ? { msg: '🚌 배차간격 권고 생성 — 승인 대기 중', targetTab: 'operator', targetLabel: '운수사 관제' }
-                : { msg: '🚌 이미 대기 중인 권고가 있어요 — 먼저 승인해 주세요', targetTab: 'operator', targetLabel: '운수사 관제' },
+                : r === 'pending'
+                  ? { msg: '🚌 이미 대기 중인 권고가 있어요 — 먼저 승인해 주세요', targetTab: 'operator', targetLabel: '운수사 관제' }
+                  : { msg: '🚌 순환2 배차간격이 이미 고릅니다 — 몰림이 생기면 권고가 자동으로 만들어져요', targetTab: 'operator', targetLabel: '운수사 관제' },
             )
           }}
-          className="whitespace-nowrap rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-400 hover:bg-sky-500/20"
+          className="whitespace-nowrap rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-300 hover:bg-sky-500/20"
           title="순환2 배차간격 분석 → AI 권고 생성 (운수사 탭에서 승인)"
         >
           🚌 배차
@@ -120,7 +122,7 @@ export default function DemoControls({
             engine.triggerAccident()
             show({ msg: '🚨 접촉사고 발생 — 돌발정보·지도에 표시, 90초 후 처리중 전환', targetTab: 'city', targetLabel: '시티 대시보드' })
           }}
-          className="whitespace-nowrap rounded-md border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-400 hover:bg-orange-500/20"
+          className="whitespace-nowrap rounded-md border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-300 hover:bg-orange-500/20"
           title="주인공 차량 위치에 접촉사고 발생 (발생→처리중→완료 자동 전이)"
         >
           🚨 사고
@@ -145,9 +147,10 @@ export default function DemoControls({
           {toast.targetTab && onNavigate && (
             <button
               onClick={go}
-              className="whitespace-nowrap rounded-md bg-sky-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-sky-500"
+              className="whitespace-nowrap rounded-md bg-sky-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-sky-800"
             >
-              {toast.targetLabel}으로 이동 →
+              {toast.targetLabel}
+              {josa(toast.targetLabel ?? '', '으로/로')} 이동 →
             </button>
           )}
           <button onClick={() => setToast(null)} className="text-gray-500 hover:text-gray-300">

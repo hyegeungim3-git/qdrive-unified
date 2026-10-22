@@ -185,7 +185,7 @@ export default function OperatorView() {
                 {r.status === '대기' ? (
                   <button
                     onClick={() => engine.approveRecommendation(r.id)}
-                    className="rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
+                    className="rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-800"
                   >
                     승인
                   </button>
@@ -197,7 +197,7 @@ export default function OperatorView() {
                         : 'bg-amber-500/20 text-amber-400'
                     }`}
                   >
-                    {r.status === '실행완료' ? '✓ 실행완료 · 간격 회복 검증됨' : '승인됨 · 다음 정류장 실행'}
+                    {r.status === '실행완료' ? `✓ 실행완료 · 정류장에서 ${r.holdSec}초 대기함` : '승인됨 · 다음 정류장 실행'}
                   </span>
                 )}
               </div>
@@ -216,7 +216,7 @@ export default function OperatorView() {
                 {w.status === '초안' ? (
                   <button
                     onClick={() => engine.approveWorkOrder(w.id)}
-                    className="rounded-md bg-amber-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-amber-500"
+                    className="rounded-md bg-amber-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-amber-800"
                   >
                     작업지시 발행
                   </button>
@@ -255,7 +255,7 @@ export default function OperatorView() {
                   <span className="flex shrink-0 gap-1">
                     <button
                       onClick={() => resolveRequest(r.id, '승인')}
-                      className="rounded bg-emerald-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-500"
+                      className="rounded bg-emerald-700 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-800"
                     >
                       승인
                     </button>
@@ -363,7 +363,7 @@ export default function OperatorView() {
                 {p.status === '접수' ? (
                   <button
                     onClick={() => engine.acknowledgePlea(p.id)}
-                    className="shrink-0 rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-500"
+                    className="shrink-0 rounded-md bg-emerald-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-800"
                   >
                     설명 확인
                   </button>

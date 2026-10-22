@@ -122,7 +122,7 @@ export default function Quality({
                     <td className="py-2 pr-3 font-bold text-gray-100">{c.code}</td>
                     {RULES.map((r) => (
                       <td key={r.code} className="py-2 pr-3 text-center">
-                        {set.includes(r.code) ? <span className="text-emerald-400">●</span> : <span className="text-gray-700">—</span>}
+                        {set.includes(r.code) ? <span className="text-emerald-400">●</span> : <span className="text-gray-500">—</span>}
                       </td>
                     ))}
                     <td className="py-2 text-right tabular-nums text-gray-400">{set.length}개</td>

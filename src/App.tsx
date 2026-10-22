@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import DemoControls from './components/DemoControls'
 import Copilot from './components/Copilot'
 import { toggleTheme, useTheme } from './theme'
@@ -38,14 +38,25 @@ function tabFromHash(h: string): TabId | null {
   return (TABS as readonly { id: string }[]).some((t) => t.id === id) ? (id as TabId) : null
 }
 
-/** 해시 라우트 구독 — 시민 공개 페이지(#citizen)는 앱 셸 밖 독립 진입점 */
-function useHashRoute(): string {
+/**
+ * 해시 라우트 구독 — 시민 공개 페이지(#citizen)는 앱 셸 밖 독립 진입점.
+ * 주소를 직접 고치거나 뒤로가기로 해시가 탭을 가리키면 같은 콜백 안에서 탭도 바꾼다.
+ * - hash 상태만 보고 탭을 고르면: 탭 단추는 replaceState로 주소만 바꿔 hash 상태가 옛 값에 머물러,
+ *   #city → (단추) 탄소 → 주소에 다시 #city를 넣어도 상태값이 같아 화면이 안 바뀌었다.
+ * - 탭을 별도 리스너에서 바꾸면: hash 갱신만 먼저 렌더되고 «주소를 탭에 맞추는» 효과가 새 주소를
+ *   옛 탭으로 되돌렸다(#driver에서 #passenger 입력 → #driver로 복귀). 그래서 한 콜백에서 함께 바꾼다.
+ */
+function useHashRoute(onTab: (t: TabId) => void): string {
   const [hash, setHash] = useState(() => window.location.hash)
   useEffect(() => {
-    const on = () => setHash(window.location.hash)
+    const on = () => {
+      setHash(window.location.hash)
+      const t = tabFromHash(window.location.hash)
+      if (t) onTab(t)
+    }
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
-  }, [])
+  }, [onTab])
   return hash
 }
 
@@ -54,19 +65,25 @@ export default function App() {
   const [tab, setTab] = useState<TabId>(() => tabFromHash(window.location.hash) ?? 'city')
   const snap = useSim()
   const theme = useTheme()
-  const hash = useHashRoute()
+  const hash = useHashRoute(setTab)
 
-  /* 탭이 바뀌면 해시에 남긴다. replaceState라 뒤로가기가 탭 전환 이력으로 더럽혀지지 않는다 */
+  /* 탭이 바뀌면 해시에 남긴다. replaceState라 뒤로가기가 탭 전환 이력으로 더럽혀지지 않는다.
+     hash도 지켜본다 — 시민 페이지의 «돌아가기»(해시 비움)·뒤로가기로 빈 주소가 되면 보던 탭 주소를 되살린다 */
   useEffect(() => {
     if (window.location.hash === '#citizen') return
     if (tabFromHash(window.location.hash) !== tab) window.history.replaceState(null, '', `#${tab}`)
-  }, [tab])
+  }, [tab, hash])
 
-  /* 주소를 직접 고치거나 뒤로가기로 해시가 바뀐 경우 — 화면을 따라가게 */
+  /* 좁은 화면의 탭 줄은 가로로 밀린다 — 주소·바로가기로 들어온 탭이 줄 밖에 숨지 않게 (탭 줄만 움직인다) */
+  const navRef = useRef<HTMLElement>(null)
   useEffect(() => {
-    const fromHash = tabFromHash(hash)
-    if (fromHash && fromHash !== tab) setTab(fromHash)
-  }, [hash])
+    const nav = navRef.current
+    const cur = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!nav || !cur || nav.scrollWidth <= nav.clientWidth) return
+    const n = nav.getBoundingClientRect()
+    const c = cur.getBoundingClientRect()
+    if (c.left < n.left || c.right > n.right) nav.scrollLeft += c.left - n.left - 16
+  }, [tab])
 
   // 시민 공개 페이지 — 독립 진입점(공유·배포용), 앱 셸 없이 전체화면 렌더
   if (hash === '#citizen') return <CitizenPublic />
@@ -75,7 +92,7 @@ export default function App() {
     <div className="flex h-svh flex-col">
       {/* 헤더 */}
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 bg-gray-950 px-5 py-2.5">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-x-6 gap-y-1 sm:w-auto">
           <div className="whitespace-nowrap">
             <div className="text-lg font-black tracking-tight text-gray-50">
               Q<span className="text-sky-400">drive</span>
@@ -90,30 +107,32 @@ export default function App() {
               기존 BMS 위에 원인 분석 · 현장 실행 · 효과 확인을 더합니다
             </div>
           </div>
-          <nav className="flex flex-wrap gap-1">
+          {/* 좁은 화면: 탭을 줄바꿈하면 머리글이 화면 절반(426px)을 덮었다 → 가로로 미는 한 줄 */}
+          <nav ref={navRef} aria-label="화면" className="flex w-full gap-1 overflow-x-auto sm:w-auto sm:flex-wrap sm:overflow-visible">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-left transition-colors ${
+                aria-current={tab === t.id ? 'page' : undefined}
+                className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-left transition-colors ${
                   tab === t.id
                     ? 'bg-sky-600/20 text-sky-300 ring-1 ring-sky-500/40'
                     : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'
                 }`}
               >
                 <div className="text-xs font-bold">{t.label}</div>
-                <div className="text-[9px] opacity-60">{t.sub}</div>
+                <div className="text-[9px] font-medium">{t.sub}</div>
               </button>
             ))}
           </nav>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex w-full items-center gap-2 overflow-x-auto sm:w-auto sm:flex-wrap sm:justify-end sm:overflow-visible">
           <DemoControls snap={snap} onNavigate={(t) => setTab(t as TabId)} />
           <button
             onClick={() => {
               window.location.hash = 'citizen'
             }}
-            className="whitespace-nowrap rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-500"
+            className="whitespace-nowrap rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-800"
             title="시민에게 공개되는 탄소 절감 리포트 (SNS·메신저로 공유 가능한 별도 링크)"
           >
             📊 시민 탄소 리포트

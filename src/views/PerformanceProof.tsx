@@ -202,7 +202,7 @@ export default function PerformanceProof() {
                   </td>
                   <td className="py-2 pr-3 font-bold text-gray-100">{s.result}</td>
                   <td className="py-2 pr-3 text-gray-400">{s.source}</td>
-                  <td className="py-2 pr-3 tabular-nums text-gray-500">{s.sample}</td>
+                  <td className="py-2 pr-3 tabular-nums text-gray-400">{s.sample}</td>
                   <td className="py-2">
                     <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${STATUS_CLS[s.status]}`}>
                       {s.cross}

@@ -11,7 +11,7 @@ interface Msg {
 /** 스크립트 기반 정비도우미 응답 (실서비스에서는 LLM + RAG[정비지침서·고장코드 매뉴얼]) */
 function diagnose(vehicleId: string, snap: SimSnapshot): string {
   const v = snap.vehicles.find((x) => x.id === vehicleId)
-  if (!v) return `차량 ${vehicleId}를 찾을 수 없습니다. 차량번호를 확인해 주세요.`
+  if (!v) return `«${vehicleId}» — 해당 차량을 찾을 수 없습니다. 차량번호를 확인해 주세요.`
   const f = snap.fault && snap.fault.vehicleId === v.id ? snap.fault : null
   const harsh = v.eventCounts['급감속'] + v.eventCounts['급정지']
   const lines = [
@@ -114,7 +114,7 @@ export default function MaintChat() {
         />
         <button
           onClick={() => send(input)}
-          className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-500"
+          className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-800"
         >
           →
         </button>

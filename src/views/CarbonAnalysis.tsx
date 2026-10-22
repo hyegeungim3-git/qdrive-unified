@@ -190,7 +190,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
               }`}
             >
               <div className="text-xs font-bold">{t.label}</div>
-              <div className="text-[9px] opacity-60">{t.sub}</div>
+              <div className="text-[9px] font-medium">{t.sub}</div>
             </button>
           ))}
         </nav>
@@ -373,7 +373,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
             <div className="flex flex-col gap-2">
               {CO_RANKS.map((c) => (
                 <div key={c.rank} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                  <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-md text-xs font-bold ${c.rank === 1 ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-gray-300'}`}>{c.rank}</span>
+                  <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-md text-xs font-bold ${c.rank === 1 ? 'bg-emerald-700 text-white' : 'bg-gray-800 text-gray-300'}`}>{c.rank}</span>
                   <span className="w-28 flex-none text-[13px] font-semibold text-gray-200">{c.name}</span>
                   <span className="w-12 flex-none text-[11px] text-gray-500">{c.buses}</span>
                   <div className="h-2.5 flex-1 basis-[120px] overflow-hidden rounded-full bg-gray-800">
@@ -521,7 +521,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
 function FlowCard({ label, value, unit, sub, accent = 'text-gray-100', arrow }: { label: string; value: string; unit?: string; sub?: string; accent?: string; arrow?: boolean }) {
   return (
     <div className="relative rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3">
-      {arrow && <div className="absolute -left-2.5 top-1/2 hidden -translate-y-1/2 text-gray-700 max-[720px]:hidden min-[721px]:block">→</div>}
+      {arrow && <div className="absolute -left-2.5 top-1/2 hidden -translate-y-1/2 text-gray-500 max-[720px]:hidden min-[721px]:block">→</div>}
       <div className="text-[11px] font-semibold text-gray-500">{label}</div>
       <div className={`mt-1 text-xl font-extrabold tracking-tight tabular-nums ${accent}`}>
         {value}
@@ -540,11 +540,12 @@ function Gauge({ value }: { value: number }) {
   const cy = 90
   const circ = Math.PI * R // 반원 길이
   const dash = (v / 100) * circ
-  const color = v >= 90 ? '#34d399' : v >= 80 ? '#fbbf24' : '#f87171'
+  // 색 토큰을 쓴다 — 라이트 모드에서 원색 숫자는 흰 배경 위 1.6~2.7:1이었다
+  const color = v >= 90 ? 'var(--color-emerald-400)' : v >= 80 ? 'var(--color-amber-400)' : 'var(--color-red-400)'
   return (
     <div className="relative mx-auto" style={{ width: 180, height: 104 }}>
       <svg width="180" height="104" viewBox="0 0 180 104">
-        <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`} fill="none" stroke="#374151" strokeWidth="14" strokeLinecap="round" />
+        <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`} fill="none" stroke="var(--color-gray-700)" strokeWidth="14" strokeLinecap="round" />
         <path
           d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`}
           fill="none"

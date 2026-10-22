@@ -124,9 +124,9 @@ export default function AdminConsole({ onNavigate }: { onNavigate?: (tab: string
                 }`}
               >
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-sm font-black ${on ? 'text-sky-400' : done ? 'text-emerald-500/70' : 'text-gray-600'}`}>{s.n}</span>
+                  <span className={`text-sm font-black ${on ? 'text-sky-400' : done ? 'text-emerald-400' : 'text-gray-500'}`}>{s.n}</span>
                   <span className={`text-[13px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{s.label}</span>
-                  {i < STEPS.length - 1 && <span className="ml-auto text-[11px] text-gray-700">→</span>}
+                  {i < STEPS.length - 1 && <span className="ml-auto text-[11px] text-gray-500" aria-hidden>→</span>}
                 </div>
                 <div className="mt-0.5 truncate text-[11px] leading-tight text-gray-500">{s.desc}</div>
                 <div className={`mt-1 truncate text-[11px] font-bold tabular-nums ${on ? 'text-sky-300' : 'text-gray-600'}`}>{stepStat[s.id]}</div>

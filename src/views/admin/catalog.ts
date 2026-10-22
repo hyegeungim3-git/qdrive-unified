@@ -644,7 +644,8 @@ export type Dataset = {
   features: Field[]
   label: string
   refresh: string
-  services: { name: string; tab: string }[]
+  /** sub: 운수사 관제 안의 하위 화면 — 없으면 «관제 현황»으로 열려 «진단 스캐너 →»를 눌러도 다른 화면이 나왔다 */
+  services: { name: string; tab: string; sub?: string }[]
   ready: number
   /** 결측률 % */
   missing: number
@@ -655,7 +656,7 @@ export const DATASETS: Dataset[] = [
   {
     key: 'safety', featureCount: 18, name: '안전운전 이벤트 학습셋', purpose: '위험운전 판정·코칭 효과 학습', ready: 96, missing: 0.4,
     label: '관제 판정 + 기사 상황 설명 결과 (사람 확인 기준)', refresh: '실시간',
-    services: [{ name: '기사 앱 코칭', tab: 'driver' }, { name: '운수사 승인 루프', tab: 'operator' }, { name: '시티 위험 히트맵', tab: 'city' }],
+    services: [{ name: '기사 앱 코칭', tab: 'driver' }, { name: '운수사 승인 루프', tab: 'operator', sub: 'ops' }, { name: '시티 위험 히트맵', tab: 'city' }],
     features: [
       { name: 'event_type', type: 'category(8)' },
       { name: 'speed_before / after', type: 'float' },
@@ -679,7 +680,7 @@ export const DATASETS: Dataset[] = [
   {
     key: 'fuel', featureCount: 22, name: '회차 연비·탄소 학습셋', purpose: '연비 예측 · CO₂ 산정 · 크레딧 검증', ready: 98, missing: 0.1,
     label: '실측 연료(OBD) — 라벨 자동 확보', refresh: '회차 종료 시',
-    services: [{ name: '탄소중립 분석', tab: 'carbon' }, { name: '성과 검증', tab: 'proof' }, { name: '경영·투자', tab: 'operator' }],
+    services: [{ name: '탄소중립 분석', tab: 'carbon' }, { name: '성과 검증', tab: 'proof' }, { name: '경영·투자', tab: 'operator', sub: 'biz' }],
     features: [
       { name: 'route_id', type: 'category' },
       { name: 'distance_km', type: 'float' },
@@ -701,7 +702,7 @@ export const DATASETS: Dataset[] = [
   {
     key: 'fault', featureCount: 21, name: '고장 예측 시계열', purpose: '부품별 이상 징후 → 잔여수명 예측', ready: 91, missing: 1.2,
     label: '정비이력 (작업지시 완료 기록)', refresh: '1초 실시간',
-    services: [{ name: '진단 스캐너', tab: 'operator' }, { name: '예지정비 작업지시', tab: 'operator' }],
+    services: [{ name: '진단 스캐너', tab: 'operator', sub: 'scanner' }, { name: '예지정비 작업지시', tab: 'operator', sub: 'ops' }],
     features: [
       { name: 'coolant_temp', type: 'float' },
       { name: 'rail_pressure', type: 'float' },
@@ -722,7 +723,7 @@ export const DATASETS: Dataset[] = [
   {
     key: 'headway', featureCount: 14, name: '배차·정시성 학습셋', purpose: '배차 간격 몰림 예측 · 도착 예측 보정', ready: 88, missing: 2.1,
     label: '정류장 통과 실적 (RTK·BIS 교차)', refresh: '3초',
-    services: [{ name: '승객 앱 ETA', tab: 'passenger' }, { name: '배차 권고', tab: 'operator' }, { name: '노선 관리', tab: 'operator' }],
+    services: [{ name: '승객 앱 ETA', tab: 'passenger' }, { name: '배차 권고', tab: 'operator', sub: 'ops' }, { name: '노선 관리', tab: 'operator', sub: 'routes' }],
     features: [
       { name: 'front_gap_min / rear_gap_min', type: 'float' },
       { name: 'ideal_gap_min', type: 'float' },
@@ -781,21 +782,21 @@ export const DATASETS: Dataset[] = [
 ]
 
 /* ═══════════ 계보 ═══════════ */
-export const LINEAGE: { src: string[]; ds: string; svc: { name: string; tab: string }[]; stage: Stage }[] = [
+export const LINEAGE: { src: string[]; ds: string; svc: { name: string; tab: string; sub?: string }[]; stage: Stage }[] = [
   { src: ['DTG 409', '날씨·돌발'], ds: '안전운전 이벤트 학습셋', stage: '1차',
-    svc: [{ name: '기사 앱 코칭', tab: 'driver' }, { name: '운수사 승인 루프', tab: 'operator' }, { name: '시티 히트맵', tab: 'city' }] },
+    svc: [{ name: '기사 앱 코칭', tab: 'driver' }, { name: '운수사 승인 루프', tab: 'operator', sub: 'ops' }, { name: '시티 히트맵', tab: 'city' }] },
   { src: ['DTG 521', 'OBD/CAN'], ds: '회차 연비·탄소 학습셋', stage: '1차',
-    svc: [{ name: '탄소중립 분석', tab: 'carbon' }, { name: '성과 검증', tab: 'proof' }, { name: '경영·투자', tab: 'operator' }] },
+    svc: [{ name: '탄소중립 분석', tab: 'carbon' }, { name: '성과 검증', tab: 'proof' }, { name: '경영·투자', tab: 'operator', sub: 'biz' }] },
   { src: ['OBD/CAN', '정비이력'], ds: '고장 예측 시계열', stage: '1차',
-    svc: [{ name: '진단 스캐너', tab: 'operator' }, { name: '예지정비', tab: 'operator' }] },
+    svc: [{ name: '진단 스캐너', tab: 'operator', sub: 'scanner' }, { name: '예지정비', tab: 'operator', sub: 'ops' }] },
   { src: ['RTK', 'BIS 공개 API'], ds: '배차·정시성 학습셋', stage: '1차',
-    svc: [{ name: '승객 앱 ETA', tab: 'passenger' }, { name: '배차 권고', tab: 'operator' }] },
+    svc: [{ name: '승객 앱 ETA', tab: 'passenger' }, { name: '배차 권고', tab: 'operator', sub: 'ops' }] },
   { src: ['DTG 521', 'RTK'], ds: '정산 검증 대조셋', stage: '1차',
     svc: [{ name: '시티 정산 검증', tab: 'city' }, { name: '정책 보고서 에이전트', tab: 'policy' }] },
   { src: ['민원', 'DTG 409', 'RTK'], ds: '민원-증빙 매칭셋', stage: '2차',
     svc: [{ name: '민원 증빙 자동매칭', tab: 'city' }, { name: '승객 앱 민원 추적', tab: 'passenger' }] },
   { src: ['AFC', 'APC'], ds: '수요·혼잡 학습셋 (예정)', stage: '2차',
-    svc: [{ name: '배차 최적화', tab: 'operator' }, { name: '혼잡 안내', tab: 'passenger' }] },
+    svc: [{ name: '배차 최적화', tab: 'operator', sub: 'ops' }, { name: '혼잡 안내', tab: 'passenger' }] },
   { src: ['BMS 배차원장', 'ITS', 'DVR'], ds: '계획-실적 대조셋 (예정)', stage: '3차',
     svc: [{ name: '정산 고도화', tab: 'city' }, { name: '신호 예측 에코코칭', tab: 'driver' }] },
 ]

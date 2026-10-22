@@ -935,7 +935,7 @@ export default function PolicyAgent() {
             onClick={execute}
             disabled={!!running || !canRun}
             className={`rounded-lg px-4 py-2 text-[12px] font-bold transition-colors ${
-              running || !canRun ? 'cursor-not-allowed bg-gray-800 text-gray-500' : 'bg-violet-600 text-white hover:bg-violet-500'
+              running || !canRun ? 'cursor-not-allowed bg-gray-800 text-gray-500' : 'bg-violet-600 text-white hover:bg-violet-700'
             }`}
           >
             {running ? '작성 중…' : `▶ 보고서 자동 작성 시작 — ${rt.name}`}
@@ -1203,7 +1203,7 @@ export default function PolicyAgent() {
           )}
 
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <button onClick={copyOut} className="rounded-md bg-violet-600/80 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-violet-600">
+            <button onClick={copyOut} className="rounded-md bg-violet-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-violet-700">
               {copied === true ? '✓ 복사됨' : copied === false ? '복사 실패 — 권한 확인' : '📋 전체 복사'}
             </button>
             <button
@@ -1311,7 +1311,7 @@ export default function PolicyAgent() {
                 }}
                 disabled={!!sent[p.id]}
                 className={`mt-2 w-full rounded-md px-2 py-1.5 text-[11px] font-bold transition-colors ${
-                  sent[p.id] ? 'cursor-default bg-emerald-500/15 text-emerald-400' : 'bg-violet-600/80 text-white hover:bg-violet-600'
+                  sent[p.id] ? 'cursor-default bg-emerald-500/15 text-emerald-400' : 'bg-violet-600 text-white hover:bg-violet-700'
                 }`}
               >
                 {sent[p.id] ? `✓ ${p.dept} 발송 완료 (${sent[p.id]})` : `${p.dept}로 발송 승인`}

@@ -10,6 +10,8 @@ import { entryPoints, neighborhood, type InstNode } from './instance'
  */
 
 const colorOf = (cls: string) => ONTO.find((c) => c.key === cls)?.color ?? '#94a3b8'
+/* 글자에 쓸 때는 클래스 색을 본문색과 반씩 섞는다 — 파스텔 원색 그대로는 흰 바탕에서 2:1이었다(라이트에서 진해지고 다크에서 밝아진다) */
+const textColorOf = (cls: string) => `color-mix(in srgb, ${colorOf(cls)} 50%, var(--color-gray-100))`
 const nameOf = (cls: string) => ONTO.find((c) => c.key === cls)?.label ?? cls
 
 export default function Explorer({ snap }: { snap: SimSnapshot }) {
@@ -93,10 +95,10 @@ export default function Explorer({ snap }: { snap: SimSnapshot }) {
           <span className="text-[10.5px] font-semibold text-gray-500">지나온 경로</span>
           {trail.map((t) => (
             <span key={t.id} className="flex items-center gap-1">
-              <button onClick={() => go(t)} className="text-[11px] font-semibold hover:underline" style={{ color: colorOf(t.cls) }}>
+              <button onClick={() => go(t)} className="text-[11px] font-semibold hover:underline" style={{ color: textColorOf(t.cls) }}>
                 {t.label}
               </button>
-              <span className="text-gray-700">→</span>
+              <span className="text-gray-500" aria-hidden>→</span>
             </span>
           ))}
           <span className="text-[11px] font-bold text-gray-200">{hood.center.label}</span>
@@ -185,13 +187,13 @@ export default function Explorer({ snap }: { snap: SimSnapshot }) {
             if (!from || !to) return null
             return (
               <div key={i} className="flex flex-wrap items-center gap-1.5 border-b border-gray-800/50 py-1 text-[11.5px] last:border-0">
-                <button onClick={() => go(from)} className="font-bold hover:underline" style={{ color: colorOf(from.cls) }}>
+                <button onClick={() => go(from)} className="font-bold hover:underline" style={{ color: textColorOf(from.cls) }}>
                   {from.label}
                 </button>
                 <span className="text-gray-600">─</span>
                 <span className="rounded bg-gray-800 px-1.5 py-0.5 text-[10.5px] font-semibold text-gray-300">{e.rel}</span>
                 <span className="text-gray-600">→</span>
-                <button onClick={() => go(to)} className="font-bold hover:underline" style={{ color: colorOf(to.cls) }}>
+                <button onClick={() => go(to)} className="font-bold hover:underline" style={{ color: textColorOf(to.cls) }}>
                   {to.label}
                 </button>
                 <span className="ml-auto text-[10.5px] text-gray-600">

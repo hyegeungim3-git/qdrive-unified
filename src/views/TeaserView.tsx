@@ -132,7 +132,7 @@ export default function TeaserView() {
                 </div>
                 <div className="mt-0.5 text-[11px] text-gray-500">{p.frame}</div>
               </div>
-              <div className={`flex-1 space-y-2 px-4 py-3 ${p.status === 'vision' ? 'opacity-70' : ''}`}>
+              <div className={`flex-1 space-y-2 px-4 py-3 ${p.status === 'vision' ? 'border-t border-dashed border-gray-800' : ''}`}>
                 {p.items.map((it) => (
                   <div key={it.source} className="rounded-lg bg-gray-800/50 px-3 py-2">
                     <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export default function TeaserView() {
                   : 'border-violet-500/30 bg-violet-500/10 text-violet-300'
               }`}
             >
-              {name} <span className="opacity-60">· {stage}</span>
+              {name} <span className="text-gray-500">· {stage}</span>
             </span>
           ))}
         </div>

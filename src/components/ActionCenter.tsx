@@ -32,6 +32,12 @@ interface ActionTask {
   approveLabel: string
   approvedMsg: string
   onApprove?: (s: SimSnapshot) => void
+  /**
+   * 엔진 상태로 본 «이미 처리됨». 같은 일을 다른 화면(관제 현황의 작업지시 발행, 시티의 민원 단계)에서도
+   * 처리할 수 있는 업무는 이걸로 판정한다 — 조치함 안의 승인 기록만 보면 남이 처리한 건이 «승인 대기»로
+   * 남고, 재시연으로 새 초안이 생겨도 «완료»에 고착된다.
+   */
+  settled?: (s: SimSnapshot) => boolean
 }
 
 const TASKS: ActionTask[] = [
@@ -66,9 +72,11 @@ const TASKS: ActionTask[] = [
     approveLabel: '검토·승인 후 발송',
     approvedMsg: '✓ 회신문 발송 완료 · 민원 처리 상태 갱신',
     onApprove: (s) => {
-      const c = s.complaints.find((x) => x.evidence && x.status !== '해결')
+      const c = s.complaints.find((x) => x.evidence && x.status === '원인식별')
       if (c) engine.advanceComplaint(c.id)
     },
+    // 회신은 «원인식별» 다음 단계 — 시티 화면에서 단계를 넘겼어도 처리된 것으로 본다
+    settled: (s) => !s.complaints.some((c) => c.evidence && c.status === '원인식별'),
   },
   {
     id: 'work-order',
@@ -97,6 +105,8 @@ const TASKS: ActionTask[] = [
       const w = s.workOrders.find((x) => x.status === '초안')
       if (w) engine.approveWorkOrder(w.id)
     },
+    // 관제 현황 «작업지시 발행»으로 먼저 처리돼도 완료 — 재시연(고장 다시 누름)으로 새 초안이 생기면 다시 대기
+    settled: (s) => !s.workOrders.some((w) => w.status === '초안'),
   },
   {
     id: 'coaching-target',
@@ -206,16 +216,16 @@ const TASKS: ActionTask[] = [
 
 // 승인 완료 상태는 모듈 레벨로 유지 — 탭 전환(언마운트)에도, 시티/운수사 어느 쪽에서 봐도 보존
 const doneStore = new Set<string>()
+const isDoneTask = (t: ActionTask, s: SimSnapshot) => (t.settled ? t.ready(s) && t.settled(s) : doneStore.has(t.id))
 
 export function actionOwnerReadyCount(owner: ActionOwner, snap: SimSnapshot): number {
-  return TASKS.filter((t) => t.owner === owner && t.ready(snap) && !doneStore.has(t.id)).length
+  return TASKS.filter((t) => t.owner === owner && t.ready(snap) && !isDoneTask(t, snap)).length
 }
 
 /** 조치함 카드 목록 — owner로 고정 필터, 토글 없음(대구시/버스회사 각자 맥락에 이미 있음) */
 export function ActionCenterList({ owner, snap }: { owner: ActionOwner; snap: SimSnapshot }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [, forceRender] = useState(0)
-  const done = (id: string) => doneStore.has(id)
   const markDone = (id: string) => {
     doneStore.add(id)
     forceRender((v) => v + 1)
@@ -227,7 +237,7 @@ export function ActionCenterList({ owner, snap }: { owner: ActionOwner; snap: Si
     <div className="flex flex-col gap-2.5">
       {tasks.map((t) => {
         const isReady = t.ready(snap)
-        const isDone = done(t.id)
+        const isDone = isDoneTask(t, snap)
         const isOpen = expanded === t.id
         const doc = isReady ? t.document(snap) : null
         return (
@@ -293,7 +303,7 @@ export function ActionCenterList({ owner, snap }: { owner: ActionOwner; snap: Si
                         t.onApprove?.(snap)
                         markDone(t.id)
                       }}
-                      className="rounded-md bg-violet-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-violet-500"
+                      className="rounded-md bg-violet-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-violet-700"
                     >
                       {t.approveLabel}
                     </button>

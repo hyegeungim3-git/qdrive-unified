@@ -899,14 +899,17 @@ export class SimEngine {
         const rearIdx = loop ? (i - 1 + n) % n : i - 1
         const front = frontIdx < n ? sorted[frontIdx] : null
         const rear = rearIdx >= 0 ? sorted[rearIdx] : null
-        const gapTo = (o: VehicleState | null) => {
-          if (!o) return Infinity
-          let d = prog(o) - prog(v)
+        // 진행 방향으로 from → to 거리. 뒷차 간격은 «뒷차에서 나까지» 잰다 —
+        // 나에서 뒷차로 재면 순환선에서는 한 바퀴를 거의 다 도는 거리(전체 − 실제 뒷간격)가 나와
+        // 몰리지 않은 순환선 버스가 늘 «벌어짐»으로 판정됐다
+        const gapAlong = (from: VehicleState | null, to: VehicleState | null) => {
+          if (!from || !to) return Infinity
+          let d = prog(to) - prog(from)
           if (loop) d = ((d % total) + total) % total
           return Math.abs(d) / AVG_M_PER_MIN
         }
-        const frontGapMin = gapTo(front)
-        const rearGapMin = gapTo(rear)
+        const frontGapMin = gapAlong(v, front)
+        const rearGapMin = gapAlong(rear, v)
         let status: Headway['status'] = 'normal'
         if (front && frontGapMin < idealMin * 0.5) status = 'bunching'
         else if (rear && rearGapMin > idealMin * 1.6 && rearGapMin !== Infinity) status = 'gap'

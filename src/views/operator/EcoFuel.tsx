@@ -67,7 +67,7 @@ export default function EcoFuel() {
       </div>
 
       {/* 낭비 원인 분해 (waterfall bar) */}
-      <Panel title="🔎 연료 낭비 원인 분해 (실증 9대 누적)" right={<span className="text-[11px] text-gray-500">코칭 가능분 vs 환경 요인</span>}>
+      <Panel title="🔎 연료 낭비 원인 분해 (운행 9대 누적)" right={<span className="text-[11px] text-gray-500">코칭 가능분 vs 환경 요인</span>}>
         {totalWaste < 0.05 ? (
           <div className="py-6 text-center text-xs text-gray-600">
             데이터를 수집하고 있습니다
@@ -106,7 +106,7 @@ export default function EcoFuel() {
       </Panel>
 
       {/* AI 절감 시뮬레이션 */}
-      <Panel title="💡 AI 절감 시뮬레이션" right={<span className="text-[11px] text-gray-500">실증 9대 → 대구 CNG 전체 1,513대 연간</span>}>
+      <Panel title="💡 AI 절감 시뮬레이션" right={<span className="text-[11px] text-gray-500">운행 9대 → 대구 CNG 전체 1,513대 연간</span>}>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="rounded-lg bg-gray-800/50 px-3 py-3">
             <div className="text-xl font-extrabold tabular-nums text-gray-100">

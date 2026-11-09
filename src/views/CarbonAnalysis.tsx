@@ -32,7 +32,7 @@ import { setOperatorSubtabIntent } from '../sim/navIntent'
 // ── 기간별 성과 (원본 periodData 이식) — 월/연은 서사값, 일간은 엔진 라이브로 덮어씀 ──
 const PERIODS = {
   일간: {
-    title: '오늘, 안전운전이 만든 절감', asOf: '금일 운행분 · 실증 9대 실시간 집계',
+    title: '오늘, 안전운전이 만든 절감', asOf: '금일 운행분 · 차량 9대 실시간 집계',
     km: '129,200', kmSub: '금일 운행 누적', eff: '+4.3%', effSub: '2.42 → 2.52 km/L (경유)',
     fuel: '784', fuelSub: '기준선 대비 -4.1%', co2: '2.1', co2Pct: '-4.3%',
     fuelUnit: 'L', labels: ['7/5', '7/6', '7/7', '7/8', '7/9', '7/10', '7/11'],
@@ -249,7 +249,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
             <div className="mt-3 rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-4 py-2.5 text-[11px] leading-relaxed text-gray-400">
               {isLive ? (
                 <>
-                  <b className="text-emerald-400">일간 = 엔진 실시간 집계</b> — 실증 9대의 코칭 적용/미적용(baseline) 연료 차이로 산출. 배속을 올리면 값이 빠르게 쌓여요.
+                  <b className="text-emerald-400">일간 = 엔진 실시간 집계</b> — 운행 차량 9대의 코칭 적용/미적용(baseline) 연료 차이로 산출. 배속을 올리면 값이 빠르게 쌓여요.
                 </>
               ) : (
                 <>산정 기준 — 경유 배출계수 2.68 kgCO₂/L · 도입 전 12개월 노선별 연비 기준선 대비, 실측 방식(OBD·DTG 교차 검증)은 실증 시 적용</>
@@ -435,7 +435,7 @@ export default function CarbonAnalysis({ onNavigate }: { onNavigate?: (tab: stri
           <div className="grid grid-cols-[240px_1fr] gap-3 max-[720px]:grid-cols-1">
             <Panel title="평균 운전점수" right={<span className="rounded-full bg-emerald-500/12 px-2 py-0.5 text-[10px] font-bold text-emerald-400">LIVE</span>}>
               <Gauge value={avgScore} />
-              <div className="mt-1 text-center text-[11px] text-gray-500">실증 9대 실시간 평균 (감점·회복 반영)</div>
+              <div className="mt-1 text-center text-[11px] text-gray-500">운행 차량 9대 실시간 평균 (감점·회복 반영)</div>
             </Panel>
             <Panel title="위험운전 이벤트 (엔진 실집계)">
               <div className="h-40">

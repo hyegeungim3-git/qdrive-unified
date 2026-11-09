@@ -172,7 +172,7 @@ export default function Depot() {
         <div className="grid grid-cols-1 gap-3 min-[860px]:grid-cols-2">
           <div>
             <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
-              실증 9대 단말 · 실시간
+              운행 9대 단말 · 실시간
             </span>
             <div className="mt-2 space-y-1.5">
               {snap.vehicles.slice(0, 4).map((v) => (

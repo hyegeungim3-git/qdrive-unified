@@ -72,7 +72,7 @@ function LiveChip() {
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
       </span>
-      실증 9대 · 실시간
+      운행 9대 · 실시간
     </span>
   )
 }
@@ -117,13 +117,13 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: 'scanner') => v
           <div className="text-xs text-gray-500">차량 등록·조회와 정비 이력, AI 예지정비를 자산 대장 관점에서 관리해요</div>
         </div>
         <span className="text-[10px] text-gray-600">
-          준공영제 참여 5개사 412대 (세운 98 포함) · <b className="text-emerald-400">실증 9대 라이브</b>
+          준공영제 참여 5개사 412대 (세운 98 포함) · <b className="text-emerald-400">운행 9대 라이브</b>
         </span>
       </div>
 
       {/* A. 플릿 요약 KPI 4카드 — 헤드라인 정적(회사) + sub 라이브 각주 */}
       <div className="grid grid-cols-4 gap-3 max-[900px]:grid-cols-2">
-        <KpiCard label="등록 차량" value={COMPANY_KPI.registered.toLocaleString()} unit="대" sub={`이번 달 신규 ${COMPANY_KPI.newThisMonth}대 · 실증 ${liveCount}대 라이브`} />
+        <KpiCard label="등록 차량" value={COMPANY_KPI.registered.toLocaleString()} unit="대" sub={`이번 달 신규 ${COMPANY_KPI.newThisMonth}대 · 운행 ${liveCount}대 라이브`} />
         <KpiCard label="정비 입고" value={String(COMPANY_KPI.inMaint)} unit="대" sub={`금일 출고 예정 ${COMPANY_KPI.releaseToday}대 · 실증 발행 ${issuedWO}건`} accent="text-amber-400" />
         <KpiCard label="예지정비 알림" value={String(COMPANY_KPI.predictive)} unit="건" sub={`고장 예측 30일 이내 · 실증 초안 ${draftWO}건`} accent="text-red-400" />
         <KpiCard label="평균 차령" value={COMPANY_KPI.avgAgeY.toFixed(1)} unit="년" sub={`교체 권장 ${COMPANY_KPI.replaceRec}대 (노후 경유)`} />
@@ -131,7 +131,7 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: 'scanner') => v
 
       {/* C. 라이브 9대 브리지 — 실증 차량 실시간 자산·상태 */}
       <Panel
-        title="실증 차량 9대 · 자산 현황"
+        title="운행 차량 9대 · 자산 현황"
         right={<LiveChip />}
       >
         <table className="w-full text-left text-xs">
@@ -236,7 +236,7 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: 'scanner') => v
             )}
           </tbody>
         </table>
-        <div className="mt-1.5 text-[10px] text-gray-600">* 준공영제 5개사 대장 예시(정적) · 검색은 실동작 · 실증 9대 실시간은 위 표에서</div>
+        <div className="mt-1.5 text-[10px] text-gray-600">* 준공영제 5개사 대장 예시(정적) · 검색은 실동작 · 운행 9대 실시간은 위 표에서</div>
       </Panel>
 
       {/* D·E. 상태 도넛 + 예지정비 딥링크 */}
@@ -288,7 +288,7 @@ export default function VehicleRegistry({ onSub }: { onSub?: (t: 'scanner') => v
               <div className="mt-1.5 text-[11px] leading-relaxed text-gray-500">
                 {predicted
                   ? `${snap.fault?.vehicleId.slice(-4)}호 ${snap.fault?.kind} 예측 — OBD 센서 이상 감지. 진단 스캐너에서 실시간 센서값을 확인하세요.`
-                  : '실증 9대 OBD·DTG 실시간 감시 중 — 냉각수온·레일압력 이상 예측 시 작업지시 초안이 자동 생성돼요.'}
+                  : '운행 차량 9대 OBD·DTG 실시간 감시 중 — 냉각수온·레일압력 이상 예측 시 작업지시 초안이 자동 생성돼요.'}
               </div>
             </div>
             <button

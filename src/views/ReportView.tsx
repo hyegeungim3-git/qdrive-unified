@@ -60,7 +60,7 @@ export default function ReportView() {
               </span>
             </h2>
             <div className="mt-1 text-xs text-gray-500 break-keep">
-              대상: 실증 9대 (3개 노선 · CNG) · 기간: 도입 전 4주 / 후 4주 · 측정: 주유량 대사 + DTG 주행거리
+              대상: 차량 9대 (3개 노선 · CNG) · 기간: 도입 전 4주 / 후 4주 · 측정: 주유량 대사 + DTG 주행거리
             </div>
           </div>
           <div className="rounded-lg border border-dashed border-gray-700 px-3 py-2 text-center text-[10px] text-gray-500">
@@ -138,7 +138,7 @@ export default function ReportView() {
         <div className="grid grid-cols-3 gap-4 text-sm">
           {[
             {
-              n: '실증 9대',
+              n: '운행 차량 9대',
               co2: '12.6 톤/년',
               note: '실증 실측 기반 (형식 예시)',
               cls: 'border-emerald-500/30',

@@ -431,7 +431,7 @@ export default function PolicyAgent() {
     rows: [
       ['연료 절감', `${kpi.fuelSavedPct.toFixed(1)}%`, `${fmtN(savedM3 * k)}m³`, `${annualEok.toFixed(1)}억원/년`],
       ['CO₂ 감축', `${kpi.totalCo2SavedKg.toFixed(1)}kg`, 'CNG 배출계수 2.2 kgCO₂/m³', '온실가스 감축 실적 반영'],
-      ['적용 범위', `실증 ${runCnt}대`, `CNG ${DAEGU_CNG_FLEET.toLocaleString()}대 환산`, '단순 선형 가정'],
+      ['적용 범위', `운행 ${runCnt}대`, `CNG ${DAEGU_CNG_FLEET.toLocaleString()}대 환산`, '단순 선형 가정'],
     ],
   })
 

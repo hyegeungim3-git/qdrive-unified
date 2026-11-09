@@ -60,9 +60,9 @@ export default function PerformanceProof() {
 
   // ── ④ 서비스별 성과 + 신뢰지표 ──
   const services: Svc[] = [
-    { icon: '⛽', name: '연료 절감', result: `순수 절감 −${netPct.toFixed(1)}%`, source: 'OBD 연료분사 × DTG', sample: `실증 ${n}대`, cross: 'OBD·DTG 교차', status: '교차' },
-    { icon: '🌱', name: 'CO₂ 감축', result: `${(kpi.totalCo2SavedKg / 1000).toFixed(2)}t 누적`, source: '연료 × 배출계수 2.2 (CNG)', sample: `실증 ${n}대`, cross: '연비 기반', status: '검증' },
-    { icon: '🛡️', name: '안전운전 개선', result: `평균 ${kpi.avgScore.toFixed(1)}점`, source: 'DTG 409 위험운전', sample: `실증 ${n}대`, cross: '상황 반영', status: '검증' },
+    { icon: '⛽', name: '연료 절감', result: `순수 절감 −${netPct.toFixed(1)}%`, source: 'OBD 연료분사 × DTG', sample: `운행 ${n}대`, cross: 'OBD·DTG 교차', status: '교차' },
+    { icon: '🌱', name: 'CO₂ 감축', result: `${(kpi.totalCo2SavedKg / 1000).toFixed(2)}t 누적`, source: '연료 × 배출계수 2.2 (CNG)', sample: `운행 ${n}대`, cross: '연비 기반', status: '검증' },
+    { icon: '🛡️', name: '안전운전 개선', result: `평균 ${kpi.avgScore.toFixed(1)}점`, source: 'DTG 409 위험운전', sample: `운행 ${n}대`, cross: '상황 반영', status: '검증' },
     { icon: '🔧', name: '예지정비', result: '결행·긴급출동 예방', source: 'OBD/CAN 센서 시계열', sample: '고장 시나리오', cross: '센서 점검', status: '교차' },
     { icon: '♻️', name: '감축량 인증', result: '321.1 tCO₂ 인증 대상', source: 'OBD×DTG 실측', sample: '2~6월 확정', cross: '검증기관 제출', status: '제출' },
   ]

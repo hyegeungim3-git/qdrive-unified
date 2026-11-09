@@ -354,7 +354,7 @@ function MapHud({
                 title="표시용 버스는 거리·연료·CO₂·안전점수 등 실증 집계에 포함되지 않습니다"
                 className="rounded-full border border-gray-700 bg-gray-900 px-2 py-[3px] text-[10px] font-bold text-gray-400"
               >
-                표시용 {bgCount} · 실증 {drivenCount}대
+                표시용 {bgCount} · 집계 {drivenCount}대
               </span>
             )
           )}

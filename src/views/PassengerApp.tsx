@@ -170,7 +170,7 @@ export default function PassengerApp() {
                 <div className="text-base font-bold text-gray-100">{STOP_NAME}</div>
                 {/* 정류장 부가정보는 기준 정류장이 바뀌면 같이 틀어진다 — 노선 수처럼 데이터에서 나오는 것만 적는다 */}
                 <div className="text-[10px] text-gray-500">
-                  이 정류장에 서는 노선 {ROUTES.filter((r) => r.stops.some((x) => x.name === STOP_NAME)).length}개 · 실증 {ROUTES.length}개 노선 도착 예정
+                  이 정류장에 서는 노선 {ROUTES.filter((r) => r.stops.some((x) => x.name === STOP_NAME)).length}개 · 운행 {ROUTES.length}개 노선 도착 예정
                 </div>
               </div>
             </div>

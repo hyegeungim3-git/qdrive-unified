@@ -390,7 +390,7 @@ export default function OperatorView() {
         right={
           <div className="flex items-center gap-2">
             <span className="text-[11px] tabular-nums text-gray-500">
-              {rosterRows.length}/{snap.vehicles.length}대 · 실증 라이브
+              {rosterRows.length}/{snap.vehicles.length}대 · 실시간
             </span>
             <input
               value={rosterQ}

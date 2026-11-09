@@ -477,7 +477,7 @@ const runEventContext = (s: SimSnapshot, targetId?: string): QaResult => {
           const avg = s.kpi.avgScore
           return [
             `이 차량 누적 위험운전 ${mine}건 · ${decel.routeName} 전체 ${onRoute}건`,
-            veh ? `이 차량 안전점수 ${Math.round(veh.score)}점 · 실증 9대 평균 ${avg.toFixed(1)}점 (${veh.score >= avg ? '평균 이상' : '평균 이하'})` : '',
+            veh ? `이 차량 안전점수 ${Math.round(veh.score)}점 · 운행 9대 평균 ${avg.toFixed(1)}점 (${veh.score >= avg ? '평균 이상' : '평균 이하'})` : '',
             veh ? `방어운전 크레딧 ${veh.defenseCredits}건 — 정당 인정·소명 인정이 쌓인 수` : '',
           ].filter(Boolean)
         })(),
@@ -664,7 +664,7 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
       ...(depTrip
         ? [{ q: `${short(depTrip.vehicleId)} ${depTrip.seq}회차는 영업인가 공차인가`, topic: 'tripKind', target: `t:${depTrip.vehicleId}:${Math.round(depTrip.startSimTime)}` }]
         : []),
-      { q: '실증 9대 전체의 감축은 코칭 때문인가 유가 때문인가', topic: 'attribution', target: 'all' },
+      { q: '운행 9대 전체의 감축은 코칭 때문인가 유가 때문인가', topic: 'attribution', target: 'all' },
     ],
     detail:
       `${top.company} 소속 ${top.depot}가 오늘 만든 공차가 가장 많습니다. 편도 회송거리 ${km(top.oneWay)}가 출·입고마다 반복되기 때문입니다. ` +
@@ -698,7 +698,7 @@ const runDepotDeadhead = (s: SimSnapshot, targetId?: string): QaResult => {
 const PERSONA_LABEL: Record<string, string> = { A: '모범 운전군', B: '평균 운전군', C: '코칭 대상군' }
 
 export const vehicleTargets = (s: SimSnapshot): QaTarget[] =>
-  [{ id: 'all', label: '실증 9대 전체', sub: '기사군 A/B/C 대조' },
+  [{ id: 'all', label: '운행 9대 전체', sub: '기사군 A/B/C 대조' },
    ...s.vehicles.map((v) => ({ id: v.id, label: short(v.id), sub: `${v.driverName} · ${PERSONA_LABEL[v.persona]}` }))]
 
 const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
@@ -746,7 +746,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
   return {
     id, q, path, sources,
     walk: one ? walkOf(s, `veh:${one.id}`, one.id) : walkOf(s, `veh:${s.vehicles[0]?.id ?? ''}`, s.vehicles[0]?.id ?? ''),
-    subject: one ? `${one.id} (${one.driverName} 기사 · ${PERSONA_LABEL[one.persona]})` : '실증 9대 전체',
+    subject: one ? `${one.id} (${one.driverName} 기사 · ${PERSONA_LABEL[one.persona]})` : '운행 9대 전체',
     record: one
       ? {
           title: `연료 실측 vs 기준선 — ${one.id}`,
@@ -795,14 +795,14 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
           const allPct = allBase > 0 ? ((allBase - allAct) / allBase) * 100 : 0
           return one
             ? [
-                `이 차량 −${pct.toFixed(2)}% · 실증 9대 전체 −${allPct.toFixed(2)}% (${pct >= allPct ? '전체보다 큼' : '전체보다 작음'})`,
+                `이 차량 −${pct.toFixed(2)}% · 운행 9대 전체 −${allPct.toFixed(2)}% (${pct >= allPct ? '전체보다 큼' : '전체보다 작음'})`,
                 `같은 기사군(${PERSONA_LABEL[one.persona]}) 기준 −${(byPersona.find((g) => g.p === one.persona)?.pct ?? 0).toFixed(2)}%`,
               ]
-            : [`실증 ${s.vehicles.length}대 합산 −${allPct.toFixed(2)}%`, '기사군별 차등이 코칭 효과의 인과 지문입니다']
+            : [`운행 ${s.vehicles.length}대 합산 −${allPct.toFixed(2)}%`, '기사군별 차등이 코칭 효과의 인과 지문입니다']
         })(),
       },
       {
-        h: one ? `낭비 요인 분해 — ${short(one.id)}` : `낭비 요인 분해 — 실증 ${s.vehicles.length}대 합계`,
+        h: one ? `낭비 요인 분해 — ${short(one.id)}` : `낭비 요인 분해 — 운행 ${s.vehicles.length}대 합계`,
         src: ['DTG 409'],
         items: [
           `운전 습관 ${waste.habit.toFixed(2)}m³ · 급조작 ${waste.harsh.toFixed(2)}m³`,
@@ -811,7 +811,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
       },
     ],
     confidence: confOf(sources),
-    basis: basisOf(s, one ? `${short(one.id)} 1대` : `실증 ${s.vehicles.length}대 · 회차 ${s.trips.length}건`),
+    basis: basisOf(s, one ? `${short(one.id)} 1대` : `운행 ${s.vehicles.length}대 · 회차 ${s.trips.length}건`),
     cross: [
       (() => {
         /*
@@ -866,7 +866,7 @@ const runAttribution = (s: SimSnapshot, targetId?: string): QaResult => {
     limits: [
       { text: '연료 «가격»은 다루지 않습니다 — 이 비교는 연료 양이며, 유가 데이터는 연결돼 있지 않습니다', unlock: '유가 정보' },
       { text: '정비 상태로 인한 연비 차이는 분리하지 못합니다 — 정비이력이 회차 단위로 붙어야 가능합니다', unlock: '정비이력 연계' },
-      ...(one ? [] : [{ text: '기사군 평균은 실증 9대 표본입니다 — 회사 전체로 일반화할 수 없습니다', unlock: '전 차량 확대' }]),
+      ...(one ? [] : [{ text: '기사군 평균은 운행 9대 표본입니다 — 회사 전체로 일반화할 수 없습니다', unlock: '전 차량 확대' }]),
     ],
     follow: one
       ? [

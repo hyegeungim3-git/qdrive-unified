@@ -489,7 +489,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
                 </div>
               ))}
             </div>
-            <div className="mt-1.5 text-[9px] text-gray-600">* 도시 전체 계통 통계(준공영제) · 3노선 실증은 지도·랭킹에서 라이브</div>
+            <div className="mt-1.5 text-[9px] text-gray-600">* 도시 전체 계통 통계(준공영제) · 운행 3노선은 지도·랭킹에서 라이브</div>
           </Panel>
         )}
 
@@ -675,7 +675,7 @@ export default function CityDashboard({ onNavigate }: { onNavigate?: (tab: strin
       <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
         {prefs.kpi && (
           <div className="grid grid-cols-2 gap-3">
-            <KpiCard label="운행 차량" value={String(snap.vehicles.length)} unit="대" sub="3개 노선 실증" />
+            <KpiCard label="운행 차량" value={String(snap.vehicles.length)} unit="대" sub="3개 노선" />
             <KpiCard
               label="총 주행거리"
               value={kpi.totalDistanceKm.toFixed(1)}

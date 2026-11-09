@@ -768,7 +768,7 @@ function reportMeta(snap: SimSnapshot) {
   return {
     date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
     elapsed: `${Math.floor(snap.simTime / 60)}분 ${pad(Math.floor(snap.simTime % 60))}초`,
-    scope: `실증 ${snap.vehicles.length}대 · 영업 ${snap.trips.length}회 · 공차 ${snap.deadheads.length}회`,
+    scope: `운행 ${snap.vehicles.length}대 · 영업 ${snap.trips.length}회 · 공차 ${snap.deadheads.length}회`,
   }
 }
 
@@ -925,7 +925,7 @@ function buildReport(items: ReportItem[], snap: SimSnapshot): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   const elapsed = `${Math.floor(snap.simTime / 60)}분 ${pad(Math.floor(snap.simTime % 60))}초`
   L.push(`- 작성 시점: ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())} (운행 시뮬레이션 경과 ${elapsed})`)
-  L.push(`- 내보낸 시점 기준 누적: 실증 ${snap.vehicles.length}대 · 영업 ${snap.trips.length}회 · 공차 ${snap.deadheads.length}회`)
+  L.push(`- 내보낸 시점 기준 누적: 운행 ${snap.vehicles.length}대 · 영업 ${snap.trips.length}회 · 공차 ${snap.deadheads.length}회`)
   L.push('- 각 답의 수치는 «그 답을 낸 시점»의 집계입니다 — 절마다 적힌 집계 구간이 기준입니다.')
   L.push('- 답의 수치는 전부 운행 데이터에서 계산된 값이며, 각 절에 출처를 함께 적었습니다.', '')
 

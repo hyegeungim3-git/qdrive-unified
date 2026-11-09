@@ -71,7 +71,7 @@ function LiveChip() {
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
       </span>
-      실증 {ROUTES.length}개 노선 · 실시간
+      운행 {ROUTES.length}개 노선 · 실시간
     </span>
   )
 }
@@ -103,13 +103,13 @@ export default function RouteRegistry() {
           <div className="text-xs text-gray-500">노선 정보와 운행 데이터, 노선 효율을 분석해요 · 정책 제안은 시티 대시보드 AI 정책 보고서에서</div>
         </div>
         <span className="text-[10px] text-gray-600">
-          대구시 노선망 128개(예시) · <b className="text-emerald-400">실증 {ROUTES.length}개 노선 라이브</b>
+          대구시 노선망 128개(예시) · <b className="text-emerald-400">운행 {ROUTES.length}개 노선 라이브</b>
         </span>
       </div>
 
       {/* A. 노선망 KPI 4카드 — 정적 헤드라인 + 실증 라이브 각주 */}
       <div className="grid grid-cols-4 gap-3 max-[900px]:grid-cols-2">
-        <KpiCard label="운영 노선" value={String(NETWORK_KPI.totalRoutes)} unit="개" sub={`${NETWORK_KPI.byType} · 실증 ${ROUTES.length}개 라이브`} />
+        <KpiCard label="운영 노선" value={String(NETWORK_KPI.totalRoutes)} unit="개" sub={`${NETWORK_KPI.byType} · 운행 ${ROUTES.length}개 라이브`} />
         <KpiCard label="일 평균 운행" value={NETWORK_KPI.dailyTrips.toLocaleString()} unit="회" sub={`일 주행 ${NETWORK_KPI.dailyKm.toLocaleString()}km · 실증 ${snap.kpi.totalDistanceKm.toFixed(1)}km`} />
         <KpiCard label="평균 정시율" value={NETWORK_KPI.onTimeRate.toFixed(1)} unit="%" accent="text-emerald-400" sub={`전월대비 ${NETWORK_KPI.onTimeDelta} · 실증 노선 ${liveAvgOnTime.toFixed(1)}% (예시)`} />
         <KpiCard label="저효율 노선" value={String(NETWORK_KPI.lowEfficiency)} unit="개" accent="text-amber-400" sub={worstEff ? `AI 개편 검토 권장 · 실증 최저 ${worstEff.route.name}` : 'AI 개편 검토 권장'} />
@@ -185,7 +185,7 @@ export default function RouteRegistry() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-1 text-[10px] text-gray-600">대구시 4계통 월간 수송 인원(예시) · 엔진 실증은 급행·순환 2계통만 운행</div>
+          <div className="mt-1 text-[10px] text-gray-600">대구시 4계통 월간 수송 인원(예시) · 라이브 운행은 급행·순환 2계통만</div>
         </Panel>
       </div>
 
@@ -219,7 +219,7 @@ export default function RouteRegistry() {
               </tbody>
             </table>
           </div>
-          <div className="mt-1.5 text-[10px] text-gray-600">지도에 함께 표시되는 노선 기준 예시 데이터 · 실증 3개 노선(급행1·순환2·급행3)은 위 라이브 표에서</div>
+          <div className="mt-1.5 text-[10px] text-gray-600">지도에 함께 표시되는 노선 기준 예시 데이터 · 운행 3개 노선(급행1·순환2·급행3)은 위 라이브 표에서</div>
         </Panel>
     </div>
   )
